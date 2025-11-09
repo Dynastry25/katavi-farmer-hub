@@ -4,6 +4,7 @@ import './Navbar.css';
 const Navbar = ({ currentPage, onPageChange, onAuth, user }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
 
   const navItems = [
     { id: 'home', label: 'Nyumbani', icon: 'fas fa-home' },
@@ -25,14 +26,31 @@ const Navbar = ({ currentPage, onPageChange, onAuth, user }) => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (isProfileOpen && !event.target.closest('.user-profile')) {
+        setIsProfileOpen(false);
+      }
+    };
+
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, [isProfileOpen]);
+
   const handleNavClick = (pageId) => {
     onPageChange(pageId);
     setIsMenuOpen(false);
+    setIsProfileOpen(false);
   };
 
   const handleAuthClick = (action) => {
     onAuth(action);
     setIsMenuOpen(false);
+    setIsProfileOpen(false);
+  };
+
+  const handleProfileToggle = () => {
+    setIsProfileOpen(!isProfileOpen);
   };
 
   return (
@@ -67,23 +85,74 @@ const Navbar = ({ currentPage, onPageChange, onAuth, user }) => {
         <div className="nav-auth">
           {user ? (
             <div className="user-menu">
-              <div className="user-info">
-                <span className="user-name">Habari, {user.name}</span>
-                <span className="user-role">{user.role}</span>
-              </div>
-              <div className="user-actions">
-                <button 
-                  className="btn btn-outline btn-sm"
-                  onClick={() => handleNavClick('dashboard')}
-                >
-                  <i className="fas fa-tachometer-alt"></i> Dashibodi
-                </button>
-                <button 
-                  className="btn btn-outline btn-sm"
-                  onClick={() => handleAuthClick('logout')}
-                >
-                  <i className="fas fa-sign-out-alt"></i> Toka
-                </button>
+              {/* Profile Picture & Dropdown */}
+              <div className="user-profile">
+                <div className="profile-avatar1" onClick={handleProfileToggle}>
+                  {user.profilePicture ? (
+                    <img src={user.profilePicture} alt={user.name} className="avatar-img" />
+                  ) : (
+                    <div className="avatar-placeholder">
+                      <i className="fas fa-user"></i>
+                    </div>
+                  )}
+                  
+                </div>
+                
+                {/* Profile Dropdown Menu */}
+                {isProfileOpen && (
+                  <div className="profile-dropdown">
+                    <div className="dropdown-header">
+                      {user.profilePicture ? (
+                        <img src={user.profilePicture} alt={user.name} className="dropdown-avatar" />
+                      ) : (
+                        <div className="dropdown-avatar placeholder">
+                          <i className="fas fa-user"></i>
+                        </div>
+                      )}
+                      <div className="dropdown-user-info">
+                        <div className="dropdown-name">{user.name}</div>
+                        <div className="dropdown-role">{user.role}</div>
+                        <div className="dropdown-email">{user.email || 'hakuna barua pepe'}</div>
+                      </div>
+                    </div>
+                    
+                    <div className="dropdown-divider"></div>
+                    
+                    <button 
+                      className="dropdown-item"
+                      onClick={() => handleNavClick('profile')}
+                    >
+                      <i className="fas fa-user-edit"></i>
+                      <span>Wasilisha Profaili</span>
+                    </button>
+                    
+                    <button 
+                      className="dropdown-item"
+                      onClick={() => handleNavClick('dashboard')}
+                    >
+                      <i className="fas fa-tachometer-alt"></i>
+                      <span>Dashibodi Yangu</span>
+                    </button>
+                    
+                    <button 
+                      className="dropdown-item"
+                      onClick={() => handleNavClick('settings')}
+                    >
+                      <i className="fas fa-cog"></i>
+                      <span>Mipangilio</span>
+                    </button>
+                    
+                    <div className="dropdown-divider"></div>
+                    
+                    <button 
+                      className="dropdown-item logout"
+                      onClick={() => handleAuthClick('logout')}
+                    >
+                      <i className="fas fa-sign-out-alt"></i>
+                      <span>Toka</span>
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           ) : (
@@ -132,12 +201,25 @@ const Navbar = ({ currentPage, onPageChange, onAuth, user }) => {
             {user ? (
               <>
                 <div className="mobile-user-info">
-                  <i className="fas fa-user"></i>
+                  {user.profilePicture ? (
+                    <img src={user.profilePicture} alt={user.name} className="mobile-avatar" />
+                  ) : (
+                    <div className="mobile-avatar placeholder">
+                      <i className="fas fa-user"></i>
+                    </div>
+                  )}
                   <div>
                     <div className="user-name">{user.name}</div>
                     <div className="user-role">{user.role}</div>
+                    <div className="user-email">{user.email || 'hakuna barua pepe'}</div>
                   </div>
                 </div>
+                <button 
+                  className="btn btn-outline btn-sm"
+                  onClick={() => handleNavClick('profile')}
+                >
+                  <i className="fas fa-user-edit"></i> Wasilisha Profaili
+                </button>
                 <button 
                   className="btn btn-outline btn-sm"
                   onClick={() => handleNavClick('dashboard')}
@@ -146,6 +228,12 @@ const Navbar = ({ currentPage, onPageChange, onAuth, user }) => {
                 </button>
                 <button 
                   className="btn btn-outline btn-sm"
+                  onClick={() => handleNavClick('settings')}
+                >
+                  <i className="fas fa-cog"></i> Mipangilio
+                </button>
+                <button 
+                  className="btn btn-outline btn-sm logout"
                   onClick={() => handleAuthClick('logout')}
                 >
                   <i className="fas fa-sign-out-alt"></i> Toka
@@ -170,6 +258,9 @@ const Navbar = ({ currentPage, onPageChange, onAuth, user }) => {
           </div>
         </div>
       </div>
+
+      {/* Overlay for profile dropdown */}
+      {isProfileOpen && <div className="profile-overlay"></div>}
     </nav>
   );
 };

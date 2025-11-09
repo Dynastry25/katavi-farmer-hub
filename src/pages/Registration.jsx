@@ -61,6 +61,26 @@ const Registration = ({ onPageChange, onAuth, user }) => {
   const wards = ['Mpanda Mjini', 'Karema', 'Sitalike', 'Ikola', 'Kibaoni'];
   const villages = ['Kijiji cha Msingi', 'Kijiji cha Pili', 'Kijiji cha Tatu'];
 
+  const businessTypes = [
+    'Duka la Rejareja',
+    'Duka la Jumla',
+    'Wasanidi wa Mazao',
+    'Wauzaji Nje ya Nchi',
+    'Kampuni ya Chakula',
+    'Mfanyabiashara Mwingine'
+  ];
+
+  const expertiseAreas = [
+    'Utaalamu wa Udongo',
+    'Utaalamu wa Mazao',
+    'Udhibiti wa Wadudu',
+    'Umwagiliaji',
+    'Masoko ya Mazao',
+    'Ufugaji',
+    'Teknolojia ya Kilimo',
+    'Mifugo'
+  ];
+
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
     
@@ -90,6 +110,18 @@ const Registration = ({ onPageChange, onAuth, user }) => {
   };
 
   const handleNext = () => {
+    // Validate current step before proceeding
+    if (step === 2) {
+      if (!formData.fullName || !formData.email || !formData.phone || !formData.password || !formData.confirmPassword) {
+        alert('Tafadhali jaza sehemu zote za lazima');
+        return;
+      }
+      if (formData.password !== formData.confirmPassword) {
+        alert('Nenosiri na uthibitisho wa nenosiri hazifanani');
+        return;
+      }
+    }
+    
     if (step < 3) {
       setStep(step + 1);
     }
@@ -104,7 +136,13 @@ const Registration = ({ onPageChange, onAuth, user }) => {
   const handleSubmit = (e) => {
     e.preventDefault();
     
-    // Simulate registration success
+    // Validate final step
+    if (!formData.district || !formData.ward || !formData.village) {
+      alert('Tafadhali jaza sehemu zote za lazima');
+      return;
+    }
+
+    // Create user object based on type
     const newUser = {
       id: Math.random().toString(36).substr(2, 9),
       name: formData.fullName,
@@ -112,9 +150,33 @@ const Registration = ({ onPageChange, onAuth, user }) => {
       phone: formData.phone,
       role: userType,
       location: formData.district,
-      registrationDate: new Date().toISOString()
+      registrationDate: new Date().toISOString(),
+      // Additional user-specific data
+      ...(userType === 'farmer' && {
+        farmSize: formData.farmSize,
+        farmLocation: formData.farmLocation,
+        crops: formData.crops,
+        type: 'farmer'
+      }),
+      ...(userType === 'buyer' && {
+        businessType: formData.businessType,
+        businessLocation: formData.businessLocation,
+        type: 'buyer'
+      }),
+      ...(userType === 'expert' && {
+        expertise: formData.expertise,
+        experience: formData.experience,
+        type: 'expert'
+      }),
+      // Common additional info
+      district: formData.district,
+      ward: formData.ward,
+      village: formData.village,
+      idNumber: formData.idNumber,
+      dateOfBirth: formData.dateOfBirth
     };
     
+    // Register user and redirect to appropriate dashboard
     onAuth('register-success', newUser);
   };
 
@@ -124,7 +186,7 @@ const Registration = ({ onPageChange, onAuth, user }) => {
         <div className="step-number">1</div>
         <div className="step-info">
           <h2>Chagua Aina ya Akaunti</h2>
-          <p>Chagua aina ya akaunti unayotaka kujiandikisha</p>
+          <p>Chagua aina ya akaunti unayotaka kujiandikisha. Uchaguzi huu utaathiri dashibodi na huduma utakazopata.</p>
         </div>
       </div>
 
@@ -140,6 +202,32 @@ const Registration = ({ onPageChange, onAuth, user }) => {
             </div>
             <h3 className="type-label">{type.label}</h3>
             <p className="type-description">{type.description}</p>
+            <div className="type-features">
+              {type.value === 'farmer' && (
+                <ul>
+                  <li>⫸ Weka mazao yako kwenye soko</li>
+                  <li>⫸ Pata wanunuzi wa moja kwa moja</li>
+                  <li>⫸ Pata ushauri wa kilimo</li>
+                  <li>⫸ Fuata bei za soko</li>
+                </ul>
+              )}
+              {type.value === 'buyer' && (
+                <ul>
+                  <li>⫸ Tafuta mazao bora kwa bei nafuu</li>
+                  <li>⫸ Wasiliana na wakulima moja kwa moja</li>
+                  <li>⫸ Pata mazao kwa kiwango kikubwa</li>
+                  <li>⫸ Angalia ubora wa mazao</li>
+                </ul>
+              )}
+              {type.value === 'expert' && (
+                <ul>
+                  <li>⫸ Toa ushauri kwa wakulima</li>
+                  <li>⫸ Andika makala za kilimo</li>
+                  <li>⫸ Pata malipo kwa huduma zako</li>
+                  <li>⫸ Kuwa sehemu ya jamii ya wataalamu</li>
+                </ul>
+              )}
+            </div>
             <div className="selection-indicator">
               <i className="fas fa-check"></i>
             </div>
@@ -166,7 +254,7 @@ const Registration = ({ onPageChange, onAuth, user }) => {
         <div className="step-number">2</div>
         <div className="step-info">
           <h2>Taarifa za Msingi</h2>
-          <p>Jaza taarifa zako za msingi</p>
+          <p>Jaza taarifa zako za msingi. Taarifa hizi zitasaidia wakulima/wanunuzi kukupata na kukuwasiliana.</p>
         </div>
       </div>
 
@@ -211,6 +299,7 @@ const Registration = ({ onPageChange, onAuth, user }) => {
             className="form-control"
             placeholder="+255 XXX XXX XXX"
           />
+          <small className="form-hint">Tutatumia namba hii kwa mawasiliano muhimu</small>
         </div>
 
         <div className="form-group">
@@ -223,8 +312,10 @@ const Registration = ({ onPageChange, onAuth, user }) => {
             onChange={handleInputChange}
             required
             className="form-control"
-            placeholder="Weka nenosiri"
+            placeholder="Weka nenosiri lenye herufi 8 au zaidi"
+            minLength="8"
           />
+          <small className="form-hint">Angalau herufi 8, yenye namba na herufi</small>
         </div>
 
         <div className="form-group">
@@ -245,7 +336,7 @@ const Registration = ({ onPageChange, onAuth, user }) => {
       {/* User Type Specific Fields */}
       {userType === 'farmer' && (
         <div className="user-specific-fields">
-          <h3>Taarifa za Kilimo</h3>
+          <h3>📋 Taarifa za Kilimo</h3>
           <div className="form-grid">
             <div className="form-group">
               <label htmlFor="farmSize">Ukubwa wa Shamba</label>
@@ -256,8 +347,9 @@ const Registration = ({ onPageChange, onAuth, user }) => {
                 value={formData.farmSize}
                 onChange={handleInputChange}
                 className="form-control"
-                placeholder="Mf. Ekari 5"
+                placeholder="Mf. Ekari 5, Hekta 2"
               />
+              <small className="form-hint">Ukubwa wa shamba lako (si lazima)</small>
             </div>
 
             <div className="form-group">
@@ -269,13 +361,13 @@ const Registration = ({ onPageChange, onAuth, user }) => {
                 value={formData.farmLocation}
                 onChange={handleInputChange}
                 className="form-control"
-                placeholder="Kijiji, Kata"
+                placeholder="Kijiji, Kata au Eneo la shamba"
               />
             </div>
           </div>
 
           <div className="form-group">
-            <label>Mazao Unayolima</label>
+            <label>Mazao Unayolima (Chagua zote zinazofaa)</label>
             <div className="crops-grid">
               {cropsList.map(crop => (
                 <label key={crop} className="crop-checkbox">
@@ -296,7 +388,7 @@ const Registration = ({ onPageChange, onAuth, user }) => {
 
       {userType === 'buyer' && (
         <div className="user-specific-fields">
-          <h3>Taarifa za Biashara</h3>
+          <h3>🏪 Taarifa za Biashara</h3>
           <div className="form-grid">
             <div className="form-group">
               <label htmlFor="businessType">Aina ya Biashara</label>
@@ -308,10 +400,9 @@ const Registration = ({ onPageChange, onAuth, user }) => {
                 className="form-control"
               >
                 <option value="">Chagua aina ya biashara</option>
-                <option value="retail">Duka la Rejareja</option>
-                <option value="wholesale">Duka la Jumla</option>
-                <option value="processor">Wasanidi wa Mazao</option>
-                <option value="exporter">Wauzaji Nje ya Nchi</option>
+                {businessTypes.map(type => (
+                  <option key={type} value={type}>{type}</option>
+                ))}
               </select>
             </div>
 
@@ -324,37 +415,46 @@ const Registration = ({ onPageChange, onAuth, user }) => {
                 value={formData.businessLocation}
                 onChange={handleInputChange}
                 className="form-control"
-                placeholder="Mji, Mtaa"
+                placeholder="Mji, Mtaa, Jina la duka"
               />
             </div>
+          </div>
+          
+          <div className="buyer-benefits">
+            <h4>✅ Faida za Kujiandikisha kama Mnunuzi:</h4>
+            <ul>
+              <li>Pata mazao moja kwa moja kutoka kwa wakulima</li>
+              <li>Punguza gharama za wapatanishi</li>
+              <li>Angalia ubora wa mazao kabla ya kununua</li>
+              <li>Wasiliana na wakulima kwa urahisi</li>
+            </ul>
           </div>
         </div>
       )}
 
       {userType === 'expert' && (
         <div className="user-specific-fields">
-          <h3>Taarifa za Utaalamu</h3>
+          <h3>🎓 Taarifa za Utaalamu</h3>
           <div className="form-grid">
             <div className="form-group">
-              <label htmlFor="expertise">Utaalamu</label>
+              <label htmlFor="expertise">Eneo la Utaalamu *</label>
               <select
                 id="expertise"
                 name="expertise"
                 value={formData.expertise}
                 onChange={handleInputChange}
                 className="form-control"
+                required
               >
                 <option value="">Chagua eneo la utaalamu</option>
-                <option value="soil">Utaalamu wa Udongo</option>
-                <option value="crops">Utaalamu wa Mazao</option>
-                <option value="pests">Udhibiti wa Wadudu</option>
-                <option value="irrigation">Umwagiliaji</option>
-                <option value="marketing">Masoko ya Mazao</option>
+                {expertiseAreas.map(area => (
+                  <option key={area} value={area}>{area}</option>
+                ))}
               </select>
             </div>
 
             <div className="form-group">
-              <label htmlFor="experience">Uzoefu (Miaka)</label>
+              <label htmlFor="experience">Uzoefu (Miaka) *</label>
               <input
                 type="number"
                 id="experience"
@@ -364,8 +464,19 @@ const Registration = ({ onPageChange, onAuth, user }) => {
                 className="form-control"
                 placeholder="Mf. 5"
                 min="0"
+                required
               />
             </div>
+          </div>
+          
+          <div className="expert-benefits">
+            <h4>✅ Faida za Kujiandikisha kama Mtaalamu:</h4>
+            <ul>
+              <li>Toa ushauri kwa wakulima na upate malipo</li>
+              <li>Andika makala za kilimo na ujenge sifa</li>
+              <li>Shiriki ujuzi wako na jamii ya wakulima</li>
+              <li>Pata fursa za kufanya mafunzo na semina</li>
+            </ul>
           </div>
         </div>
       )}
@@ -395,7 +506,7 @@ const Registration = ({ onPageChange, onAuth, user }) => {
         <div className="step-number">3</div>
         <div className="step-info">
           <h2>Taarifa za Ziada</h2>
-          <p>Jaza taarifa zingine muhimu</p>
+          <p>Jaza taarifa zingine muhimu kukukusaidia kupata huduma bora zaidi.</p>
         </div>
       </div>
 
@@ -462,6 +573,7 @@ const Registration = ({ onPageChange, onAuth, user }) => {
             className="form-control"
             placeholder="Namba ya NIDA/Kitambulisho"
           />
+          <small className="form-hint">Itasaidia kuthibitisha utambulisho wako</small>
         </div>
 
         <div className="form-group">
@@ -477,12 +589,72 @@ const Registration = ({ onPageChange, onAuth, user }) => {
         </div>
       </div>
 
+      {/* User Type Summary */}
+      <div className="user-summary">
+        <h3>📊 Muhtasari wa Akaunti Yako</h3>
+        <div className="summary-content">
+          <div className="summary-item">
+            <strong>Aina ya Akaunti:</strong>
+            <span className={`user-type-badge ${userType}`}>
+              {userType === 'farmer' && '👨‍🌾 Mkulima'}
+              {userType === 'buyer' && '🛒 Mnunuzi'}
+              {userType === 'expert' && '🎓 Mtaalamu'}
+            </span>
+          </div>
+          <div className="summary-item">
+            <strong>Jina:</strong> {formData.fullName}
+          </div>
+          <div className="summary-item">
+            <strong>Barua Pepe:</strong> {formData.email}
+          </div>
+          <div className="summary-item">
+            <strong>Simu:</strong> {formData.phone}
+          </div>
+          <div className="summary-item">
+            <strong>Eneo:</strong> {formData.district} - {formData.ward} - {formData.village}
+          </div>
+          
+          {userType === 'farmer' && (
+            <>
+              <div className="summary-item">
+                <strong>Ukubwa wa Shamba:</strong> {formData.farmSize || 'Haijajazwa'}
+              </div>
+              <div className="summary-item">
+                <strong>Mazao:</strong> {formData.crops.length > 0 ? formData.crops.join(', ') : 'Bado haijachaguliwa'}
+              </div>
+            </>
+          )}
+          
+          {userType === 'buyer' && (
+            <>
+              <div className="summary-item">
+                <strong>Aina ya Biashara:</strong> {formData.businessType || 'Haijajazwa'}
+              </div>
+            </>
+          )}
+          
+          {userType === 'expert' && (
+            <>
+              <div className="summary-item">
+                <strong>Utaalamu:</strong> {formData.expertise || 'Haijajazwa'}
+              </div>
+              <div className="summary-item">
+                <strong>Uzoefu:</strong> {formData.experience ? `${formData.experience} miaka` : 'Haijajazwa'}
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+
       {/* Terms and Conditions */}
       <div className="terms-section">
         <label className="terms-checkbox">
           <input type="checkbox" required />
           <span className="checkmark"></span>
-          Nakubali <a href="#">Sheria na Masharti</a> ya kutumia jukwaa la Katavi E-Kilimo
+          <div className="terms-text">
+            Nakubali <a href="#" onClick={(e) => e.preventDefault()}>Sheria na Masharti</a> ya kutumia jukwaa la Katavi E-Kilimo.
+            Naelewa kuwa taarifa zangu zitatumika kwa madhumuni ya kuwezesha biashara na mawasiliano kwenye jukwaa.
+          </div>
         </label>
       </div>
 

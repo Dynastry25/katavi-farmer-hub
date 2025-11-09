@@ -21,17 +21,23 @@ import Contact from './pages/Contact';
 import Registration from './pages/Registration';
 import Dashboard from './pages/Dashboard';
 
+// New Dashboard Pages
+import FarmerDashboard from './UI/Dashboard/FarmerDashboard';
+import ExpertDashboard from './UI/Dashboard/ExpertDashboard';
+import BuyerDashboard from './UI/Dashboard/BuyerDashboard';
+
 import { sampleCrops, newsArticles, weatherData, priceData } from './data/sampleData';
 import './App.css';
 
 function App() {
   const [currentPage, setCurrentPage] = useState('home');
   const [isLoading, setIsLoading] = useState(true);
+  const [pageLoading, setPageLoading] = useState(false);
   const [user, setUser] = useState(null);
   const [crops] = useState(sampleCrops);
   const [articles] = useState(newsArticles);
 
-  // Simulate app loading
+  // Simulate initial app loading
   useEffect(() => {
     const timer = setTimeout(() => {
       setIsLoading(false);
@@ -40,41 +46,90 @@ function App() {
     // Check if user is logged in from localStorage
     const savedUser = localStorage.getItem('kataviUser');
     if (savedUser) {
-      setUser(JSON.parse(savedUser));
+      const userData = JSON.parse(savedUser);
+      setUser(userData);
+      
+      // Auto-redirect to appropriate dashboard based on user role
+      if (userData.role === 'farmer') {
+        setCurrentPage('farmer-dashboard');
+      } else if (userData.role === 'expert') {
+        setCurrentPage('expert-dashboard');
+      } else if (userData.role === 'buyer') {
+        setCurrentPage('buyer-dashboard');
+      }
     }
 
     return () => clearTimeout(timer);
   }, []);
 
   const handlePageChange = (page) => {
-    setCurrentPage(page);
-    window.scrollTo(0, 0);
+    // Show loading when changing pages
+    setPageLoading(true);
+    
+    setTimeout(() => {
+      setCurrentPage(page);
+      window.scrollTo(0, 0);
+      
+      // Hide loading after page transition
+      setTimeout(() => {
+        setPageLoading(false);
+      }, 500);
+    }, 800);
   };
 
   const handleAuth = (action, userData = null) => {
     if (action === 'login') {
+      setPageLoading(true);
+      
       // Simulate login - in real app, this would be an API call
-      const mockUser = {
-        id: 1,
-        name: 'Juma Mwinyi',
-        email: 'juma@example.com',
-        role: 'farmer',
-        phone: '+255 123 456 789',
-        location: 'Mpanda'
-      };
-      setUser(mockUser);
-      localStorage.setItem('kataviUser', JSON.stringify(mockUser));
-      setCurrentPage('dashboard');
+      setTimeout(() => {
+        const mockUser = {
+          id: 1,
+          name: 'Juma Mwinyi',
+          email: 'juma@example.com',
+          role: 'farmer',
+          phone: '+255 123 456 789',
+          location: 'Mpanda',
+          registrationDate: new Date().toISOString()
+        };
+        setUser(mockUser);
+        localStorage.setItem('kataviUser', JSON.stringify(mockUser));
+        setCurrentPage('farmer-dashboard');
+        setPageLoading(false);
+      }, 1500);
+      
     } else if (action === 'register') {
-      setCurrentPage('registration');
+      setPageLoading(true);
+      setTimeout(() => {
+        setCurrentPage('registration');
+        setPageLoading(false);
+      }, 800);
+      
     } else if (action === 'logout') {
-      setUser(null);
-      localStorage.removeItem('kataviUser');
-      setCurrentPage('home');
+      setPageLoading(true);
+      setTimeout(() => {
+        setUser(null);
+        localStorage.removeItem('kataviUser');
+        setCurrentPage('home');
+        setPageLoading(false);
+      }, 800);
+      
     } else if (action === 'register-success' && userData) {
-      setUser(userData);
-      localStorage.setItem('kataviUser', JSON.stringify(userData));
-      setCurrentPage('dashboard');
+      setPageLoading(true);
+      setTimeout(() => {
+        setUser(userData);
+        localStorage.setItem('kataviUser', JSON.stringify(userData));
+        
+        // Redirect to appropriate dashboard based on user role
+        if (userData.role === 'farmer') {
+          setCurrentPage('farmer-dashboard');
+        } else if (userData.role === 'expert') {
+          setCurrentPage('expert-dashboard');
+        } else if (userData.role === 'buyer') {
+          setCurrentPage('buyer-dashboard');
+        }
+        setPageLoading(false);
+      }, 1500);
     }
   };
 
@@ -150,6 +205,16 @@ function App() {
       case 'dashboard':
         return <Dashboard {...commonProps} user={user} crops={crops} />;
       
+      // New Dashboard Pages
+      case 'farmer-dashboard':
+        return <FarmerDashboard {...commonProps} user={user} crops={crops} />;
+      
+      case 'expert-dashboard':
+        return <ExpertDashboard {...commonProps} user={user} />;
+      
+      case 'buyer-dashboard':
+        return <BuyerDashboard {...commonProps} user={user} crops={crops} />;
+      
       default:
         return (
           <div className="min-h-screen bg-background">
@@ -174,8 +239,14 @@ function App() {
     }
   };
 
+  // Show initial app loading
   if (isLoading) {
-    return <Loading />;
+    return <Loading message="Inapakia Jukwaa la Katavi E-Kilimo..." />;
+  }
+
+  // Show page transition loading
+  if (pageLoading) {
+    return <Loading message="Inapakia Ukurasa..." />;
   }
 
   return (
