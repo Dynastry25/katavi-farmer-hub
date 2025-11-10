@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import './WeatherWidget.css';
 
 const WeatherWidget = ({ onPageChange }) => {
   const [weatherData, setWeatherData] = useState(null);
   const [selectedLocation, setSelectedLocation] = useState('Mpanda');
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Simulate API call
+    // Simulate API call with loading delay
     const mockWeatherData = {
       Mpanda: {
         temperature: 25,
@@ -34,7 +36,11 @@ const WeatherWidget = ({ onPageChange }) => {
       }
     };
 
-    setWeatherData(mockWeatherData);
+    // Simulate API loading delay
+    setTimeout(() => {
+      setWeatherData(mockWeatherData);
+      setIsLoading(false);
+    }, 1500);
   }, []);
 
   const locations = ['Mpanda', 'Mlele', 'Nsimbo'];
@@ -49,14 +55,90 @@ const WeatherWidget = ({ onPageChange }) => {
     }
   };
 
-  if (!weatherData) {
+  // Animation variants
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        delayChildren: 0.3,
+        staggerChildren: 0.2
+      }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { y: 20, opacity: 0 },
+    visible: {
+      y: 0,
+      opacity: 1,
+      transition: {
+        type: "spring",
+        stiffness: 100
+      }
+    }
+  };
+
+  const locationButtonVariants = {
+    initial: { scale: 1 },
+    hover: { 
+      scale: 1.05,
+      transition: { type: "spring", stiffness: 400, damping: 10 }
+    },
+    tap: { scale: 0.95 }
+  };
+
+  const weatherIconVariants = {
+    initial: { scale: 1, rotate: 0 },
+    animate: { 
+      scale: [1, 1.1, 1],
+      rotate: [0, 5, -5, 0],
+      transition: { 
+        duration: 2,
+        repeat: Infinity,
+        repeatType: "reverse"
+      }
+    }
+  };
+
+  const temperatureVariants = {
+    initial: { scale: 0.8, opacity: 0 },
+    animate: { 
+      scale: 1, 
+      opacity: 1,
+      transition: { type: "spring", stiffness: 200 }
+    }
+  };
+
+  if (isLoading) {
     return (
       <section className="weather-widget">
         <div className="container">
-          <div className="weather-loading">
-            <i className="fas fa-cloud-sun"></i>
-            <p>Inapakia taarifa za hali ya hewa...</p>
-          </div>
+          <motion.div 
+            className="weather-loading"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+          >
+            <motion.i 
+              className="fas fa-cloud-sun"
+              animate={{ 
+                rotate: 360,
+                scale: [1, 1.2, 1]
+              }}
+              transition={{ 
+                rotate: { duration: 4, repeat: Infinity, ease: "linear" },
+                scale: { duration: 2, repeat: Infinity }
+              }}
+            />
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.5 }}
+            >
+              Inapakia taarifa za hali ya hewa...
+            </motion.p>
+          </motion.div>
         </div>
       </section>
     );
@@ -67,87 +149,186 @@ const WeatherWidget = ({ onPageChange }) => {
   return (
     <section className="weather-widget">
       <div className="container">
-        <div className="weather-header">
+        <motion.div 
+          className="weather-header"
+          initial={{ opacity: 0, y: -30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8 }}
+        >
           <h2>Hali ya Hewa ya Mkoa wa Katavi</h2>
           <p>Pata taarifa za hali ya hewa kwa maeneo mbalimbali ya mkoa</p>
-        </div>
+        </motion.div>
 
-        <div className="weather-content">
+        <motion.div 
+          className="weather-content"
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+        >
           {/* Location Selector */}
-          <div className="location-selector">
+          <motion.div 
+            className="location-selector"
+            variants={itemVariants}
+          >
             {locations.map(location => (
-              <button
+              <motion.button
                 key={location}
                 className={`location-btn ${selectedLocation === location ? 'active' : ''}`}
                 onClick={() => setSelectedLocation(location)}
+                variants={locationButtonVariants}
+                initial="initial"
+                whileHover="hover"
+                whileTap="tap"
               >
                 {location}
-              </button>
+              </motion.button>
             ))}
-          </div>
+          </motion.div>
 
           {/* Current Weather */}
-          <div className="current-weather">
-            <div className="weather-main">
-              <div className="weather-icon">
-                <i className={getWeatherIcon(currentWeather.condition)}></i>
-              </div>
-              <div className="weather-info">
-                <div className="temperature">{currentWeather.temperature}°C</div>
-                <div className="condition">{currentWeather.condition}</div>
-                <div className="location">{selectedLocation}</div>
-              </div>
-            </div>
+          <AnimatePresence mode="wait">
+            <motion.div 
+              key={selectedLocation}
+              className="current-weather"
+              variants={containerVariants}
+              initial="hidden"
+              animate="visible"
+              exit="hidden"
+            >
+              <motion.div 
+                className="weather-main"
+                variants={itemVariants}
+              >
+                <motion.div 
+                  className="weather-icon"
+                  variants={weatherIconVariants}
+                  initial="initial"
+                  animate="animate"
+                >
+                  <i className={getWeatherIcon(currentWeather.condition)}></i>
+                </motion.div>
+                <div className="weather-info">
+                  <motion.div 
+                    className="temperature"
+                    variants={temperatureVariants}
+                    initial="initial"
+                    animate="animate"
+                  >
+                    {currentWeather.temperature}°C
+                  </motion.div>
+                  <motion.div 
+                    className="condition"
+                    variants={itemVariants}
+                  >
+                    {currentWeather.condition}
+                  </motion.div>
+                  <motion.div 
+                    className="location"
+                    variants={itemVariants}
+                  >
+                    <i className="fas fa-map-marker-alt"></i>
+                    {selectedLocation}
+                  </motion.div>
+                </div>
+              </motion.div>
 
-            <div className="weather-details">
-              <div className="detail-item">
-                <i className="fas fa-tint"></i>
-                <div>
-                  <div className="detail-value">{currentWeather.humidity}%</div>
-                  <div className="detail-label">Unyevu</div>
-                </div>
-              </div>
-              <div className="detail-item">
-                <i className="fas fa-cloud-rain"></i>
-                <div>
-                  <div className="detail-value">{currentWeather.rainfall}</div>
-                  <div className="detail-label">Mvua</div>
-                </div>
-              </div>
-              <div className="detail-item">
-                <i className="fas fa-wind"></i>
-                <div>
-                  <div className="detail-value">{currentWeather.wind}</div>
-                  <div className="detail-label">Upepo</div>
-                </div>
-              </div>
-            </div>
-          </div>
+              <motion.div 
+                className="weather-details"
+                variants={containerVariants}
+              >
+                <motion.div 
+                  className="detail-item"
+                  variants={itemVariants}
+                  whileHover={{ scale: 1.05 }}
+                >
+                  <i className="fas fa-tint"></i>
+                  <div>
+                    <div className="detail-value">{currentWeather.humidity}%</div>
+                    <div className="detail-label">Unyevu</div>
+                  </div>
+                </motion.div>
+                <motion.div 
+                  className="detail-item"
+                  variants={itemVariants}
+                  whileHover={{ scale: 1.05 }}
+                >
+                  <i className="fas fa-cloud-rain"></i>
+                  <div>
+                    <div className="detail-value">{currentWeather.rainfall}</div>
+                    <div className="detail-label">Mvua</div>
+                  </div>
+                </motion.div>
+                <motion.div 
+                  className="detail-item"
+                  variants={itemVariants}
+                  whileHover={{ scale: 1.05 }}
+                >
+                  <i className="fas fa-wind"></i>
+                  <div>
+                    <div className="detail-value">{currentWeather.wind}</div>
+                    <div className="detail-label">Upepo</div>
+                  </div>
+                </motion.div>
+              </motion.div>
+            </motion.div>
+          </AnimatePresence>
 
           {/* Weather Forecast */}
-          <div className="weather-forecast">
+          <motion.div 
+            className="weather-forecast"
+            variants={itemVariants}
+          >
             <h3>Tabiri ya Vijuma Vitatu</h3>
             <div className="forecast-grid">
               {currentWeather.forecast.map((day, index) => (
-                <div key={index} className="forecast-day">
+                <motion.div 
+                  key={index} 
+                  className="forecast-day"
+                  variants={itemVariants}
+                  whileHover={{ 
+                    scale: 1.05,
+                    y: -5,
+                    transition: { type: "spring", stiffness: 300 }
+                  }}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.1 }}
+                >
                   <div className="forecast-date">
                     {index === 0 ? 'Kesho' : index === 1 ? 'Kesho Kutwa' : 'Kesho Tatu'}
                   </div>
-                  <div className="forecast-icon">
+                  <motion.div 
+                    className="forecast-icon"
+                    whileHover={{ scale: 1.2, rotate: 10 }}
+                    transition={{ type: "spring", stiffness: 200 }}
+                  >
                     <i className={getWeatherIcon(day)}></i>
-                  </div>
+                  </motion.div>
                   <div className="forecast-condition">{day}</div>
                   <div className="forecast-temp">{currentWeather.temperature + index - 1}°C</div>
-                </div>
+                </motion.div>
               ))}
             </div>
-          </div>
+          </motion.div>
 
           {/* Weather Advisory */}
-          <div className="weather-advisory">
-            <div className="advisory-icon">
+          <motion.div 
+            className="weather-advisory"
+            variants={itemVariants}
+            whileHover={{ 
+              scale: 1.02,
+              transition: { type: "spring", stiffness: 300 }
+            }}
+          >
+            <motion.div 
+              className="advisory-icon"
+              animate={{ 
+                y: [0, -10, 0],
+                transition: { duration: 3, repeat: Infinity }
+              }}
+            >
               <i className="fas fa-seedling"></i>
-            </div>
+            </motion.div>
             <div className="advisory-content">
               <h4>Ushauri wa Kilimo</h4>
               <p>
@@ -157,19 +338,33 @@ const WeatherWidget = ({ onPageChange }) => {
                 }
               </p>
             </div>
-          </div>
+          </motion.div>
 
           {/* CTA Button */}
-          <div className="weather-cta">
-            <button 
+          <motion.div 
+            className="weather-cta"
+            variants={itemVariants}
+          >
+            <motion.button 
               className="btn btn-primary"
               onClick={() => onPageChange('weather')}
+              whileHover={{ 
+                scale: 1.05,
+                boxShadow: "0 10px 25px rgba(0, 0, 0, 0.2)"
+              }}
+              whileTap={{ scale: 0.95 }}
             >
-              <i className="fas fa-chart-line"></i>
+              <motion.i 
+                className="fas fa-chart-line"
+                animate={{ 
+                  x: [0, 5, 0],
+                  transition: { duration: 1.5, repeat: Infinity }
+                }}
+              />
               Angalia Maelezo Zaidi ya Hali ya Hewa
-            </button>
-          </div>
-        </div>
+            </motion.button>
+          </motion.div>
+        </motion.div>
       </div>
     </section>
   );

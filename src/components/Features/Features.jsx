@@ -1,3 +1,4 @@
+// Features.jsx - IMPROVED VERSION WITH MOUNTAIN BACKGROUND
 import React from 'react';
 import './Features.css';
 
@@ -49,9 +50,23 @@ const Features = ({ onPageChange }) => {
 
   return (
     <section className="features">
+      {/* Mountain Background */}
+      <div className="features-mountain-bg">
+        <svg className="mountain-separator" viewBox="0 0 1000 200" preserveAspectRatio="none">
+          <path 
+            className="mountain-path-1" 
+            d="M1000,200 L0,200 L0,150 C150,100 300,180 450,120 C600,60 750,140 900,80 L1000,120 Z"
+          />
+          <path 
+            className="mountain-path-2" 
+            d="M1000,200 L0,200 L0,170 C100,140 250,190 400,150 C550,110 700,160 850,130 L1000,160 Z"
+          />
+        </svg>
+      </div>
+      
       <div className="container">
         <div className="features-header">
-          <h2>Kwa Nini Chagua Katavi E-Kilimo?</h2>
+          <h2>Kwa Nini Uchague Katavi E-Kilimo?</h2>
           <p>Jukwaa letu linakupa huduma zote muhimu za kilimo katika sehemu moja ya uhakika na rahisi</p>
         </div>
         

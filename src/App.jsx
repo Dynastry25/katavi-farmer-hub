@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import Navigation from './components/Navbar/Navbar';
 import Hero from './components/Hero/Hero';
 import Features from './components/Features/Features';
@@ -29,52 +30,108 @@ import BuyerDashboard from './UI/Dashboard/BuyerDashboard';
 import { sampleCrops, newsArticles, weatherData, priceData } from './data/sampleData';
 import './App.css';
 
+// Main App Component with Router
 function App() {
-  const [currentPage, setCurrentPage] = useState('home');
+  return (
+    <Router>
+      <ErrorBoundary>
+        <AppContent />
+      </ErrorBoundary>
+    </Router>
+  );
+}
+
+// App Content Component that uses router hooks
+function AppContent() {
   const [isLoading, setIsLoading] = useState(true);
   const [pageLoading, setPageLoading] = useState(false);
   const [user, setUser] = useState(null);
   const [crops] = useState(sampleCrops);
   const [articles] = useState(newsArticles);
+  const [pageHistory, setPageHistory] = useState([]); // Ukumbusho wa historia ya kurasa
+  
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  // Get current page from URL path
+  const getCurrentPageFromPath = (pathname) => {
+    const path = pathname.replace('/', '');
+    if (path === '' || path === 'home') return 'home';
+    return path;
+  };
+
+  const currentPage = getCurrentPageFromPath(location.pathname);
 
   // Simulate initial app loading
   useEffect(() => {
     const timer = setTimeout(() => {
       setIsLoading(false);
-    }, 2500);
+    }, 2000);
 
     // Check if user is logged in from localStorage
     const savedUser = localStorage.getItem('kataviUser');
     if (savedUser) {
       const userData = JSON.parse(savedUser);
       setUser(userData);
-      
-      // Auto-redirect to appropriate dashboard based on user role
-      if (userData.role === 'farmer') {
-        setCurrentPage('farmer-dashboard');
-      } else if (userData.role === 'expert') {
-        setCurrentPage('expert-dashboard');
-      } else if (userData.role === 'buyer') {
-        setCurrentPage('buyer-dashboard');
-      }
     }
 
+    // Check if there's a saved page in localStorage and redirect
+    const savedPage = localStorage.getItem('kataviCurrentPage');
+    if (savedPage && savedPage !== 'home' && savedPage !== currentPage) {
+      navigate(`/${savedPage}`);
+    }
+
+    // Initialize page history
+    setPageHistory(['home']);
+
     return () => clearTimeout(timer);
-  }, []);
+  }, [navigate, currentPage]);
+
+  // Update page history when location changes
+  useEffect(() => {
+    if (currentPage && pageHistory.length > 0) {
+      const previousPage = pageHistory[pageHistory.length - 1];
+      
+      // Only add to history if it's a new page
+      if (previousPage !== currentPage) {
+        setPageHistory(prev => [...prev, currentPage]);
+      }
+    }
+  }, [location.pathname]);
 
   const handlePageChange = (page) => {
+    // Save current page to localStorage
+    localStorage.setItem('kataviCurrentPage', page);
+    
     // Show loading when changing pages
     setPageLoading(true);
     
     setTimeout(() => {
-      setCurrentPage(page);
+      navigate(`/${page === 'home' ? '' : page}`);
       window.scrollTo(0, 0);
       
       // Hide loading after page transition
       setTimeout(() => {
         setPageLoading(false);
       }, 500);
-    }, 800);
+    }, 600);
+  };
+
+  // New function to go back to previous page
+  const handleGoBack = () => {
+    if (pageHistory.length > 1) {
+      const previousPages = [...pageHistory];
+      previousPages.pop(); // Remove current page
+      const previousPage = previousPages.pop(); // Get the previous page
+      
+      if (previousPage) {
+        setPageHistory(previousPages);
+        handlePageChange(previousPage);
+      }
+    } else {
+      // If no history, go to home
+      handlePageChange('home');
+    }
   };
 
   const handleAuth = (action, userData = null) => {
@@ -94,14 +151,16 @@ function App() {
         };
         setUser(mockUser);
         localStorage.setItem('kataviUser', JSON.stringify(mockUser));
-        setCurrentPage('farmer-dashboard');
+        localStorage.setItem('kataviCurrentPage', 'farmer-dashboard');
+        navigate('/farmer-dashboard');
         setPageLoading(false);
       }, 1500);
       
     } else if (action === 'register') {
       setPageLoading(true);
       setTimeout(() => {
-        setCurrentPage('registration');
+        localStorage.setItem('kataviCurrentPage', 'registration');
+        navigate('/registration');
         setPageLoading(false);
       }, 800);
       
@@ -110,7 +169,8 @@ function App() {
       setTimeout(() => {
         setUser(null);
         localStorage.removeItem('kataviUser');
-        setCurrentPage('home');
+        localStorage.setItem('kataviCurrentPage', 'home');
+        navigate('/');
         setPageLoading(false);
       }, 800);
       
@@ -121,13 +181,17 @@ function App() {
         localStorage.setItem('kataviUser', JSON.stringify(userData));
         
         // Redirect to appropriate dashboard based on user role
+        let targetPage = 'home';
         if (userData.role === 'farmer') {
-          setCurrentPage('farmer-dashboard');
+          targetPage = 'farmer-dashboard';
         } else if (userData.role === 'expert') {
-          setCurrentPage('expert-dashboard');
+          targetPage = 'expert-dashboard';
         } else if (userData.role === 'buyer') {
-          setCurrentPage('buyer-dashboard');
+          targetPage = 'buyer-dashboard';
         }
+        
+        localStorage.setItem('kataviCurrentPage', targetPage);
+        navigate(`/${targetPage}`);
         setPageLoading(false);
       }, 1500);
     }
@@ -141,102 +205,13 @@ function App() {
     alert(`📋 Maelezo ya ${crop.name}:\n\n${crop.description}\n\nBei: TZS ${crop.price}/kg\nKiasi: ${crop.quantity} kg\nEneo: ${crop.location}\nMkulima: ${crop.farmer}\nTarehe: ${crop.date}`);
   };
 
-  const renderPage = () => {
-    const commonProps = {
-      onPageChange: handlePageChange,
-      onAuth: handleAuth,
-      user: user
-    };
-
-    switch (currentPage) {
-      case 'home':
-        return (
-          <div className="min-h-screen bg-background">
-            <Navigation 
-              currentPage={currentPage}
-              onPageChange={handlePageChange}
-              onAuth={handleAuth}
-              user={user}
-            />
-            <Hero onAuth={handleAuth} />
-            <Features onPageChange={handlePageChange} />
-            <MarketPreview 
-              crops={crops}
-              onPageChange={handlePageChange}
-              onContactFarmer={handleContactFarmer}
-            />
-            <WeatherWidget onPageChange={handlePageChange} />
-            <ExpertSection onPageChange={handlePageChange} />
-            <Footer onPageChange={handlePageChange} />
-          </div>
-        );
-
-      case 'news':
-        return <News {...commonProps} articles={articles} />;
-      
-      case 'market':
-        return (
-          <Market 
-            {...commonProps} 
-            crops={crops}
-            onContactFarmer={handleContactFarmer}
-            onCropDetails={handleCropDetails}
-          />
-        );
-      
-      case 'inputs':
-        return <Inputs {...commonProps} />;
-      
-      case 'advice':
-        return <Advice {...commonProps} />;
-      
-      case 'weather':
-        return <Weather {...commonProps} weatherData={weatherData} />;
-      
-      case 'about':
-        return <About {...commonProps} />;
-      
-      case 'contact':
-        return <Contact {...commonProps} />;
-      
-      case 'registration':
-        return <Registration {...commonProps} onAuth={handleAuth} />;
-      
-      case 'dashboard':
-        return <Dashboard {...commonProps} user={user} crops={crops} />;
-      
-      // New Dashboard Pages
-      case 'farmer-dashboard':
-        return <FarmerDashboard {...commonProps} user={user} crops={crops} />;
-      
-      case 'expert-dashboard':
-        return <ExpertDashboard {...commonProps} user={user} />;
-      
-      case 'buyer-dashboard':
-        return <BuyerDashboard {...commonProps} user={user} crops={crops} />;
-      
-      default:
-        return (
-          <div className="min-h-screen bg-background">
-            <Navigation 
-              currentPage={currentPage}
-              onPageChange={handlePageChange}
-              onAuth={handleAuth}
-              user={user}
-            />
-            <Hero onAuth={handleAuth} />
-            <Features onPageChange={handlePageChange} />
-            <MarketPreview 
-              crops={crops}
-              onPageChange={handlePageChange}
-              onContactFarmer={handleContactFarmer}
-            />
-            <WeatherWidget onPageChange={handlePageChange} />
-            <ExpertSection onPageChange={handlePageChange} />
-            <Footer onPageChange={handlePageChange} />
-          </div>
-        );
-    }
+  // Common props for all pages
+  const commonProps = {
+    onPageChange: handlePageChange,
+    onGoBack: handleGoBack, // Add go back function
+    onAuth: handleAuth,
+    user: user,
+    canGoBack: pageHistory.length > 1 // Indicate if back navigation is possible
   };
 
   // Show initial app loading
@@ -250,12 +225,81 @@ function App() {
   }
 
   return (
-    <ErrorBoundary>
-      <div className="App">
-        {renderPage()}
-        <FloatingContact />
-      </div>
-    </ErrorBoundary>
+    <div className="App">
+      <Routes>
+        {/* Home Route */}
+        <Route path="/" element={
+          <div className="min-h-screen bg-background">
+            <Navigation 
+              currentPage={currentPage}
+              onPageChange={handlePageChange}
+              onGoBack={handleGoBack}
+              onAuth={handleAuth}
+              user={user}
+              canGoBack={pageHistory.length > 1}
+            />
+            <Hero onAuth={handleAuth} />
+            <Features onPageChange={handlePageChange} />
+            <MarketPreview 
+              crops={crops}
+              onPageChange={handlePageChange}
+              onContactFarmer={handleContactFarmer}
+            />
+            <WeatherWidget onPageChange={handlePageChange} />
+            <ExpertSection onPageChange={handlePageChange} />
+            <Footer onPageChange={handlePageChange} />
+          </div>
+        } />
+        
+        <Route path="/home" element={<Navigate to="/" replace />} />
+
+        {/* Public Pages */}
+        <Route path="/news" element={<News {...commonProps} articles={articles} />} />
+        <Route path="/market" element={
+          <Market 
+            {...commonProps} 
+            crops={crops}
+            onContactFarmer={handleContactFarmer}
+            onCropDetails={handleCropDetails}
+          />
+        } />
+        <Route path="/inputs" element={<Inputs {...commonProps} />} />
+        <Route path="/advice" element={<Advice {...commonProps} />} />
+        <Route path="/weather" element={<Weather {...commonProps} weatherData={weatherData} />} />
+        <Route path="/about" element={<About {...commonProps} />} />
+        <Route path="/contact" element={<Contact {...commonProps} />} />
+        <Route path="/registration" element={<Registration {...commonProps} onAuth={handleAuth} />} />
+
+        {/* Dashboard Pages */}
+        <Route path="/dashboard" element={
+          user ? <Dashboard {...commonProps} user={user} crops={crops} /> : <Navigate to="/registration" />
+        } />
+        
+        <Route path="/farmer-dashboard" element={
+          user && user.role === 'farmer' ? 
+            <FarmerDashboard {...commonProps} user={user} crops={crops} /> : 
+            <Navigate to="/registration" />
+        } />
+        
+        <Route path="/expert-dashboard" element={
+          user && user.role === 'expert' ? 
+            <ExpertDashboard {...commonProps} user={user} /> : 
+            <Navigate to="/registration" />
+        } />
+        
+        <Route path="/buyer-dashboard" element={
+          user && user.role === 'buyer' ? 
+            <BuyerDashboard {...commonProps} user={user} crops={crops} /> : 
+            <Navigate to="/registration" />
+        } />
+
+        {/* Fallback route - redirect to home */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+
+      {/* Floating Contact - Show on all pages except dashboards */}
+      {!currentPage.includes('dashboard') && <FloatingContact />}
+    </div>
   );
 }
 

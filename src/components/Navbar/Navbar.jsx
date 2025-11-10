@@ -1,20 +1,21 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import './Navbar.css';
 
-const Navbar = ({ currentPage, onPageChange, onAuth, user }) => {
+const Navbar = ({ currentPage, onPageChange, onGoBack, onAuth, user, canGoBack }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
 
   const navItems = [
-    { id: 'home', label: 'Nyumbani', icon: 'fas fa-home' },
-    { id: 'news', label: 'Habari', icon: 'fas fa-newspaper' },
-    { id: 'market', label: 'Masoko', icon: 'fas fa-store' },
-    { id: 'inputs', label: 'Pembejeo', icon: 'fas fa-tools' },
-    { id: 'advice', label: 'Ushauri', icon: 'fas fa-hand-holding-heart' },
-    { id: 'weather', label: 'Mazingira', icon: 'fas fa-cloud-sun' },
-    { id: 'about', label: 'Kuhusu', icon: 'fas fa-info-circle' },
-    { id: 'contact', label: 'Wasiliana', icon: 'fas fa-phone' }
+    { id: 'home', label: 'Nyumbani', icon: 'fas fa-home', path: '/' },
+    { id: 'news', label: 'Habari', icon: 'fas fa-newspaper', path: '/news' },
+    { id: 'market', label: 'Masoko', icon: 'fas fa-store', path: '/market' },
+    { id: 'inputs', label: 'Pembejeo', icon: 'fas fa-tools', path: '/inputs' },
+    { id: 'advice', label: 'Ushauri', icon: 'fas fa-hand-holding-heart', path: '/advice' },
+    { id: 'weather', label: 'Mazingira', icon: 'fas fa-cloud-sun', path: '/weather' },
+    { id: 'about', label: 'Kuhusu', icon: 'fas fa-info-circle', path: '/about' },
+    { id: 'contact', label: 'Wasiliana', icon: 'fas fa-phone', path: '/contact' }
   ];
 
   useEffect(() => {
@@ -53,11 +54,30 @@ const Navbar = ({ currentPage, onPageChange, onAuth, user }) => {
     setIsProfileOpen(!isProfileOpen);
   };
 
+  const handleGoBackClick = () => {
+    onGoBack();
+    setIsMenuOpen(false);
+    setIsProfileOpen(false);
+  };
+
   return (
     <nav className={`navigation ${isScrolled ? 'scrolled' : ''}`}>
       <div className="nav-container">
+        {/* Back Button - Show when not on home page */}
+        {canGoBack && currentPage !== 'home' && (
+          <Link 
+            className="nav-back-button"
+            onClick={handleGoBackClick}
+            aria-label="Rudi nyuma"
+            to="#"
+          >
+            <i className="fas fa-arrow-left"></i>
+            <span>Rudi</span>
+          </Link>
+        )}
+
         {/* Logo */}
-        <div className="nav-brand" onClick={() => handleNavClick('home')}>
+        <Link className="nav-brand" to="/" onClick={() => handleNavClick('home')}>
           <div className="logo-icon">
             <i className="fas fa-seedling"></i>
           </div>
@@ -65,19 +85,20 @@ const Navbar = ({ currentPage, onPageChange, onAuth, user }) => {
             <h1>Katavi E-Kilimo</h1>
             <span>Jukwaa la Wakulima</span>
           </div>
-        </div>
+        </Link>
 
         {/* Desktop Navigation */}
         <div className="nav-menu">
           {navItems.map(item => (
-            <button
+            <Link
               key={item.id}
               className={`nav-item ${currentPage === item.id ? 'active' : ''}`}
+              to={item.path}
               onClick={() => handleNavClick(item.id)}
             >
               <i className={item.icon}></i>
               <span>{item.label}</span>
-            </button>
+            </Link>
           ))}
         </div>
 
@@ -95,7 +116,6 @@ const Navbar = ({ currentPage, onPageChange, onAuth, user }) => {
                       <i className="fas fa-user"></i>
                     </div>
                   )}
-                  
                 </div>
                 
                 {/* Profile Dropdown Menu */}
@@ -118,57 +138,63 @@ const Navbar = ({ currentPage, onPageChange, onAuth, user }) => {
                     
                     <div className="dropdown-divider"></div>
                     
-                    <button 
+                    <Link 
                       className="dropdown-item"
+                      to="/profile"
                       onClick={() => handleNavClick('profile')}
                     >
                       <i className="fas fa-user-edit"></i>
                       <span>Wasilisha Profaili</span>
-                    </button>
+                    </Link>
                     
-                    <button 
+                    <Link 
                       className="dropdown-item"
+                      to="/dashboard"
                       onClick={() => handleNavClick('dashboard')}
                     >
                       <i className="fas fa-tachometer-alt"></i>
                       <span>Dashibodi Yangu</span>
-                    </button>
+                    </Link>
                     
-                    <button 
+                    <Link 
                       className="dropdown-item"
+                      to="/settings"
                       onClick={() => handleNavClick('settings')}
                     >
                       <i className="fas fa-cog"></i>
                       <span>Mipangilio</span>
-                    </button>
+                    </Link>
                     
                     <div className="dropdown-divider"></div>
                     
-                    <button 
+                    <Link 
                       className="dropdown-item logout"
+                      to="#"
                       onClick={() => handleAuthClick('logout')}
                     >
                       <i className="fas fa-sign-out-alt"></i>
                       <span>Toka</span>
-                    </button>
+                    </Link>
                   </div>
                 )}
               </div>
             </div>
           ) : (
             <div className="auth-buttons">
-              <button 
+              <Link 
                 className="btn btn-outline"
+                to="/login"
                 onClick={() => handleAuthClick('login')}
               >
                 <i className="fas fa-sign-in-alt"></i> Ingia
-              </button>
-              <button 
+              </Link>
+              <Link 
                 className="btn btn-primary"
+                to="/register"
                 onClick={() => handleAuthClick('register')}
               >
                 <i className="fas fa-user-plus"></i> Jisajili
-              </button>
+              </Link>
             </div>
           )}
         </div>
@@ -177,6 +203,7 @@ const Navbar = ({ currentPage, onPageChange, onAuth, user }) => {
         <button 
           className="mobile-toggle"
           onClick={() => setIsMenuOpen(!isMenuOpen)}
+          aria-label={isMenuOpen ? 'Funga menyu' : 'Fungua menyu'}
         >
           <i className={`fas ${isMenuOpen ? 'fa-times' : 'fa-bars'}`}></i>
         </button>
@@ -185,77 +212,31 @@ const Navbar = ({ currentPage, onPageChange, onAuth, user }) => {
       {/* Mobile Navigation */}
       <div className={`mobile-nav ${isMenuOpen ? 'active' : ''}`}>
         <div className="mobile-nav-content">
+          {/* Mobile Back Button */}
+          {canGoBack && currentPage !== 'home' && (
+            <Link 
+              className="mobile-nav-back-button"
+              to="#"
+              onClick={handleGoBackClick}
+            >
+              <i className="fas fa-arrow-left"></i>
+              <span>Rudi Nyuma</span>
+            </Link>
+          )}
+          
           {navItems.map(item => (
-            <button
+            <Link
               key={item.id}
               className={`mobile-nav-item ${currentPage === item.id ? 'active' : ''}`}
+              to={item.path}
               onClick={() => handleNavClick(item.id)}
             >
               <i className={item.icon}></i>
               <span>{item.label}</span>
-            </button>
+            </Link>
           ))}
           
-          {/* Mobile Auth Section */}
-          <div className="mobile-auth">
-            {user ? (
-              <>
-                <div className="mobile-user-info">
-                  {user.profilePicture ? (
-                    <img src={user.profilePicture} alt={user.name} className="mobile-avatar" />
-                  ) : (
-                    <div className="mobile-avatar placeholder">
-                      <i className="fas fa-user"></i>
-                    </div>
-                  )}
-                  <div>
-                    <div className="user-name">{user.name}</div>
-                    <div className="user-role">{user.role}</div>
-                    <div className="user-email">{user.email || 'hakuna barua pepe'}</div>
-                  </div>
-                </div>
-                <button 
-                  className="btn btn-outline btn-sm"
-                  onClick={() => handleNavClick('profile')}
-                >
-                  <i className="fas fa-user-edit"></i> Wasilisha Profaili
-                </button>
-                <button 
-                  className="btn btn-outline btn-sm"
-                  onClick={() => handleNavClick('dashboard')}
-                >
-                  <i className="fas fa-tachometer-alt"></i> Dashibodi
-                </button>
-                <button 
-                  className="btn btn-outline btn-sm"
-                  onClick={() => handleNavClick('settings')}
-                >
-                  <i className="fas fa-cog"></i> Mipangilio
-                </button>
-                <button 
-                  className="btn btn-outline btn-sm logout"
-                  onClick={() => handleAuthClick('logout')}
-                >
-                  <i className="fas fa-sign-out-alt"></i> Toka
-                </button>
-              </>
-            ) : (
-              <>
-                <button 
-                  className="btn btn-outline btn-sm"
-                  onClick={() => handleAuthClick('login')}
-                >
-                  <i className="fas fa-sign-in-alt"></i> Ingia
-                </button>
-                <button 
-                  className="btn btn-primary btn-sm"
-                  onClick={() => handleAuthClick('register')}
-                >
-                  <i className="fas fa-user-plus"></i> Jisajili
-                </button>
-              </>
-            )}
-          </div>
+
         </div>
       </div>
 
