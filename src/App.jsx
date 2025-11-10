@@ -27,6 +27,13 @@ import FarmerDashboard from './UI/Dashboard/FarmerDashboard';
 import ExpertDashboard from './UI/Dashboard/ExpertDashboard';
 import BuyerDashboard from './UI/Dashboard/BuyerDashboard';
 
+// New Feature Pages
+import Suppliers from './components/Suppliers';
+import Loans from './components/Loans';
+import FarmerGroups from './components/FarmerGroups';
+import Reports from './components/Reports';
+import ChatSystem from './components/ChatSystem/ChatSystem';
+
 import { sampleCrops, newsArticles, weatherData, priceData } from './data/sampleData';
 import './App.css';
 
@@ -49,6 +56,8 @@ function AppContent() {
   const [crops] = useState(sampleCrops);
   const [articles] = useState(newsArticles);
   const [pageHistory, setPageHistory] = useState([]); // Ukumbusho wa historia ya kurasa
+  const [showChat, setShowChat] = useState(false);
+  const [notifications, setNotifications] = useState([]);
   
   const location = useLocation();
   const navigate = useNavigate();
@@ -83,6 +92,31 @@ function AppContent() {
 
     // Initialize page history
     setPageHistory(['home']);
+
+    // Load sample notifications
+    setNotifications([
+      {
+        id: 1,
+        type: 'price_alert',
+        message: 'Bei ya mahindi imepanda 15% eneo lako',
+        time: '2 dakika zilizopita',
+        read: false
+      },
+      {
+        id: 2,
+        type: 'weather_alert',
+        message: 'Mvua inatarajiwa kesho asubuhi',
+        time: '1 saa iliyopita',
+        read: false
+      },
+      {
+        id: 3,
+        type: 'market_alert',
+        message: 'Mnunuzi mpya amejiunga eneo lako',
+        time: '3 saa zilizopita',
+        read: true
+      }
+    ]);
 
     return () => clearTimeout(timer);
   }, [navigate, currentPage]);
@@ -205,13 +239,42 @@ function AppContent() {
     alert(`📋 Maelezo ya ${crop.name}:\n\n${crop.description}\n\nBei: TZS ${crop.price}/kg\nKiasi: ${crop.quantity} kg\nEneo: ${crop.location}\nMkulima: ${crop.farmer}\nTarehe: ${crop.date}`);
   };
 
+  // New function to handle chat system
+  const handleToggleChat = () => {
+    setShowChat(!showChat);
+  };
+
+  // New function to handle notifications
+  const handleMarkNotificationAsRead = (notificationId) => {
+    setNotifications(notifications.map(notif => 
+      notif.id === notificationId ? { ...notif, read: true } : notif
+    ));
+  };
+
+  // New function to handle group creation
+  const handleCreateGroup = (groupData) => {
+    console.log('Creating new farmer group:', groupData);
+    alert('Kikundi kipya kimeundwa kikamilifu!');
+  };
+
+  // New function to handle loan application
+  const handleApplyForLoan = (loanData) => {
+    console.log('Applying for loan:', loanData);
+    alert('Ombi lako la mkopo limewasilishwa!');
+  };
+
   // Common props for all pages
   const commonProps = {
     onPageChange: handlePageChange,
     onGoBack: handleGoBack, // Add go back function
     onAuth: handleAuth,
     user: user,
-    canGoBack: pageHistory.length > 1 // Indicate if back navigation is possible
+    canGoBack: pageHistory.length > 1, // Indicate if back navigation is possible
+    onToggleChat: handleToggleChat,
+    notifications: notifications,
+    onMarkNotificationAsRead: handleMarkNotificationAsRead,
+    onCreateGroup: handleCreateGroup,
+    onApplyForLoan: handleApplyForLoan
   };
 
   // Show initial app loading
@@ -237,6 +300,9 @@ function AppContent() {
               onAuth={handleAuth}
               user={user}
               canGoBack={pageHistory.length > 1}
+              notifications={notifications}
+              onMarkNotificationAsRead={handleMarkNotificationAsRead}
+              onToggleChat={handleToggleChat}
             />
             <Hero onAuth={handleAuth} />
             <Features onPageChange={handlePageChange} />
@@ -270,6 +336,12 @@ function AppContent() {
         <Route path="/contact" element={<Contact {...commonProps} />} />
         <Route path="/registration" element={<Registration {...commonProps} onAuth={handleAuth} />} />
 
+        {/* New Feature Pages */}
+        <Route path="/suppliers" element={<Suppliers {...commonProps} />} />
+        <Route path="/loans" element={<Loans {...commonProps} />} />
+        <Route path="/farmer-groups" element={<FarmerGroups {...commonProps} />} />
+        <Route path="/reports" element={<Reports {...commonProps} crops={crops} />} />
+
         {/* Dashboard Pages */}
         <Route path="/dashboard" element={
           user ? <Dashboard {...commonProps} user={user} crops={crops} /> : <Navigate to="/registration" />
@@ -299,6 +371,39 @@ function AppContent() {
 
       {/* Floating Contact - Show on all pages except dashboards */}
       {!currentPage.includes('dashboard') && <FloatingContact />}
+
+      {/* Chat System - Show when activated */}
+      {showChat && (
+        <ChatSystem 
+          user={user}
+          onClose={handleToggleChat}
+        />
+      )}
+
+      {/* New Features Floating Menu */}
+      <div className="floating-features-menu">
+        <button 
+          className="floating-feature-btn chat-btn"
+          onClick={handleToggleChat}
+          title="Fungua Mazungumzo"
+        >
+          <i className="fas fa-comments"></i>
+        </button>
+        <button 
+          className="floating-feature-btn groups-btn"
+          onClick={() => handlePageChange('farmer-groups')}
+          title="Vikundi vya Wakulima"
+        >
+          <i className="fas fa-users"></i>
+        </button>
+        <button 
+          className="floating-feature-btn loans-btn"
+          onClick={() => handlePageChange('loans')}
+          title="Mikopo kwa Wakulima"
+        >
+          <i className="fas fa-hand-holding-usd"></i>
+        </button>
+      </div>
     </div>
   );
 }
