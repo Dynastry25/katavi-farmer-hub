@@ -44,6 +44,9 @@ const PageTransitionHandler = ({ children }) => {
   const location = useLocation();
 
   useEffect(() => {
+    // Scroll to top immediately when route changes
+    window.scrollTo(0, 0);
+    
     // Show loading when route changes
     setIsLoading(true);
     
@@ -72,6 +75,12 @@ function App() {
   const [appLoading, setAppLoading] = useState(true);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Scroll to top on every route change
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [location.pathname]);
 
   // Sample data
   const sampleCrops = [
@@ -191,6 +200,7 @@ function App() {
           
           setTimeout(() => {
             setCurrentPage('dashboard');
+            window.scrollTo(0, 0);
           }, 1000);
         }
         break;
@@ -200,7 +210,16 @@ function App() {
           setCurrentUser(userData);
           localStorage.setItem('kataviUser', JSON.stringify(userData));
           setCurrentPage('dashboard');
+          window.scrollTo(0, 0);
         }
+        break;
+
+      case 'logout':
+        setCurrentUser(null);
+        localStorage.removeItem('kataviUser');
+        setCurrentPage('home');
+        window.scrollTo(0, 0);
+        break;
       
       default:
         break;
@@ -217,6 +236,7 @@ function App() {
     } else {
       setCurrentPage('home');
     }
+    window.scrollTo(0, 0);
   };
 
   // Toggle chat system
@@ -227,6 +247,7 @@ function App() {
   // Refresh app data
   const handleRefresh = () => {
     setRefreshTrigger(prev => prev + 1);
+    window.scrollTo(0, 0);
   };
 
   // Handle creating farmer groups
@@ -287,266 +308,343 @@ function App() {
       <Suspense fallback={<RouteLoading message="Inapakia programu..." />}>
         <Routes>
           {/* Public Routes */}
-          <Route path="/" element={
-            <PageTransitionHandler>
-              <Home 
-                onPageChange={handlePageChange}
-                onAuth={handleAuth}
-                user={currentUser}
-                crops={crops}
-                onRefresh={handleRefresh}
-              />
-            </PageTransitionHandler>
-          } />
-          
-          <Route path="/market" element={
-            <PageTransitionHandler>
-              <Market 
-                onPageChange={handlePageChange}
-                onAuth={handleAuth}
-                user={currentUser}
-                crops={crops}
-                onAddCrop={handleAddCrop}
-                onUpdateCrop={handleUpdateCrop}
-                onDeleteCrop={handleDeleteCrop}
-                onRefresh={handleRefresh}
-              />
-            </PageTransitionHandler>
-          } />
-          
-          <Route path="/inputs" element={
-            <PageTransitionHandler>
-              <Inputs 
-                onPageChange={handlePageChange}
-                onAuth={handleAuth}
-                user={currentUser}
-                onRefresh={handleRefresh}
-              />
-            </PageTransitionHandler>
-          } />
-          
-          <Route path="/suppliers" element={
-            <PageTransitionHandler>
-              <Suppliers 
-                onPageChange={handlePageChange}
-                onAuth={handleAuth}
-                user={currentUser}
-                onRefresh={handleRefresh}
-              />
-            </PageTransitionHandler>
-          } />
-          
-          <Route path="/loans" element={
-            <PageTransitionHandler>
-              <Loans 
-                onPageChange={handlePageChange}
-                onAuth={handleAuth}
-                user={currentUser}
-                onApplyForLoan={handleApplyForLoan}
-                onRefresh={handleRefresh}
-              />
-            </PageTransitionHandler>
-          } />
-          
-          <Route path="/farmer-groups" element={
-            <PageTransitionHandler>
-              <FarmerGroups 
-                onPageChange={handlePageChange}
-                onAuth={handleAuth}
-                user={currentUser}
-                onCreateGroup={handleCreateGroup}
-                onRefresh={handleRefresh}
-              />
-            </PageTransitionHandler>
-          } />
-          
-          <Route path="/advice" element={
-            <PageTransitionHandler>
-              <Advice 
-                onPageChange={handlePageChange}
-                onAuth={handleAuth}
-                user={currentUser}
-                onRefresh={handleRefresh}
-              />
-            </PageTransitionHandler>
-          } />
-          
-          <Route path="/news" element={
-            <PageTransitionHandler>
-              <News 
-                onPageChange={handlePageChange}
-                onAuth={handleAuth}
-                user={currentUser}
-                onRefresh={handleRefresh}
-              />
-            </PageTransitionHandler>
-          } />
-          
-          <Route path="/reports" element={
-            <PageTransitionHandler>
-              <Reports 
-                onPageChange={handlePageChange}
-                onAuth={handleAuth}
-                user={currentUser}
-                crops={crops}
-                onRefresh={handleRefresh}
-              />
-            </PageTransitionHandler>
-          } />
-          
-          <Route path="/weather" element={
-            <PageTransitionHandler>
-              <Weather 
-                onPageChange={handlePageChange}
-                onAuth={handleAuth}
-                user={currentUser}
-                onRefresh={handleRefresh}
-              />
-            </PageTransitionHandler>
-          } />
-          
-          <Route path="/about" element={
-            <PageTransitionHandler>
-              <About 
-                onPageChange={handlePageChange}
-                onAuth={handleAuth}
-                user={currentUser}
-                onRefresh={handleRefresh}
-              />
-            </PageTransitionHandler>
-          } />
-          
-          <Route path="/contact" element={
-            <PageTransitionHandler>
-              <Contact 
-                onPageChange={handlePageChange}
-                onAuth={handleAuth}
-                user={currentUser}
-                onRefresh={handleRefresh}
-              />
-            </PageTransitionHandler>
-          } />
-
-          {/* Auth Routes */}
-          <Route path="/login" element={
-            <PageTransitionHandler>
-              <Login 
-                onPageChange={handlePageChange}
-                onAuth={handleAuth}
-                user={currentUser}
-                onRefresh={handleRefresh}
-              />
-            </PageTransitionHandler>
-          } />
-          
-          <Route path="/register" element={
-            <PageTransitionHandler>
-              <Registration 
-                onPageChange={handlePageChange}
-                onAuth={handleAuth}
-                user={currentUser}
-                onRefresh={handleRefresh}
-              />
-            </PageTransitionHandler>
-          } />
-
-          {/* Dashboard Routes */}
-          <Route path="/dashboard" element={
-            <PageTransitionHandler>
-              <Dashboard 
-                onPageChange={handlePageChange}
-                onAuth={handleAuth}
-                user={currentUser}
-                crops={crops}
-                onToggleChat={handleToggleChat}
-                onCreateGroup={handleCreateGroup}
-                onApplyForLoan={handleApplyForLoan}
-                onRefresh={handleRefresh}
-              />
-            </PageTransitionHandler>
-          } />
-          
-          <Route path="/farmer-dashboard" element={
-            <PageTransitionHandler>
-              <FarmerDashboard 
-                onPageChange={handlePageChange}
-                onAuth={handleAuth}
-                user={currentUser}
-                crops={crops.filter(crop => crop.farmer === currentUser?.name)}
-                onToggleChat={handleToggleChat}
-                onAddCrop={handleAddCrop}
-                onUpdateCrop={handleUpdateCrop}
-                onDeleteCrop={handleDeleteCrop}
-                onRefresh={handleRefresh}
-              />
-            </PageTransitionHandler>
-          } />
-          
-          <Route path="/buyer-dashboard" element={
-            <PageTransitionHandler>
-              <BuyerDashboard 
-                onPageChange={handlePageChange}
-                onAuth={handleAuth}
-                user={currentUser}
-                crops={crops}
-                onToggleChat={handleToggleChat}
-                onRefresh={handleRefresh}
-              />
-            </PageTransitionHandler>
-          } />
-          
-          <Route path="/expert-dashboard" element={
-            <PageTransitionHandler>
-              <ExpertDashboard 
-                onPageChange={handlePageChange}
-                onAuth={handleAuth}
-                user={currentUser}
-                onToggleChat={handleToggleChat}
-                onRefresh={handleRefresh}
-              />
-            </PageTransitionHandler>
-          } />
-
-          {/* 404 Route */}
-          <Route path="*" element={
-            <PageTransitionHandler>
-              <div className="not-found-page">
-                <Navigation 
-                  currentPage="404"
+          <Route 
+            key="home"
+            path="/" 
+            element={
+              <PageTransitionHandler>
+                <Home 
                   onPageChange={handlePageChange}
                   onAuth={handleAuth}
                   user={currentUser}
-                  canGoBack={canGoBack}
-                  onGoBack={handleGoBack}
-                  onToggleChat={handleToggleChat}
+                  crops={crops}
+                  onRefresh={handleRefresh}
                 />
-                <div className="not-found-container">
-                  <div className="container">
-                    <div className="not-found-content">
-                      <h1>404 - Ukurasa Haupatikani</h1>
-                      <p>Samahani, ukurasa unaoutafuta haupo.</p>
-                      <button 
-                        className="btn btn-primary"
-                        onClick={() => {
-                          handlePageChange('home');
-                          navigate('/');
-                        }}
-                      >
-                        Rudi Nyumbani
-                      </button>
-                      <button 
-                        className="btn btn-outline"
-                        onClick={handleRefresh}
-                      >
-                        <i className="fas fa-sync-alt"></i> Refresh
-                      </button>
+              </PageTransitionHandler>
+            } 
+          />
+          
+          <Route 
+            key="market"
+            path="/market" 
+            element={
+              <PageTransitionHandler>
+                <Market 
+                  onPageChange={handlePageChange}
+                  onAuth={handleAuth}
+                  user={currentUser}
+                  crops={crops}
+                  onAddCrop={handleAddCrop}
+                  onUpdateCrop={handleUpdateCrop}
+                  onDeleteCrop={handleDeleteCrop}
+                  onRefresh={handleRefresh}
+                />
+              </PageTransitionHandler>
+            } 
+          />
+          
+          <Route 
+            key="inputs"
+            path="/inputs" 
+            element={
+              <PageTransitionHandler>
+                <Inputs 
+                  onPageChange={handlePageChange}
+                  onAuth={handleAuth}
+                  user={currentUser}
+                  onRefresh={handleRefresh}
+                />
+              </PageTransitionHandler>
+            } 
+          />
+          
+          <Route 
+            key="suppliers"
+            path="/suppliers" 
+            element={
+              <PageTransitionHandler>
+                <Suppliers 
+                  onPageChange={handlePageChange}
+                  onAuth={handleAuth}
+                  user={currentUser}
+                  onRefresh={handleRefresh}
+                />
+              </PageTransitionHandler>
+            } 
+          />
+          
+          <Route 
+            key="loans"
+            path="/loans" 
+            element={
+              <PageTransitionHandler>
+                <Loans 
+                  onPageChange={handlePageChange}
+                  onAuth={handleAuth}
+                  user={currentUser}
+                  onApplyForLoan={handleApplyForLoan}
+                  onRefresh={handleRefresh}
+                />
+              </PageTransitionHandler>
+            } 
+          />
+          
+          <Route 
+            key="farmer-groups"
+            path="/farmer-groups" 
+            element={
+              <PageTransitionHandler>
+                <FarmerGroups 
+                  onPageChange={handlePageChange}
+                  onAuth={handleAuth}
+                  user={currentUser}
+                  onCreateGroup={handleCreateGroup}
+                  onRefresh={handleRefresh}
+                />
+              </PageTransitionHandler>
+            } 
+          />
+          
+          <Route 
+            key="advice"
+            path="/advice" 
+            element={
+              <PageTransitionHandler>
+                <Advice 
+                  onPageChange={handlePageChange}
+                  onAuth={handleAuth}
+                  user={currentUser}
+                  onRefresh={handleRefresh}
+                />
+              </PageTransitionHandler>
+            } 
+          />
+          
+          <Route 
+            key="news"
+            path="/news" 
+            element={
+              <PageTransitionHandler>
+                <News 
+                  onPageChange={handlePageChange}
+                  onAuth={handleAuth}
+                  user={currentUser}
+                  onRefresh={handleRefresh}
+                />
+              </PageTransitionHandler>
+            } 
+          />
+          
+          <Route 
+            key="reports"
+            path="/reports" 
+            element={
+              <PageTransitionHandler>
+                <Reports 
+                  onPageChange={handlePageChange}
+                  onAuth={handleAuth}
+                  user={currentUser}
+                  crops={crops}
+                  onRefresh={handleRefresh}
+                />
+              </PageTransitionHandler>
+            } 
+          />
+          
+          <Route 
+            key="weather"
+            path="/weather" 
+            element={
+              <PageTransitionHandler>
+                <Weather 
+                  onPageChange={handlePageChange}
+                  onAuth={handleAuth}
+                  user={currentUser}
+                  onRefresh={handleRefresh}
+                />
+              </PageTransitionHandler>
+            } 
+          />
+          
+          <Route 
+            key="about"
+            path="/about" 
+            element={
+              <PageTransitionHandler>
+                <About 
+                  onPageChange={handlePageChange}
+                  onAuth={handleAuth}
+                  user={currentUser}
+                  onRefresh={handleRefresh}
+                />
+              </PageTransitionHandler>
+            } 
+          />
+          
+          <Route 
+            key="contact"
+            path="/contact" 
+            element={
+              <PageTransitionHandler>
+                <Contact 
+                  onPageChange={handlePageChange}
+                  onAuth={handleAuth}
+                  user={currentUser}
+                  onRefresh={handleRefresh}
+                />
+              </PageTransitionHandler>
+            } 
+          />
+
+          {/* Auth Routes */}
+          <Route 
+            key="login"
+            path="/login" 
+            element={
+              <PageTransitionHandler>
+                <Login 
+                  onPageChange={handlePageChange}
+                  onAuth={handleAuth}
+                  user={currentUser}
+                  onRefresh={handleRefresh}
+                />
+              </PageTransitionHandler>
+            } 
+          />
+          
+          <Route 
+            key="register"
+            path="/register" 
+            element={
+              <PageTransitionHandler>
+                <Registration 
+                  onPageChange={handlePageChange}
+                  onAuth={handleAuth}
+                  user={currentUser}
+                  onRefresh={handleRefresh}
+                />
+              </PageTransitionHandler>
+            } 
+          />
+
+          {/* Dashboard Routes */}
+          <Route 
+            key="dashboard"
+            path="/dashboard" 
+            element={
+              <PageTransitionHandler>
+                <Dashboard 
+                  onPageChange={handlePageChange}
+                  onAuth={handleAuth}
+                  user={currentUser}
+                  crops={crops}
+                  onToggleChat={handleToggleChat}
+                  onCreateGroup={handleCreateGroup}
+                  onApplyForLoan={handleApplyForLoan}
+                  onRefresh={handleRefresh}
+                />
+              </PageTransitionHandler>
+            } 
+          />
+          
+          <Route 
+            key="farmer-dashboard"
+            path="/farmer-dashboard" 
+            element={
+              <PageTransitionHandler>
+                <FarmerDashboard 
+                  onPageChange={handlePageChange}
+                  onAuth={handleAuth}
+                  user={currentUser}
+                  crops={crops.filter(crop => crop.farmer === currentUser?.name)}
+                  onToggleChat={handleToggleChat}
+                  onAddCrop={handleAddCrop}
+                  onUpdateCrop={handleUpdateCrop}
+                  onDeleteCrop={handleDeleteCrop}
+                  onRefresh={handleRefresh}
+                />
+              </PageTransitionHandler>
+            } 
+          />
+          
+          <Route 
+            key="buyer-dashboard"
+            path="/buyer-dashboard" 
+            element={
+              <PageTransitionHandler>
+                <BuyerDashboard 
+                  onPageChange={handlePageChange}
+                  onAuth={handleAuth}
+                  user={currentUser}
+                  crops={crops}
+                  onToggleChat={handleToggleChat}
+                  onRefresh={handleRefresh}
+                />
+              </PageTransitionHandler>
+            } 
+          />
+          
+          <Route 
+            key="expert-dashboard"
+            path="/expert-dashboard" 
+            element={
+              <PageTransitionHandler>
+                <ExpertDashboard 
+                  onPageChange={handlePageChange}
+                  onAuth={handleAuth}
+                  user={currentUser}
+                  onToggleChat={handleToggleChat}
+                  onRefresh={handleRefresh}
+                />
+              </PageTransitionHandler>
+            } 
+          />
+
+          {/* 404 Route */}
+          <Route 
+            key="not-found"
+            path="*" 
+            element={
+              <PageTransitionHandler>
+                <div className="not-found-page">
+                  <Navigation 
+                    currentPage="404"
+                    onPageChange={handlePageChange}
+                    onAuth={handleAuth}
+                    user={currentUser}
+                    canGoBack={canGoBack}
+                    onGoBack={handleGoBack}
+                    onToggleChat={handleToggleChat}
+                  />
+                  <div className="not-found-container">
+                    <div className="container">
+                      <div className="not-found-content">
+                        <h1>404 - Ukurasa Haupatikani</h1>
+                        <p>Samahani, ukurasa unaoutafuta haupo.</p>
+                        <button 
+                          className="btn btn-primary"
+                          onClick={() => {
+                            handlePageChange('home');
+                            navigate('/');
+                            window.scrollTo(0, 0);
+                          }}
+                        >
+                          Rudi Nyumbani
+                        </button>
+                        <button 
+                          className="btn btn-outline"
+                          onClick={handleRefresh}
+                        >
+                          <i className="fas fa-sync-alt"></i> Refresh
+                        </button>
+                      </div>
                     </div>
                   </div>
+                  <Footer onPageChange={handlePageChange} />
                 </div>
-                <Footer onPageChange={handlePageChange} />
-              </div>
-            </PageTransitionHandler>
-          } />
+              </PageTransitionHandler>
+            } 
+          />
         </Routes>
 
         {/* Global Chat System */}
@@ -569,7 +667,6 @@ function App() {
         >
           <i className="fas fa-sync-alt"></i>
         </button>
-
 
       </Suspense>
     </div>

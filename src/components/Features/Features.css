@@ -230,19 +230,18 @@
 .feature-card:hover::after {
   opacity: 1;
 }
-
+.feature-icon i{
+  color: white;
+}
 .feature-icon {
-  width: 90px;
-  height: 90px;
-  background: linear-gradient(135deg, var(--primary), var(--primary-light));
+  background:  var(--border);
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   margin: 0 auto 1.5rem;
   color: white;
-  font-size: 2.2rem;
-  box-shadow: 0 10px 20px rgba(120, 119, 198, 0.3);
+  font-size: 1.2rem;
   transition: all 0.3s ease;
   position: relative;
   overflow: hidden;

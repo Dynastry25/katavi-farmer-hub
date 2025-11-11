@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navigation from '../Navbar/Navbar';
 import Footer from '../Footer/Footer';
 import './BuyerDashboard.css';
+
+
 
 const BuyerDashboard = ({ onPageChange, onAuth, user, crops, onToggleChat, onRefresh }) => {
   const [activeTab, setActiveTab] = useState('overview');
@@ -17,6 +19,15 @@ const BuyerDashboard = ({ onPageChange, onAuth, user, crops, onToggleChat, onRef
     deliveryDate: '',
     specialInstructions: ''
   });
+
+  useEffect(() => {
+  // Scroll to top when tab changes
+  window.scrollTo({
+    top: 0,
+    left: 0,
+    behavior: 'smooth'
+  });
+}, [activeTab]);
   const navigate = useNavigate();
 
   // Sample data for buyer

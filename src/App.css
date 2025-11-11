@@ -407,3 +407,41 @@ textarea:focus {
     -moz-osx-font-smoothing: grayscale;
   }
 }
+/* Smooth scrolling for the entire app */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Ensure all pages start from top */
+.page {
+  min-height: 100vh;
+}
+
+/* Fix for dashboard containers */
+.dashboard-content {
+  min-height: calc(100vh - 200px);
+}
+
+/* Ensure modals don't affect scroll position */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  overflow-y: auto;
+}
+
+.modal {
+  background: white;
+  border-radius: 8px;
+  max-width: 90%;
+  max-height: 90vh;
+  overflow-y: auto;
+  margin: auto;
+}

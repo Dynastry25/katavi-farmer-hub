@@ -7,6 +7,7 @@ const Navbar = ({ currentPage, onPageChange, onAuth, user, canGoBack, onGoBack }
   const [isScrolled, setIsScrolled] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState(null);
+  const [localUser, setLocalUser] = useState(user);
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -55,6 +56,11 @@ const Navbar = ({ currentPage, onPageChange, onAuth, user, canGoBack, onGoBack }
       path: '/contact'
     }
   ];
+
+  // Sync local user state with prop changes
+  useEffect(() => {
+    setLocalUser(user);
+  }, [user]);
 
   // Flattened nav items for mobile view and current page detection
   const allNavItems = navCategories.flatMap(category => 
@@ -142,32 +148,63 @@ const Navbar = ({ currentPage, onPageChange, onAuth, user, canGoBack, onGoBack }
     setActiveDropdown(null);
   };
 
-  const handleLogout = () => {
-    if (window.confirm('Una uhakika unataka kutoka?')) {
-      handleAuthClick('logout');
+  // Improved logout function
+  const performLogout = () => {
+    try {
+      // 1. Call parent logout handler first
+      if (onAuth) {
+        onAuth('logout');
+      }
+      
+      // 2. Immediately update local state
+      setLocalUser(null);
+      
+      // 3. Close all menus
       setIsProfileOpen(false);
       setIsMenuOpen(false);
       setActiveDropdown(null);
-      navigate('/');
+      
+      // 4. Navigate to home
+      navigate('/', { replace: true });
+      
+      // 5. Clear any stored user data
+      localStorage.removeItem('user');
+      localStorage.removeItem('token');
+      sessionStorage.removeItem('user');
+      sessionStorage.removeItem('token');
+      
+      console.log('Logout successful - user state cleared');
+      
+    } catch (error) {
+      console.error('Error during logout:', error);
+      // Force cleanup even if there's an error
+      setLocalUser(null);
+      navigate('/', { replace: true });
+    }
+  };
+
+  const handleLogoutWithConfirmation = () => {
+    if (window.confirm('Una uhakika unataka kutoka kwenye akaunti yako?')) {
+      performLogout();
     }
   };
 
   const getDashboardPath = () => {
-    if (user?.role && dashboardPaths[user.role]) {
-      return dashboardPaths[user.role];
+    if (localUser?.role && dashboardPaths[localUser.role]) {
+      return dashboardPaths[localUser.role];
     }
     return '/dashboard';
   };
 
   const getUserDisplayName = () => {
-    if (!user) return '';
-    return user.name || user.email?.split('@')[0] || 'User';
+    if (!localUser) return '';
+    return localUser.name || localUser.email?.split('@')[0] || 'User';
   };
 
   const getUserRoleDisplay = () => {
-    if (!user) return '';
+    if (!localUser) return '';
     
-    switch (user.role) {
+    switch (localUser.role) {
       case 'farmer':
         return '👨‍🌾 Mkulima';
       case 'buyer':
@@ -192,6 +229,9 @@ const Navbar = ({ currentPage, onPageChange, onAuth, user, canGoBack, onGoBack }
   const isCurrentPage = (item) => {
     return currentPage === item.id;
   };
+
+  // Determine if user is logged in based on local state
+  const isLoggedIn = !!localUser;
 
   return (
     <nav className={`navigation ${isScrolled ? 'scrolled' : ''}`}>
@@ -291,7 +331,7 @@ const Navbar = ({ currentPage, onPageChange, onAuth, user, canGoBack, onGoBack }
 
         {/* Auth Section */}
         <div className="nav-auth">
-          {user ? (
+          {isLoggedIn ? (
             <div className="user-menu">
               {/* Profile Picture & Dropdown */}
               <div className="user-profile">
@@ -301,15 +341,15 @@ const Navbar = ({ currentPage, onPageChange, onAuth, user, canGoBack, onGoBack }
                   aria-label="Fungua menyu ya profaili"
                   aria-expanded={isProfileOpen}
                 >
-                  {user.profilePicture ? (
+                  {localUser.profilePicture ? (
                     <img 
-                      src={user.profilePicture} 
-                      alt={user.name} 
+                      src={localUser.profilePicture} 
+                      alt={localUser.name} 
                       className="avatar-img" 
                     />
                   ) : (
                     <div className="avatar-placeholder">
-                      {getInitials(user.name)}
+                      {getInitials(localUser.name)}
                     </div>
                   )}
                   <i className={`fas fa-chevron-down profile-arrow ${isProfileOpen ? 'open' : ''}`}></i>
@@ -319,21 +359,21 @@ const Navbar = ({ currentPage, onPageChange, onAuth, user, canGoBack, onGoBack }
                 {isProfileOpen && (
                   <div className="profile-dropdown">
                     <div className="dropdown-header">
-                      {user.profilePicture ? (
+                      {localUser.profilePicture ? (
                         <img 
-                          src={user.profilePicture} 
-                          alt={user.name} 
+                          src={localUser.profilePicture} 
+                          alt={localUser.name} 
                           className="dropdown-avatar" 
                         />
                       ) : (
                         <div className="dropdown-avatar placeholder">
-                          {getInitials(user.name)}
+                          {getInitials(localUser.name)}
                         </div>
                       )}
                       <div className="dropdown-user-info">
                         <div className="dropdown-name">{getUserDisplayName()}</div>
                         <div className="dropdown-role">{getUserRoleDisplay()}</div>
-                        <div className="dropdown-email">{user.email || 'hakuna barua pepe'}</div>
+                        <div className="dropdown-email">{localUser.email || 'hakuna barua pepe'}</div>
                       </div>
                     </div>
                     
@@ -370,7 +410,7 @@ const Navbar = ({ currentPage, onPageChange, onAuth, user, canGoBack, onGoBack }
 
                     <div className="dropdown-stats">
                       <div className="stat-item">
-                        <div className="stat-value">{user.rating || '4.8'}</div>
+                        <div className="stat-value">{localUser.rating || '4.8'}</div>
                         <div className="stat-label">Ukadiriaji</div>
                       </div>
                       <div className="stat-item">
@@ -379,13 +419,13 @@ const Navbar = ({ currentPage, onPageChange, onAuth, user, canGoBack, onGoBack }
                       </div>
                       <div className="stat-item">
                         <div className="stat-value">
-                          {user.role === 'farmer' ? (user.totalSales || '45') :
-                           user.role === 'buyer' ? (user.totalOrders || '15') : 
-                           (user.consultations || '47')}
+                          {localUser.role === 'farmer' ? (localUser.totalSales || '45') :
+                           localUser.role === 'buyer' ? (localUser.totalOrders || '15') : 
+                           (localUser.consultations || '47')}
                         </div>
                         <div className="stat-label">
-                          {user.role === 'farmer' ? 'Mauzo' : 
-                           user.role === 'buyer' ? 'Maagizo' : 'Huduma'}
+                          {localUser.role === 'farmer' ? 'Mauzo' : 
+                           localUser.role === 'buyer' ? 'Maagizo' : 'Huduma'}
                         </div>
                       </div>
                     </div>
@@ -394,7 +434,7 @@ const Navbar = ({ currentPage, onPageChange, onAuth, user, canGoBack, onGoBack }
                     
                     <button 
                       className="dropdown-item logout"
-                      onClick={handleLogout}
+                      onClick={handleLogoutWithConfirmation}
                     >
                       <i className="fas fa-sign-out-alt"></i>
                       <span>Toka</span>
@@ -404,6 +444,7 @@ const Navbar = ({ currentPage, onPageChange, onAuth, user, canGoBack, onGoBack }
               </div>
             </div>
           ) : (
+            // Desktop Auth Buttons
             <div className="auth-buttons">
               <Link 
                 className="btn btn-outline"
@@ -424,6 +465,28 @@ const Navbar = ({ currentPage, onPageChange, onAuth, user, canGoBack, onGoBack }
             </div>
           )}
         </div>
+
+        {/* Mobile Auth Buttons - Visible on mobile when user is not logged in */}
+        {!isLoggedIn && (
+          <div className="mobile-auth-buttons-visible">
+            <Link 
+              className="mobile-auth-btn mobile-auth-btn-outline"
+              to="/login"
+              onClick={() => handleAuthClick('login')}
+            >
+              <i className="fas fa-sign-in-alt"></i> 
+              <span className="btn-text">Ingia</span>
+            </Link>
+            <Link 
+              className="mobile-auth-btn mobile-auth-btn-primary"
+              to="/register"
+              onClick={() => handleAuthClick('register')}
+            >
+              <i className="fas fa-user-plus"></i> 
+              <span className="btn-text">Jisajili</span>
+            </Link>
+          </div>
+        )}
 
         {/* Mobile Menu Button */}
         <button 
@@ -524,7 +587,7 @@ const Navbar = ({ currentPage, onPageChange, onAuth, user, canGoBack, onGoBack }
           ))}
 
           {/* Mobile Auth Section for non-logged in users */}
-          {!user && (
+          {!isLoggedIn && (
             <div className="mobile-auth">
               <div className="mobile-auth-buttons">
                 <Link 
@@ -550,16 +613,38 @@ const Navbar = ({ currentPage, onPageChange, onAuth, user, canGoBack, onGoBack }
                   Jisajili
                 </Link>
               </div>
+              
+              <div className="mobile-auth-features">
+                <h4>Faida za Kujiunga</h4>
+                <ul>
+                  <li>
+                    <i className="fas fa-check-circle"></i>
+                    <span>Pata ushauri wa kilimo bora</span>
+                  </li>
+                  <li>
+                    <i className="fas fa-check-circle"></i>
+                    <span>Uuzaji wa mazao kwa bei nzuri</span>
+                  </li>
+                  <li>
+                    <i className="fas fa-check-circle"></i>
+                    <span>Mikopo ya kilimo na pembejeo</span>
+                  </li>
+                  <li>
+                    <i className="fas fa-check-circle"></i>
+                    <span>Taarifa za hali ya hewa</span>
+                  </li>
+                </ul>
+              </div>
             </div>
           )}
 
           {/* Mobile Logout for logged in users */}
-          {user && (
+          {isLoggedIn && (
             <div className="mobile-logout-section">
               <button 
                 className="mobile-nav-item logout"
                 onClick={() => {
-                  handleLogout();
+                  handleLogoutWithConfirmation();
                   setIsMenuOpen(false);
                 }}
               >
