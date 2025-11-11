@@ -1,411 +1,586 @@
-import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, Suspense, lazy } from 'react';
+import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
+import './App.css';
+
+// Import Components
 import Navigation from './components/Navbar/Navbar';
-import Hero from './components/Hero/Hero';
-import Features from './components/Features/Features';
-import MarketPreview from './components/MarketPreview/MarketPreview';
-import WeatherWidget from './components/WeatherWidget/WeatherWidget';
-import ExpertSection from './components/ExpertSection/ExpertSection';
 import Footer from './components/Footer/Footer';
-import FloatingContact from './components/FloatingContact/FloatingContact';
 import Loading from './components/Loading/Loading';
 import ErrorBoundary from './components/ErrorBoundary/ErrorBoundary';
 
-// Other Pages
-import News from './pages/Advice';
-import Market from './pages/Market';
-import Inputs from './pages/Inputs';
-import Advice from './pages/Advice';
-import Weather from './pages/Weather';
-import About from './pages/About';
-import Contact from './pages/Contact';
-import Registration from './pages/Registration';
-import Dashboard from './pages/Dashboard';
+// Lazy load components for better performance
+const Home = lazy(() => import('./pages/Home'));
+const Market = lazy(() => import('./pages/Market'));
+const Suppliers = lazy(() => import('./components/Suppliers'));
+const Loans = lazy(() => import('./components/Loans'));
+const FarmerGroups = lazy(() => import('./components/FarmerGroups'));
+const Reports = lazy(() => import('./components/Reports'));
+const Weather = lazy(() => import('./pages/Weather'));
+const About = lazy(() => import('./pages/About'));
+const Contact = lazy(() => import('./pages/Contact'));
+const Login = lazy(() => import('./components/Auth/Login'));
+const Registration = lazy(() => import('./components/Auth/Registration'));
+const Dashboard = lazy(() => import('./components/Dashboards/Dashboard'));
+const FarmerDashboard = lazy(() => import('./components/Dashboards/FarmerDashboard'));
+const BuyerDashboard = lazy(() => import('./components/Dashboards/BuyerDashboard'));
+const ExpertDashboard = lazy(() => import('./components/Dashboards/ExpertDashboard'));
+const ChatSystem = lazy(() => import('./components/ChatSystem/ChatSystem'));
 
-// New Dashboard Pages
-import FarmerDashboard from './UI/Dashboard/FarmerDashboard';
-import ExpertDashboard from './UI/Dashboard/ExpertDashboard';
-import BuyerDashboard from './UI/Dashboard/BuyerDashboard';
+// Import additional pages
+const News = lazy(() => import('./pages/News'));
+const Inputs = lazy(() => import('./pages/Inputs'));
+const Advice = lazy(() => import('./pages/Advice'));
 
-// New Feature Pages
-import Suppliers from './components/Suppliers';
-import Loans from './components/Loans';
-import FarmerGroups from './components/FarmerGroups';
-import Reports from './components/Reports';
-import ChatSystem from './components/ChatSystem/ChatSystem';
+// Loading wrapper component for routes
+const RouteLoading = ({ message = "Inapakia..." }) => (
+  <div className="route-loading">
+    <Loading message={message} />
+  </div>
+);
 
-import { sampleCrops, newsArticles, weatherData, priceData } from './data/sampleData';
-import './App.css';
-
-// Main App Component with Router
-function App() {
-  return (
-    <Router>
-      <ErrorBoundary>
-        <AppContent />
-      </ErrorBoundary>
-    </Router>
-  );
-}
-
-// App Content Component that uses router hooks
-function AppContent() {
-  const [isLoading, setIsLoading] = useState(true);
-  const [pageLoading, setPageLoading] = useState(false);
-  const [user, setUser] = useState(null);
-  const [crops] = useState(sampleCrops);
-  const [articles] = useState(newsArticles);
-  const [pageHistory, setPageHistory] = useState([]); // Ukumbusho wa historia ya kurasa
-  const [showChat, setShowChat] = useState(false);
-  const [notifications, setNotifications] = useState([]);
-  
+// Component to handle page transitions and loading
+const PageTransitionHandler = ({ children }) => {
+  const [isLoading, setIsLoading] = useState(false);
   const location = useLocation();
-  const navigate = useNavigate();
 
-  // Get current page from URL path
-  const getCurrentPageFromPath = (pathname) => {
-    const path = pathname.replace('/', '');
-    if (path === '' || path === 'home') return 'home';
-    return path;
-  };
-
-  const currentPage = getCurrentPageFromPath(location.pathname);
-
-  // Simulate initial app loading
   useEffect(() => {
+    // Show loading when route changes
+    setIsLoading(true);
+    
     const timer = setTimeout(() => {
       setIsLoading(false);
-    }, 2000);
-
-    // Check if user is logged in from localStorage
-    const savedUser = localStorage.getItem('kataviUser');
-    if (savedUser) {
-      const userData = JSON.parse(savedUser);
-      setUser(userData);
-    }
-
-    // Check if there's a saved page in localStorage and redirect
-    const savedPage = localStorage.getItem('kataviCurrentPage');
-    if (savedPage && savedPage !== 'home' && savedPage !== currentPage) {
-      navigate(`/${savedPage}`);
-    }
-
-    // Initialize page history
-    setPageHistory(['home']);
-
-    // Load sample notifications
-    setNotifications([
-      {
-        id: 1,
-        type: 'price_alert',
-        message: 'Bei ya mahindi imepanda 15% eneo lako',
-        time: '2 dakika zilizopita',
-        read: false
-      },
-      {
-        id: 2,
-        type: 'weather_alert',
-        message: 'Mvua inatarajiwa kesho asubuhi',
-        time: '1 saa iliyopita',
-        read: false
-      },
-      {
-        id: 3,
-        type: 'market_alert',
-        message: 'Mnunuzi mpya amejiunga eneo lako',
-        time: '3 saa zilizopita',
-        read: true
-      }
-    ]);
+    }, 500); // Minimum loading time for better UX
 
     return () => clearTimeout(timer);
-  }, [navigate, currentPage]);
-
-  // Update page history when location changes
-  useEffect(() => {
-    if (currentPage && pageHistory.length > 0) {
-      const previousPage = pageHistory[pageHistory.length - 1];
-      
-      // Only add to history if it's a new page
-      if (previousPage !== currentPage) {
-        setPageHistory(prev => [...prev, currentPage]);
-      }
-    }
   }, [location.pathname]);
 
-  const handlePageChange = (page) => {
-    // Save current page to localStorage
-    localStorage.setItem('kataviCurrentPage', page);
-    
-    // Show loading when changing pages
-    setPageLoading(true);
-    
-    setTimeout(() => {
-      navigate(`/${page === 'home' ? '' : page}`);
-      window.scrollTo(0, 0);
-      
-      // Hide loading after page transition
-      setTimeout(() => {
-        setPageLoading(false);
-      }, 500);
-    }, 600);
-  };
+  if (isLoading) {
+    return <RouteLoading message="Inapakia ukurasa..." />;
+  }
 
-  // New function to go back to previous page
-  const handleGoBack = () => {
-    if (pageHistory.length > 1) {
-      const previousPages = [...pageHistory];
-      previousPages.pop(); // Remove current page
-      const previousPage = previousPages.pop(); // Get the previous page
-      
-      if (previousPage) {
-        setPageHistory(previousPages);
-        handlePageChange(previousPage);
-      }
-    } else {
-      // If no history, go to home
-      handlePageChange('home');
+  return children;
+};
+
+// Main App Component
+function App() {
+  const [currentPage, setCurrentPage] = useState('home');
+  const [currentUser, setCurrentUser] = useState(null);
+  const [crops, setCrops] = useState([]);
+  const [users, setUsers] = useState([]);
+  const [showChat, setShowChat] = useState(false);
+  const [canGoBack, setCanGoBack] = useState(false);
+  const [appLoading, setAppLoading] = useState(true);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const navigate = useNavigate();
+
+  // Sample data
+  const sampleCrops = [
+    {
+      id: 1,
+      name: 'Mahindi',
+      farmer: 'Juma Mwinyi',
+      price: 1500,
+      quantity: 100,
+      location: 'Mpanda',
+      description: 'Mahindi bora yenye ubora wa hali ya juu',
+      image: '🌽',
+      type: 'cereal',
+      status: 'available',
+      rating: 4.5,
+      harvestDate: '2024-02-01'
+    },
+    {
+      id: 2,
+      name: 'Mpunga',
+      farmer: 'Asha Hassan',
+      price: 2000,
+      quantity: 50,
+      location: 'Mlele',
+      description: 'Mpunga mweupe wa aina bora',
+      image: '🌾',
+      type: 'cereal',
+      status: 'available',
+      rating: 4.8,
+      harvestDate: '2024-01-25'
     }
-  };
+  ];
 
-  const handleAuth = (action, userData = null) => {
-    if (action === 'login') {
-      setPageLoading(true);
+  const sampleUsers = [
+    {
+      id: 1,
+      name: 'Juma Mwinyi',
+      email: 'juma@example.com',
+      phone: '+255 789 123 456',
+      role: 'farmer',
+      location: 'Mpanda',
+      farmSize: 'Ekari 5',
+      crops: ['Mahindi', 'Mpunga'],
+      registrationDate: '2024-01-01T10:00:00Z',
+      rating: 4.8
+    },
+    {
+      id: 2,
+      name: 'Asha Hassan',
+      email: 'asha@example.com',
+      phone: '+255 789 654 321',
+      role: 'buyer',
+      location: 'Mlele',
+      businessType: 'Duka la Rejareja',
+      registrationDate: '2024-01-05T14:30:00Z',
+      rating: 4.9
+    }
+  ];
+
+  // Initialize app data
+  useEffect(() => {
+    const initializeApp = async () => {
+      setAppLoading(true);
       
-      // Simulate login - in real app, this would be an API call
-      setTimeout(() => {
-        const mockUser = {
-          id: 1,
-          name: 'Juma Mwinyi',
-          email: 'juma@example.com',
-          role: 'farmer',
-          phone: '+255 123 456 789',
-          location: 'Mpanda',
-          registrationDate: new Date().toISOString()
-        };
-        setUser(mockUser);
-        localStorage.setItem('kataviUser', JSON.stringify(mockUser));
-        localStorage.setItem('kataviCurrentPage', 'farmer-dashboard');
-        navigate('/farmer-dashboard');
-        setPageLoading(false);
-      }, 1500);
-      
-    } else if (action === 'register') {
-      setPageLoading(true);
-      setTimeout(() => {
-        localStorage.setItem('kataviCurrentPage', 'registration');
-        navigate('/registration');
-        setPageLoading(false);
-      }, 800);
-      
-    } else if (action === 'logout') {
-      setPageLoading(true);
-      setTimeout(() => {
-        setUser(null);
-        localStorage.removeItem('kataviUser');
-        localStorage.setItem('kataviCurrentPage', 'home');
-        navigate('/');
-        setPageLoading(false);
-      }, 800);
-      
-    } else if (action === 'register-success' && userData) {
-      setPageLoading(true);
-      setTimeout(() => {
-        setUser(userData);
-        localStorage.setItem('kataviUser', JSON.stringify(userData));
+      try {
+        // Simulate API calls for initial data
+        await new Promise(resolve => setTimeout(resolve, 1500));
         
-        // Redirect to appropriate dashboard based on user role
-        let targetPage = 'home';
-        if (userData.role === 'farmer') {
-          targetPage = 'farmer-dashboard';
-        } else if (userData.role === 'expert') {
-          targetPage = 'expert-dashboard';
-        } else if (userData.role === 'buyer') {
-          targetPage = 'buyer-dashboard';
+        setCrops(sampleCrops);
+        setUsers(sampleUsers);
+        
+        // Check if user is logged in from localStorage
+        const savedUser = localStorage.getItem('kataviUser');
+        if (savedUser) {
+          setCurrentUser(JSON.parse(savedUser));
         }
         
-        localStorage.setItem('kataviCurrentPage', targetPage);
-        navigate(`/${targetPage}`);
-        setPageLoading(false);
-      }, 1500);
+      } catch (error) {
+        console.error('Error initializing app:', error);
+      } finally {
+        setAppLoading(false);
+      }
+    };
+
+    initializeApp();
+  }, [refreshTrigger]);
+
+  // Handle page changes
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+    window.scrollTo(0, 0);
+  };
+
+  // Handle authentication - UPDATED LOGOUT
+  const handleAuth = (action, userData = null) => {
+    switch (action) {
+      case 'login':
+        setCurrentPage('login');
+        break;
+      
+      case 'register':
+        setCurrentPage('registration');
+        break;
+      
+      case 'register-success':
+        if (userData) {
+          const newUser = {
+            ...userData,
+            id: Math.random().toString(36).substr(2, 9),
+            registrationDate: new Date().toISOString(),
+            rating: 5.0
+          };
+          
+          setCurrentUser(newUser);
+          setUsers(prev => [...prev, newUser]);
+          localStorage.setItem('kataviUser', JSON.stringify(newUser));
+          
+          setTimeout(() => {
+            setCurrentPage('dashboard');
+          }, 1000);
+        }
+        break;
+      
+      case 'login-success':
+        if (userData) {
+          setCurrentUser(userData);
+          localStorage.setItem('kataviUser', JSON.stringify(userData));
+          setCurrentPage('dashboard');
+        }
+      
+      default:
+        break;
     }
   };
 
-  const handleContactFarmer = (crop) => {
-    alert(`📞 Utawasiliana na ${crop.farmer} kuhusu ${crop.name}\n\nSimu: +255 7XX XXX XXX\n\n"Habari ${crop.farmer}, nina nia ya kununua ${crop.name} yako."`);
+  // Handle going back
+  const handleGoBack = () => {
+    const pagesHistory = ['home', 'market', 'inputs', 'suppliers', 'loans', 'farmer-groups', 'advice', 'news', 'reports', 'weather', 'about', 'contact'];
+    const currentIndex = pagesHistory.indexOf(currentPage);
+    
+    if (currentIndex > 0) {
+      setCurrentPage(pagesHistory[currentIndex - 1]);
+    } else {
+      setCurrentPage('home');
+    }
   };
 
-  const handleCropDetails = (crop) => {
-    alert(`📋 Maelezo ya ${crop.name}:\n\n${crop.description}\n\nBei: TZS ${crop.price}/kg\nKiasi: ${crop.quantity} kg\nEneo: ${crop.location}\nMkulima: ${crop.farmer}\nTarehe: ${crop.date}`);
-  };
-
-  // New function to handle chat system
+  // Toggle chat system
   const handleToggleChat = () => {
     setShowChat(!showChat);
   };
 
-  // New function to handle notifications
-  const handleMarkNotificationAsRead = (notificationId) => {
-    setNotifications(notifications.map(notif => 
-      notif.id === notificationId ? { ...notif, read: true } : notif
+  // Refresh app data
+  const handleRefresh = () => {
+    setRefreshTrigger(prev => prev + 1);
+  };
+
+  // Handle creating farmer groups
+  const handleCreateGroup = (groupData) => {
+    console.log('Creating group:', groupData);
+    alert(`Kikundi "${groupData.name}" kimeundwa kikamilifu!`);
+  };
+
+  // Handle loan applications
+  const handleApplyForLoan = (loanData) => {
+    console.log('Applying for loan:', loanData);
+    alert(`Maombi yako ya mkopo "${loanData.name}" yamewasilishwa!`);
+  };
+
+  // Add new crop
+  const handleAddCrop = (cropData) => {
+    const newCrop = {
+      id: crops.length + 1,
+      ...cropData,
+      farmer: currentUser?.name || 'Mkulima',
+      location: currentUser?.location || 'Katavi',
+      status: 'available',
+      rating: 5.0,
+      image: '🌱'
+    };
+    setCrops(prev => [...prev, newCrop]);
+    return newCrop;
+  };
+
+  // Update crop
+  const handleUpdateCrop = (cropId, updatedData) => {
+    setCrops(prev => prev.map(crop => 
+      crop.id === cropId ? { ...crop, ...updatedData } : crop
     ));
   };
 
-  // New function to handle group creation
-  const handleCreateGroup = (groupData) => {
-    console.log('Creating new farmer group:', groupData);
-    alert('Kikundi kipya kimeundwa kikamilifu!');
+  // Delete crop
+  const handleDeleteCrop = (cropId) => {
+    setCrops(prev => prev.filter(crop => crop.id !== cropId));
   };
 
-  // New function to handle loan application
-  const handleApplyForLoan = (loanData) => {
-    console.log('Applying for loan:', loanData);
-    alert('Ombi lako la mkopo limewasilishwa!');
-  };
+  // Set canGoBack based on current page
+  useEffect(() => {
+    setCanGoBack(currentPage !== 'home');
+  }, [currentPage]);
 
-  // Common props for all pages
-  const commonProps = {
-    onPageChange: handlePageChange,
-    onGoBack: handleGoBack, // Add go back function
-    onAuth: handleAuth,
-    user: user,
-    canGoBack: pageHistory.length > 1, // Indicate if back navigation is possible
-    onToggleChat: handleToggleChat,
-    notifications: notifications,
-    onMarkNotificationAsRead: handleMarkNotificationAsRead,
-    onCreateGroup: handleCreateGroup,
-    onApplyForLoan: handleApplyForLoan
-  };
-
-  // Show initial app loading
-  if (isLoading) {
-    return <Loading message="Inapakia Jukwaa la Katavi E-Kilimo..." />;
-  }
-
-  // Show page transition loading
-  if (pageLoading) {
-    return <Loading message="Inapakia Ukurasa..." />;
+  // Show app loading
+  if (appLoading) {
+    return (
+      <div className="app-loading">
+        <Loading message="Inaanzisha jukwaa la Katavi E-Kilimo..." />
+      </div>
+    );
   }
 
   return (
     <div className="App">
-      <Routes>
-        {/* Home Route */}
-        <Route path="/" element={
-          <div className="min-h-screen bg-background">
-            <Navigation 
-              currentPage={currentPage}
+      <Suspense fallback={<RouteLoading message="Inapakia programu..." />}>
+        <Routes>
+          {/* Public Routes */}
+          <Route path="/" element={
+            <PageTransitionHandler>
+              <Home 
+                onPageChange={handlePageChange}
+                onAuth={handleAuth}
+                user={currentUser}
+                crops={crops}
+                onRefresh={handleRefresh}
+              />
+            </PageTransitionHandler>
+          } />
+          
+          <Route path="/market" element={
+            <PageTransitionHandler>
+              <Market 
+                onPageChange={handlePageChange}
+                onAuth={handleAuth}
+                user={currentUser}
+                crops={crops}
+                onAddCrop={handleAddCrop}
+                onUpdateCrop={handleUpdateCrop}
+                onDeleteCrop={handleDeleteCrop}
+                onRefresh={handleRefresh}
+              />
+            </PageTransitionHandler>
+          } />
+          
+          <Route path="/inputs" element={
+            <PageTransitionHandler>
+              <Inputs 
+                onPageChange={handlePageChange}
+                onAuth={handleAuth}
+                user={currentUser}
+                onRefresh={handleRefresh}
+              />
+            </PageTransitionHandler>
+          } />
+          
+          <Route path="/suppliers" element={
+            <PageTransitionHandler>
+              <Suppliers 
+                onPageChange={handlePageChange}
+                onAuth={handleAuth}
+                user={currentUser}
+                onRefresh={handleRefresh}
+              />
+            </PageTransitionHandler>
+          } />
+          
+          <Route path="/loans" element={
+            <PageTransitionHandler>
+              <Loans 
+                onPageChange={handlePageChange}
+                onAuth={handleAuth}
+                user={currentUser}
+                onApplyForLoan={handleApplyForLoan}
+                onRefresh={handleRefresh}
+              />
+            </PageTransitionHandler>
+          } />
+          
+          <Route path="/farmer-groups" element={
+            <PageTransitionHandler>
+              <FarmerGroups 
+                onPageChange={handlePageChange}
+                onAuth={handleAuth}
+                user={currentUser}
+                onCreateGroup={handleCreateGroup}
+                onRefresh={handleRefresh}
+              />
+            </PageTransitionHandler>
+          } />
+          
+          <Route path="/advice" element={
+            <PageTransitionHandler>
+              <Advice 
+                onPageChange={handlePageChange}
+                onAuth={handleAuth}
+                user={currentUser}
+                onRefresh={handleRefresh}
+              />
+            </PageTransitionHandler>
+          } />
+          
+          <Route path="/news" element={
+            <PageTransitionHandler>
+              <News 
+                onPageChange={handlePageChange}
+                onAuth={handleAuth}
+                user={currentUser}
+                onRefresh={handleRefresh}
+              />
+            </PageTransitionHandler>
+          } />
+          
+          <Route path="/reports" element={
+            <PageTransitionHandler>
+              <Reports 
+                onPageChange={handlePageChange}
+                onAuth={handleAuth}
+                user={currentUser}
+                crops={crops}
+                onRefresh={handleRefresh}
+              />
+            </PageTransitionHandler>
+          } />
+          
+          <Route path="/weather" element={
+            <PageTransitionHandler>
+              <Weather 
+                onPageChange={handlePageChange}
+                onAuth={handleAuth}
+                user={currentUser}
+                onRefresh={handleRefresh}
+              />
+            </PageTransitionHandler>
+          } />
+          
+          <Route path="/about" element={
+            <PageTransitionHandler>
+              <About 
+                onPageChange={handlePageChange}
+                onAuth={handleAuth}
+                user={currentUser}
+                onRefresh={handleRefresh}
+              />
+            </PageTransitionHandler>
+          } />
+          
+          <Route path="/contact" element={
+            <PageTransitionHandler>
+              <Contact 
+                onPageChange={handlePageChange}
+                onAuth={handleAuth}
+                user={currentUser}
+                onRefresh={handleRefresh}
+              />
+            </PageTransitionHandler>
+          } />
+
+          {/* Auth Routes */}
+          <Route path="/login" element={
+            <PageTransitionHandler>
+              <Login 
+                onPageChange={handlePageChange}
+                onAuth={handleAuth}
+                user={currentUser}
+                onRefresh={handleRefresh}
+              />
+            </PageTransitionHandler>
+          } />
+          
+          <Route path="/register" element={
+            <PageTransitionHandler>
+              <Registration 
+                onPageChange={handlePageChange}
+                onAuth={handleAuth}
+                user={currentUser}
+                onRefresh={handleRefresh}
+              />
+            </PageTransitionHandler>
+          } />
+
+          {/* Dashboard Routes */}
+          <Route path="/dashboard" element={
+            <PageTransitionHandler>
+              <Dashboard 
+                onPageChange={handlePageChange}
+                onAuth={handleAuth}
+                user={currentUser}
+                crops={crops}
+                onToggleChat={handleToggleChat}
+                onCreateGroup={handleCreateGroup}
+                onApplyForLoan={handleApplyForLoan}
+                onRefresh={handleRefresh}
+              />
+            </PageTransitionHandler>
+          } />
+          
+          <Route path="/farmer-dashboard" element={
+            <PageTransitionHandler>
+              <FarmerDashboard 
+                onPageChange={handlePageChange}
+                onAuth={handleAuth}
+                user={currentUser}
+                crops={crops.filter(crop => crop.farmer === currentUser?.name)}
+                onToggleChat={handleToggleChat}
+                onAddCrop={handleAddCrop}
+                onUpdateCrop={handleUpdateCrop}
+                onDeleteCrop={handleDeleteCrop}
+                onRefresh={handleRefresh}
+              />
+            </PageTransitionHandler>
+          } />
+          
+          <Route path="/buyer-dashboard" element={
+            <PageTransitionHandler>
+              <BuyerDashboard 
+                onPageChange={handlePageChange}
+                onAuth={handleAuth}
+                user={currentUser}
+                crops={crops}
+                onToggleChat={handleToggleChat}
+                onRefresh={handleRefresh}
+              />
+            </PageTransitionHandler>
+          } />
+          
+          <Route path="/expert-dashboard" element={
+            <PageTransitionHandler>
+              <ExpertDashboard 
+                onPageChange={handlePageChange}
+                onAuth={handleAuth}
+                user={currentUser}
+                onToggleChat={handleToggleChat}
+                onRefresh={handleRefresh}
+              />
+            </PageTransitionHandler>
+          } />
+
+          {/* 404 Route */}
+          <Route path="*" element={
+            <PageTransitionHandler>
+              <div className="not-found-page">
+                <Navigation 
+                  currentPage="404"
+                  onPageChange={handlePageChange}
+                  onAuth={handleAuth}
+                  user={currentUser}
+                  canGoBack={canGoBack}
+                  onGoBack={handleGoBack}
+                  onToggleChat={handleToggleChat}
+                />
+                <div className="not-found-container">
+                  <div className="container">
+                    <div className="not-found-content">
+                      <h1>404 - Ukurasa Haupatikani</h1>
+                      <p>Samahani, ukurasa unaoutafuta haupo.</p>
+                      <button 
+                        className="btn btn-primary"
+                        onClick={() => {
+                          handlePageChange('home');
+                          navigate('/');
+                        }}
+                      >
+                        Rudi Nyumbani
+                      </button>
+                      <button 
+                        className="btn btn-outline"
+                        onClick={handleRefresh}
+                      >
+                        <i className="fas fa-sync-alt"></i> Refresh
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                <Footer onPageChange={handlePageChange} />
+              </div>
+            </PageTransitionHandler>
+          } />
+        </Routes>
+
+        {/* Global Chat System */}
+        {showChat && currentUser && (
+          <Suspense fallback={<RouteLoading message="Inapakia mazungumzo..." />}>
+            <ChatSystem 
+              user={currentUser}
+              onClose={handleToggleChat}
               onPageChange={handlePageChange}
-              onGoBack={handleGoBack}
-              onAuth={handleAuth}
-              user={user}
-              canGoBack={pageHistory.length > 1}
-              notifications={notifications}
-              onMarkNotificationAsRead={handleMarkNotificationAsRead}
-              onToggleChat={handleToggleChat}
             />
-            <Hero onAuth={handleAuth} />
-            <Features onPageChange={handlePageChange} />
-            <MarketPreview 
-              crops={crops}
-              onPageChange={handlePageChange}
-              onContactFarmer={handleContactFarmer}
-            />
-            <WeatherWidget onPageChange={handlePageChange} />
-            <ExpertSection onPageChange={handlePageChange} />
-            <Footer onPageChange={handlePageChange} />
-          </div>
-        } />
-        
-        <Route path="/home" element={<Navigate to="/" replace />} />
+          </Suspense>
+        )}
 
-        {/* Public Pages */}
-        <Route path="/news" element={<News {...commonProps} articles={articles} />} />
-        <Route path="/market" element={
-          <Market 
-            {...commonProps} 
-            crops={crops}
-            onContactFarmer={handleContactFarmer}
-            onCropDetails={handleCropDetails}
-          />
-        } />
-        <Route path="/inputs" element={<Inputs {...commonProps} />} />
-        <Route path="/advice" element={<Advice {...commonProps} />} />
-        <Route path="/weather" element={<Weather {...commonProps} weatherData={weatherData} />} />
-        <Route path="/about" element={<About {...commonProps} />} />
-        <Route path="/contact" element={<Contact {...commonProps} />} />
-        <Route path="/registration" element={<Registration {...commonProps} onAuth={handleAuth} />} />
-
-        {/* New Feature Pages */}
-        <Route path="/suppliers" element={<Suppliers {...commonProps} />} />
-        <Route path="/loans" element={<Loans {...commonProps} />} />
-        <Route path="/farmer-groups" element={<FarmerGroups {...commonProps} />} />
-        <Route path="/reports" element={<Reports {...commonProps} crops={crops} />} />
-
-        {/* Dashboard Pages */}
-        <Route path="/dashboard" element={
-          user ? <Dashboard {...commonProps} user={user} crops={crops} /> : <Navigate to="/registration" />
-        } />
-        
-        <Route path="/farmer-dashboard" element={
-          user && user.role === 'farmer' ? 
-            <FarmerDashboard {...commonProps} user={user} crops={crops} /> : 
-            <Navigate to="/registration" />
-        } />
-        
-        <Route path="/expert-dashboard" element={
-          user && user.role === 'expert' ? 
-            <ExpertDashboard {...commonProps} user={user} /> : 
-            <Navigate to="/registration" />
-        } />
-        
-        <Route path="/buyer-dashboard" element={
-          user && user.role === 'buyer' ? 
-            <BuyerDashboard {...commonProps} user={user} crops={crops} /> : 
-            <Navigate to="/registration" />
-        } />
-
-        {/* Fallback route - redirect to home */}
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-
-      {/* Floating Contact - Show on all pages except dashboards */}
-      {!currentPage.includes('dashboard') && <FloatingContact />}
-
-      {/* Chat System - Show when activated */}
-      {showChat && (
-        <ChatSystem 
-          user={user}
-          onClose={handleToggleChat}
-        />
-      )}
-
-      {/* New Features Floating Menu */}
-      <div className="floating-features-menu">
+        {/* Global Refresh Button */}
         <button 
-          className="floating-feature-btn chat-btn"
-          onClick={handleToggleChat}
-          title="Fungua Mazungumzo"
+          className="global-refresh-btn"
+          onClick={handleRefresh}
+          title="Refresh data"
+          aria-label="Refresh application data"
         >
-          <i className="fas fa-comments"></i>
+          <i className="fas fa-sync-alt"></i>
         </button>
-        <button 
-          className="floating-feature-btn groups-btn"
-          onClick={() => handlePageChange('farmer-groups')}
-          title="Vikundi vya Wakulima"
-        >
-          <i className="fas fa-users"></i>
-        </button>
-        <button 
-          className="floating-feature-btn loans-btn"
-          onClick={() => handlePageChange('loans')}
-          title="Mikopo kwa Wakulima"
-        >
-          <i className="fas fa-hand-holding-usd"></i>
-        </button>
-      </div>
+
+
+      </Suspense>
     </div>
   );
 }
 
-export default App;
+// Wrap App with ErrorBoundary and Router in a separate component
+const AppWithProviders = () => (
+  <ErrorBoundary>
+    <App />
+  </ErrorBoundary>
+);
+
+export default AppWithProviders;

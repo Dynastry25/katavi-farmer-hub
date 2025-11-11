@@ -1,14 +1,16 @@
 import React, { useState } from 'react';
-import Navigation from '../../components/Navbar/Navbar';
-import Footer from '../../components/Footer/Footer';
+import { useNavigate } from 'react-router-dom';
+import Navigation from '../Navbar/Navbar';
+import Footer from '../Footer/Footer';
 import './FarmerDashboard.css';
 
-const FarmerDashboard = ({ onPageChange, onAuth, user, crops }) => {
-  const [activeTab, setActiveTab] = useState('mycrops');
+const FarmerDashboard = ({ onPageChange, onAuth, user, crops, onToggleChat, onAddCrop, onUpdateCrop, onDeleteCrop, onRefresh }) => {
+  const [activeTab, setActiveTab] = useState('overview');
   const [showAddCropModal, setShowAddCropModal] = useState(false);
   const [showAddProductModal, setShowAddProductModal] = useState(false);
   const [showOrderModal, setShowOrderModal] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
+  const navigate = useNavigate();
 
   const [newCrop, setNewCrop] = useState({
     name: '',
@@ -125,7 +127,8 @@ const FarmerDashboard = ({ onPageChange, onAuth, user, crops }) => {
   const handleAddCrop = (e) => {
     e.preventDefault();
     // Handle adding new crop logic here
-    console.log('Adding new crop:', newCrop);
+    const addedCrop = onAddCrop(newCrop);
+    console.log('Adding new crop:', addedCrop);
     alert('Zao jipya limeongezwa kikamilifu!');
     setShowAddCropModal(false);
     setNewCrop({
@@ -235,6 +238,92 @@ const FarmerDashboard = ({ onPageChange, onAuth, user, crops }) => {
           <button className="action-btn" onClick={() => setActiveTab('analytics')}>
             <i className="fas fa-chart-line"></i>
             <span>Takwimu za Biashara</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Dashboard Links */}
+      <div className="dashboard-links-section">
+        <h3>🔗 Huduma za Wakulima</h3>
+        <div className="dashboard-links-grid">
+          <button className="dashboard-link-card" onClick={() => navigate('/market')}>
+            <div className="link-icon">
+              <i className="fas fa-store"></i>
+            </div>
+            <div className="link-content">
+              <h4>Soko la Mazao</h4>
+              <p>Weka na uuze mazao yako</p>
+            </div>
+          </button>
+          
+          <button className="dashboard-link-card" onClick={() => navigate('/suppliers')}>
+            <div className="link-icon">
+              <i className="fas fa-truck"></i>
+            </div>
+            <div className="link-content">
+              <h4>Wauzaji wa Pembejeo</h4>
+              <p>Pata mbolea na vifaa</p>
+            </div>
+          </button>
+          
+          <button className="dashboard-link-card" onClick={() => navigate('/loans')}>
+            <div className="link-icon">
+              <i className="fas fa-hand-holding-usd"></i>
+            </div>
+            <div className="link-content">
+              <h4>Mikopo</h4>
+              <p>Omba mkopo wa kilimo</p>
+            </div>
+          </button>
+          
+          <button className="dashboard-link-card" onClick={() => navigate('/farmer-groups')}>
+            <div className="link-icon">
+              <i className="fas fa-users"></i>
+            </div>
+            <div className="link-content">
+              <h4>Vikundi vya Wakulima</h4>
+              <p>Jiunge na wakulima wengine</p>
+            </div>
+          </button>
+          
+          <button className="dashboard-link-card" onClick={() => navigate('/reports')}>
+            <div className="link-icon">
+              <i className="fas fa-chart-bar"></i>
+            </div>
+            <div className="link-content">
+              <h4>Ripoti na Takwimu</h4>
+              <p>Angalia mienendo ya biashara</p>
+            </div>
+          </button>
+          
+          <button className="dashboard-link-card" onClick={() => navigate('/advice')}>
+            <div className="link-icon">
+              <i className="fas fa-graduation-cap"></i>
+            </div>
+            <div className="link-content">
+              <h4>Ushauri wa Kilimo</h4>
+              <p>Pata maelekezo ya wataalamu</p>
+            </div>
+          </button>
+
+          <button className="dashboard-link-card" onClick={() => navigate('/weather')}>
+            <div className="link-icon">
+              <i className="fas fa-cloud-sun"></i>
+            </div>
+            <div className="link-content">
+              <h4>Hali ya Hewa</h4>
+              <p>Angalia utabiri wa hali ya hewa</p>
+            </div>
+          </button>
+
+          <button className="dashboard-link-card" onClick={() => navigate('/inputs')}>
+            <div className="link-icon">
+              <i className="fas fa-tools"></i>
+            </div>
+            <div className="link-content">
+              <h4>Pembejeo</h4>
+              <p>Vifaa na vyombo vya kilimo</p>
+            </div>
           </button>
         </div>
       </div>
@@ -429,6 +518,32 @@ const FarmerDashboard = ({ onPageChange, onAuth, user, crops }) => {
           <div className="analytics-trend positive">+50% kutoka mwezi uliopita</div>
         </div>
       </div>
+
+      {/* Additional Links in Analytics Tab */}
+      <div className="dashboard-links-section">
+        <h3>🔗 Ripoti za kina</h3>
+        <div className="dashboard-links-grid">
+          <button className="dashboard-link-card" onClick={() => navigate('/reports')}>
+            <div className="link-icon">
+              <i className="fas fa-chart-line"></i>
+            </div>
+            <div className="link-content">
+              <h4>Ripoti Kamili</h4>
+              <p>Angalia ripoti zote za biashara</p>
+            </div>
+          </button>
+          
+          <button className="dashboard-link-card" onClick={() => navigate('/market')}>
+            <div className="link-icon">
+              <i className="fas fa-chart-bar"></i>
+            </div>
+            <div className="link-content">
+              <h4>Bei za Soko</h4>
+              <p>Angalia mienendo ya bei</p>
+            </div>
+          </button>
+        </div>
+      </div>
     </div>
   );
 
@@ -448,13 +563,20 @@ const FarmerDashboard = ({ onPageChange, onAuth, user, crops }) => {
             <div className="welcome-section">
               <h1>Karibu, Mkulima {user?.name}!</h1>
               <p>Dashibodi yako ya kusimamia shughuli zako za kilimo na biashara</p>
+              <div className="farmer-badge">
+                <i className="fas fa-tractor"></i>
+                Mkulima Waandaliwa
+              </div>
             </div>
             <div className="header-actions">
               <button className="btn btn-primary" onClick={() => setShowAddCropModal(true)}>
                 <i className="fas fa-plus"></i> Ongeza Zao
               </button>
-              <button className="btn btn-outline">
-                <i className="fas fa-bell"></i> Arifa
+              <button className="btn btn-outline" onClick={onToggleChat}>
+                <i className="fas fa-comments"></i> Mazungumzo
+              </button>
+              <button className="btn btn-success" onClick={() => navigate('/loans')}>
+                <i className="fas fa-hand-holding-usd"></i> Mikopo
               </button>
             </div>
           </div>

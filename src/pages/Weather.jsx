@@ -3,9 +3,11 @@ import Navigation from '../components/Navbar/Navbar';
 import Footer from '../components/Footer/Footer';
 import './CSS/Weather.css';
 
-const Weather = ({ onPageChange, onAuth, user, weatherData }) => {
+const Weather = ({ onPageChange, onAuth, user, onRefresh }) => {
   const [selectedLocation, setSelectedLocation] = useState('Mpanda');
   const [forecastData, setForecastData] = useState(null);
+  const [weatherData, setWeatherData] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   const locations = [
     { value: 'Mpanda', label: 'Mpanda' },
@@ -14,41 +16,91 @@ const Weather = ({ onPageChange, onAuth, user, weatherData }) => {
     { value: 'Karema', label: 'Karema' }
   ];
 
+  // Sample weather data
+  const sampleWeatherData = {
+    Mpanda: {
+      temperature: 28,
+      condition: 'Mawingu',
+      humidity: '65%',
+      rainfall: '30%',
+      wind: '12 km/h'
+    },
+    Mlele: {
+      temperature: 30,
+      condition: 'Jua',
+      humidity: '55%',
+      rainfall: '10%',
+      wind: '8 km/h'
+    },
+    Nsimbo: {
+      temperature: 26,
+      condition: 'Mvua Nyeupe',
+      humidity: '75%',
+      rainfall: '60%',
+      wind: '15 km/h'
+    },
+    Karema: {
+      temperature: 29,
+      condition: 'Mawingu',
+      humidity: '60%',
+      rainfall: '20%',
+      wind: '10 km/h'
+    }
+  };
+
   useEffect(() => {
-    // Simulate forecast data
-    const mockForecast = {
-      Mpanda: [
-        { day: 'Leo', condition: 'Mawingu', temp: 25, rain: '30%' },
-        { day: 'Kesho', condition: 'Mvua Nyeupe', temp: 24, rain: '60%' },
-        { day: 'Kesho Kutwa', condition: 'Mawingu', temp: 26, rain: '20%' },
-        { day: 'Jumatano', condition: 'Jua', temp: 27, rain: '10%' },
-        { day: 'Alhamisi', condition: 'Jua', temp: 28, rain: '0%' }
-      ],
-      Mlele: [
-        { day: 'Leo', condition: 'Jua', temp: 27, rain: '10%' },
-        { day: 'Kesho', condition: 'Mawingu', temp: 26, rain: '30%' },
-        { day: 'Kesho Kutwa', condition: 'Mvua Nyeupe', temp: 25, rain: '70%' },
-        { day: 'Jumatano', condition: 'Mawingu', temp: 26, rain: '40%' },
-        { day: 'Alhamisi', condition: 'Jua', temp: 28, rain: '5%' }
-      ],
-      Nsimbo: [
-        { day: 'Leo', condition: 'Mvua Nyeupe', temp: 26, rain: '80%' },
-        { day: 'Kesho', condition: 'Mvua', temp: 24, rain: '90%' },
-        { day: 'Kesho Kutwa', condition: 'Mawingu', temp: 25, rain: '50%' },
-        { day: 'Jumatano', condition: 'Mawingu', temp: 26, rain: '30%' },
-        { day: 'Alhamisi', condition: 'Jua', temp: 27, rain: '10%' }
-      ],
-      Karema: [
-        { day: 'Leo', condition: 'Mawingu', temp: 26, rain: '40%' },
-        { day: 'Kesho', condition: 'Jua', temp: 28, rain: '5%' },
-        { day: 'Kesho Kutwa', condition: 'Jua', temp: 29, rain: '0%' },
-        { day: 'Jumatano', condition: 'Mawingu', temp: 27, rain: '20%' },
-        { day: 'Alhamisi', condition: 'Mawingu', temp: 26, rain: '30%' }
-      ]
+    // Simulate API call to fetch weather data
+    const fetchWeatherData = async () => {
+      setLoading(true);
+      try {
+        // Simulate API delay
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        // Set sample weather data
+        setWeatherData(sampleWeatherData);
+        
+        // Simulate forecast data
+        const mockForecast = {
+          Mpanda: [
+            { day: 'Leo', condition: 'Mawingu', temp: 25, rain: '30%' },
+            { day: 'Kesho', condition: 'Mvua Nyeupe', temp: 24, rain: '60%' },
+            { day: 'Kesho Kutwa', condition: 'Mawingu', temp: 26, rain: '20%' },
+            { day: 'Jumatano', condition: 'Jua', temp: 27, rain: '10%' },
+            { day: 'Alhamisi', condition: 'Jua', temp: 28, rain: '0%' }
+          ],
+          Mlele: [
+            { day: 'Leo', condition: 'Jua', temp: 27, rain: '10%' },
+            { day: 'Kesho', condition: 'Mawingu', temp: 26, rain: '30%' },
+            { day: 'Kesho Kutwa', condition: 'Mvua Nyeupe', temp: 25, rain: '70%' },
+            { day: 'Jumatano', condition: 'Mawingu', temp: 26, rain: '40%' },
+            { day: 'Alhamisi', condition: 'Jua', temp: 28, rain: '5%' }
+          ],
+          Nsimbo: [
+            { day: 'Leo', condition: 'Mvua Nyeupe', temp: 26, rain: '80%' },
+            { day: 'Kesho', condition: 'Mvua', temp: 24, rain: '90%' },
+            { day: 'Kesho Kutwa', condition: 'Mawingu', temp: 25, rain: '50%' },
+            { day: 'Jumatano', condition: 'Mawingu', temp: 26, rain: '30%' },
+            { day: 'Alhamisi', condition: 'Jua', temp: 27, rain: '10%' }
+          ],
+          Karema: [
+            { day: 'Leo', condition: 'Mawingu', temp: 26, rain: '40%' },
+            { day: 'Kesho', condition: 'Jua', temp: 28, rain: '5%' },
+            { day: 'Kesho Kutwa', condition: 'Jua', temp: 29, rain: '0%' },
+            { day: 'Jumatano', condition: 'Mawingu', temp: 27, rain: '20%' },
+            { day: 'Alhamisi', condition: 'Mawingu', temp: 26, rain: '30%' }
+          ]
+        };
+
+        setForecastData(mockForecast);
+      } catch (error) {
+        console.error('Error fetching weather data:', error);
+      } finally {
+        setLoading(false);
+      }
     };
 
-    setForecastData(mockForecast);
-  }, []);
+    fetchWeatherData();
+  }, [selectedLocation]);
 
   const getWeatherIcon = (condition) => {
     switch (condition) {
@@ -61,6 +113,12 @@ const Weather = ({ onPageChange, onAuth, user, weatherData }) => {
   };
 
   const getAdvisory = (weather) => {
+    if (!weather) return {
+      type: 'normal',
+      title: 'Hali ya Kawaida',
+      message: 'Endelea na shughuli za kawaida za kilimo. Fuata ratiba yako ya kilimo.'
+    };
+
     if (weather.condition.includes('Mvua')) {
       return {
         type: 'good',
@@ -82,7 +140,7 @@ const Weather = ({ onPageChange, onAuth, user, weatherData }) => {
     }
   };
 
-  if (!weatherData || !forecastData) {
+  if (loading) {
     return (
       <div className="page weather-page">
         <Navigation 
@@ -92,8 +150,30 @@ const Weather = ({ onPageChange, onAuth, user, weatherData }) => {
           user={user}
         />
         <div className="weather-loading">
-          <i className="fas fa-cloud-sun"></i>
+          <i className="fas fa-cloud-sun fa-spin"></i>
           <p>Inapakia taarifa za hali ya hewa...</p>
+        </div>
+        <Footer onPageChange={onPageChange} />
+      </div>
+    );
+  }
+
+  if (!weatherData || !forecastData) {
+    return (
+      <div className="page weather-page">
+        <Navigation 
+          currentPage="weather"
+          onPageChange={onPageChange}
+          onAuth={onAuth}
+          user={user}
+        />
+        <div className="weather-error">
+          <i className="fas fa-exclamation-triangle"></i>
+          <h3>Huduma ya Hali ya Hewa Haipatikani</h3>
+          <p>Samahani, hatuwezi kupata taarifa za hali ya hewa kwa sasa.</p>
+          <button className="btn btn-primary" onClick={onRefresh}>
+            <i className="fas fa-sync-alt"></i> Jaribu Tena
+          </button>
         </div>
         <Footer onPageChange={onPageChange} />
       </div>
@@ -155,7 +235,7 @@ const Weather = ({ onPageChange, onAuth, user, weatherData }) => {
                 <div className="detail-card">
                   <i className="fas fa-tint"></i>
                   <div className="detail-content">
-                    <div className="detail-value">{currentWeather.humidity}%</div>
+                    <div className="detail-value">{currentWeather.humidity}</div>
                     <div className="detail-label">Unyevu</div>
                   </div>
                 </div>
@@ -163,7 +243,7 @@ const Weather = ({ onPageChange, onAuth, user, weatherData }) => {
                   <i className="fas fa-cloud-rain"></i>
                   <div className="detail-content">
                     <div className="detail-value">{currentWeather.rainfall}</div>
-                    <div className="detail-label">Mvua</div>
+                    <div className="detail-label">Uwezekano wa Mvua</div>
                   </div>
                 </div>
                 <div className="detail-card">

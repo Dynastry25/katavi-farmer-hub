@@ -1,20 +1,18 @@
 import React, { useState } from 'react';
-import Navigation from '../components/Navbar/Navbar';
-import Footer from '../components/Footer/Footer';
-import './CSS/Registration.css';
+import { useNavigate } from 'react-router-dom';
+import Navigation from '../Navbar/Navbar';
+import Footer from '../Footer/Footer';
+import './Registration.css';
 
-const Registration = ({ onPageChange, onAuth, user }) => {
+const Registration = ({ onPageChange, onAuth, user, onRefresh }) => {
   const [step, setStep] = useState(1);
   const [userType, setUserType] = useState('');
   const [formData, setFormData] = useState({
-    // Step 1: Basic Info
     fullName: '',
     email: '',
     phone: '',
     password: '',
     confirmPassword: '',
-    
-    // Step 2: User Type Specific
     farmSize: '',
     farmLocation: '',
     crops: [],
@@ -22,8 +20,6 @@ const Registration = ({ onPageChange, onAuth, user }) => {
     businessLocation: '',
     expertise: '',
     experience: '',
-    
-    // Step 3: Additional Info
     district: '',
     ward: '',
     village: '',
@@ -31,24 +27,31 @@ const Registration = ({ onPageChange, onAuth, user }) => {
     dateOfBirth: ''
   });
 
+  const [errors, setErrors] = useState({});
+  const [isLoading, setIsLoading] = useState(false);
+  const navigate = useNavigate();
+
   const userTypes = [
     {
       value: 'farmer',
       label: 'Mkulima',
       icon: 'fas fa-tractor',
-      description: 'Nina shamba na ninauza mazao'
+      description: 'Nina shamba na ninauza mazao',
+      dashboardPath: '/farmer-dashboard'
     },
     {
       value: 'buyer',
       label: 'Mnunuzi',
       icon: 'fas fa-shopping-cart',
-      description: 'Ninanunua mazao kwa ajili ya biashara'
+      description: 'Ninanunua mazao kwa ajili ya biashara',
+      dashboardPath: '/buyer-dashboard'
     },
     {
       value: 'expert',
       label: 'Mtaalamu',
       icon: 'fas fa-user-graduate',
-      description: 'Nina ujuzi wa kilimo na nataka kusaidia'
+      description: 'Nina ujuzi wa kilimo na nataka kusaidia',
+      dashboardPath: '/expert-dashboard'
     }
   ];
 
@@ -102,6 +105,56 @@ const Registration = ({ onPageChange, onAuth, user }) => {
         [name]: value
       }));
     }
+
+    if (errors[name]) {
+      setErrors(prev => ({
+        ...prev,
+        [name]: ''
+      }));
+    }
+  };
+
+  const validateStep = (step) => {
+    const newErrors = {};
+
+    if (step === 2) {
+      if (!formData.fullName.trim()) {
+        newErrors.fullName = 'Jina kamili linahitajika';
+      }
+      if (!formData.email.trim()) {
+        newErrors.email = 'Barua pepe inahitajika';
+      } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+        newErrors.email = 'Barua pepe siyo sahihi';
+      }
+      if (!formData.phone.trim()) {
+        newErrors.phone = 'Namba ya simu inahitajika';
+      }
+      if (!formData.password) {
+        newErrors.password = 'Nenosiri linahitajika';
+      } else if (formData.password.length < 6) {
+        newErrors.password = 'Nenosiri lazima liwe na herufi 6 au zaidi';
+      }
+      if (!formData.confirmPassword) {
+        newErrors.confirmPassword = 'Thibitisha nenosiri linahitajika';
+      } else if (formData.password !== formData.confirmPassword) {
+        newErrors.confirmPassword = 'Nenosiri na uthibitisho wa nenosiri hazifanani';
+      }
+    }
+
+    if (step === 3) {
+      if (!formData.district) {
+        newErrors.district = 'Wilaya inahitajika';
+      }
+      if (!formData.ward) {
+        newErrors.ward = 'Kata inahitajika';
+      }
+      if (!formData.village) {
+        newErrors.village = 'Kijiji kinahitajika';
+      }
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
   const handleUserTypeSelect = (type) => {
@@ -110,16 +163,8 @@ const Registration = ({ onPageChange, onAuth, user }) => {
   };
 
   const handleNext = () => {
-    // Validate current step before proceeding
-    if (step === 2) {
-      if (!formData.fullName || !formData.email || !formData.phone || !formData.password || !formData.confirmPassword) {
-        alert('Tafadhali jaza sehemu zote za lazima');
-        return;
-      }
-      if (formData.password !== formData.confirmPassword) {
-        alert('Nenosiri na uthibitisho wa nenosiri hazifanani');
-        return;
-      }
+    if (!validateStep(step)) {
+      return;
     }
     
     if (step < 3) {
@@ -133,51 +178,73 @@ const Registration = ({ onPageChange, onAuth, user }) => {
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     
-    // Validate final step
-    if (!formData.district || !formData.ward || !formData.village) {
-      alert('Tafadhali jaza sehemu zote za lazima');
+    if (!validateStep(3)) {
       return;
     }
 
-    // Create user object based on type
-    const newUser = {
-      id: Math.random().toString(36).substr(2, 9),
-      name: formData.fullName,
-      email: formData.email,
-      phone: formData.phone,
-      role: userType,
-      location: formData.district,
-      registrationDate: new Date().toISOString(),
-      // Additional user-specific data
-      ...(userType === 'farmer' && {
-        farmSize: formData.farmSize,
-        farmLocation: formData.farmLocation,
-        crops: formData.crops,
-        type: 'farmer'
-      }),
-      ...(userType === 'buyer' && {
-        businessType: formData.businessType,
-        businessLocation: formData.businessLocation,
-        type: 'buyer'
-      }),
-      ...(userType === 'expert' && {
-        expertise: formData.expertise,
-        experience: formData.experience,
-        type: 'expert'
-      }),
-      // Common additional info
-      district: formData.district,
-      ward: formData.ward,
-      village: formData.village,
-      idNumber: formData.idNumber,
-      dateOfBirth: formData.dateOfBirth
-    };
-    
-    // Register user and redirect to appropriate dashboard
-    onAuth('register-success', newUser);
+    setIsLoading(true);
+
+    try {
+      // Simulate API call delay
+      await new Promise(resolve => setTimeout(resolve, 1500));
+
+      // Create user object based on type
+      const newUser = {
+        id: Math.random().toString(36).substr(2, 9),
+        name: formData.fullName,
+        email: formData.email,
+        phone: formData.phone,
+        role: userType,
+        location: formData.district,
+        registrationDate: new Date().toISOString(),
+        rating: 5.0,
+        // Additional user-specific data
+        ...(userType === 'farmer' && {
+          farmSize: formData.farmSize,
+          farmLocation: formData.farmLocation,
+          crops: formData.crops,
+          type: 'farmer'
+        }),
+        ...(userType === 'buyer' && {
+          businessType: formData.businessType,
+          businessLocation: formData.businessLocation,
+          type: 'buyer'
+        }),
+        ...(userType === 'expert' && {
+          expertise: formData.expertise,
+          experience: formData.experience,
+          type: 'expert'
+        }),
+        // Common additional info
+        district: formData.district,
+        ward: formData.ward,
+        village: formData.village,
+        idNumber: formData.idNumber,
+        dateOfBirth: formData.dateOfBirth
+      };
+      
+      // Trigger registration success
+      onAuth('register-success', newUser);
+      
+      // Show success message
+      alert(`Hongera ${formData.fullName}! Akaunti yako ya ${userTypes.find(t => t.value === userType)?.label} imeundwa kikamilifu.`);
+      
+      // Redirect to appropriate dashboard using React Router
+      const selectedUserType = userTypes.find(t => t.value === userType);
+      if (selectedUserType) {
+        navigate(selectedUserType.dashboardPath);
+      }
+      
+    } catch (error) {
+      setErrors({ 
+        general: 'Hitilafu imetokea wakati wa kusajili. Tafadhali jaribu tena.' 
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const renderStep1 = () => (
@@ -268,9 +335,11 @@ const Registration = ({ onPageChange, onAuth, user }) => {
             value={formData.fullName}
             onChange={handleInputChange}
             required
-            className="form-control"
+            className={`form-control ${errors.fullName ? 'error' : ''}`}
             placeholder="Weka jina lako kamili"
+            disabled={isLoading}
           />
+          {errors.fullName && <div className="error-message">{errors.fullName}</div>}
         </div>
 
         <div className="form-group">
@@ -282,9 +351,11 @@ const Registration = ({ onPageChange, onAuth, user }) => {
             value={formData.email}
             onChange={handleInputChange}
             required
-            className="form-control"
+            className={`form-control ${errors.email ? 'error' : ''}`}
             placeholder="barua@example.com"
+            disabled={isLoading}
           />
+          {errors.email && <div className="error-message">{errors.email}</div>}
         </div>
 
         <div className="form-group">
@@ -296,9 +367,11 @@ const Registration = ({ onPageChange, onAuth, user }) => {
             value={formData.phone}
             onChange={handleInputChange}
             required
-            className="form-control"
+            className={`form-control ${errors.phone ? 'error' : ''}`}
             placeholder="+255 XXX XXX XXX"
+            disabled={isLoading}
           />
+          {errors.phone && <div className="error-message">{errors.phone}</div>}
           <small className="form-hint">Tutatumia namba hii kwa mawasiliano muhimu</small>
         </div>
 
@@ -311,10 +384,12 @@ const Registration = ({ onPageChange, onAuth, user }) => {
             value={formData.password}
             onChange={handleInputChange}
             required
-            className="form-control"
+            className={`form-control ${errors.password ? 'error' : ''}`}
             placeholder="Weka nenosiri lenye herufi 8 au zaidi"
             minLength="8"
+            disabled={isLoading}
           />
+          {errors.password && <div className="error-message">{errors.password}</div>}
           <small className="form-hint">Angalau herufi 8, yenye namba na herufi</small>
         </div>
 
@@ -327,9 +402,11 @@ const Registration = ({ onPageChange, onAuth, user }) => {
             value={formData.confirmPassword}
             onChange={handleInputChange}
             required
-            className="form-control"
+            className={`form-control ${errors.confirmPassword ? 'error' : ''}`}
             placeholder="Weka nenosiri tena"
+            disabled={isLoading}
           />
+          {errors.confirmPassword && <div className="error-message">{errors.confirmPassword}</div>}
         </div>
       </div>
 
@@ -348,6 +425,7 @@ const Registration = ({ onPageChange, onAuth, user }) => {
                 onChange={handleInputChange}
                 className="form-control"
                 placeholder="Mf. Ekari 5, Hekta 2"
+                disabled={isLoading}
               />
               <small className="form-hint">Ukubwa wa shamba lako (si lazima)</small>
             </div>
@@ -362,6 +440,7 @@ const Registration = ({ onPageChange, onAuth, user }) => {
                 onChange={handleInputChange}
                 className="form-control"
                 placeholder="Kijiji, Kata au Eneo la shamba"
+                disabled={isLoading}
               />
             </div>
           </div>
@@ -376,6 +455,7 @@ const Registration = ({ onPageChange, onAuth, user }) => {
                     value={crop}
                     checked={formData.crops.includes(crop)}
                     onChange={handleInputChange}
+                    disabled={isLoading}
                   />
                   <span className="checkmark"></span>
                   {crop}
@@ -398,6 +478,7 @@ const Registration = ({ onPageChange, onAuth, user }) => {
                 value={formData.businessType}
                 onChange={handleInputChange}
                 className="form-control"
+                disabled={isLoading}
               >
                 <option value="">Chagua aina ya biashara</option>
                 {businessTypes.map(type => (
@@ -416,6 +497,7 @@ const Registration = ({ onPageChange, onAuth, user }) => {
                 onChange={handleInputChange}
                 className="form-control"
                 placeholder="Mji, Mtaa, Jina la duka"
+                disabled={isLoading}
               />
             </div>
           </div>
@@ -445,6 +527,7 @@ const Registration = ({ onPageChange, onAuth, user }) => {
                 onChange={handleInputChange}
                 className="form-control"
                 required
+                disabled={isLoading}
               >
                 <option value="">Chagua eneo la utaalamu</option>
                 {expertiseAreas.map(area => (
@@ -465,6 +548,7 @@ const Registration = ({ onPageChange, onAuth, user }) => {
                 placeholder="Mf. 5"
                 min="0"
                 required
+                disabled={isLoading}
               />
             </div>
           </div>
@@ -486,6 +570,7 @@ const Registration = ({ onPageChange, onAuth, user }) => {
           type="button"
           className="btn btn-outline"
           onClick={handleBack}
+          disabled={isLoading}
         >
           <i className="fas fa-arrow-left"></i> Nyuma
         </button>
@@ -493,6 +578,7 @@ const Registration = ({ onPageChange, onAuth, user }) => {
           type="button"
           className="btn btn-primary"
           onClick={handleNext}
+          disabled={isLoading}
         >
           Endelea <i className="fas fa-arrow-right"></i>
         </button>
@@ -519,13 +605,15 @@ const Registration = ({ onPageChange, onAuth, user }) => {
             value={formData.district}
             onChange={handleInputChange}
             required
-            className="form-control"
+            className={`form-control ${errors.district ? 'error' : ''}`}
+            disabled={isLoading}
           >
             <option value="">Chagua Wilaya</option>
             {districts.map(district => (
               <option key={district} value={district}>{district}</option>
             ))}
           </select>
+          {errors.district && <div className="error-message">{errors.district}</div>}
         </div>
 
         <div className="form-group">
@@ -536,13 +624,15 @@ const Registration = ({ onPageChange, onAuth, user }) => {
             value={formData.ward}
             onChange={handleInputChange}
             required
-            className="form-control"
+            className={`form-control ${errors.ward ? 'error' : ''}`}
+            disabled={isLoading}
           >
             <option value="">Chagua Kata</option>
             {wards.map(ward => (
               <option key={ward} value={ward}>{ward}</option>
             ))}
           </select>
+          {errors.ward && <div className="error-message">{errors.ward}</div>}
         </div>
 
         <div className="form-group">
@@ -553,13 +643,15 @@ const Registration = ({ onPageChange, onAuth, user }) => {
             value={formData.village}
             onChange={handleInputChange}
             required
-            className="form-control"
+            className={`form-control ${errors.village ? 'error' : ''}`}
+            disabled={isLoading}
           >
             <option value="">Chagua Kijiji</option>
             {villages.map(village => (
               <option key={village} value={village}>{village}</option>
             ))}
           </select>
+          {errors.village && <div className="error-message">{errors.village}</div>}
         </div>
 
         <div className="form-group">
@@ -572,6 +664,7 @@ const Registration = ({ onPageChange, onAuth, user }) => {
             onChange={handleInputChange}
             className="form-control"
             placeholder="Namba ya NIDA/Kitambulisho"
+            disabled={isLoading}
           />
           <small className="form-hint">Itasaidia kuthibitisha utambulisho wako</small>
         </div>
@@ -585,6 +678,7 @@ const Registration = ({ onPageChange, onAuth, user }) => {
             value={formData.dateOfBirth}
             onChange={handleInputChange}
             className="form-control"
+            disabled={isLoading}
           />
         </div>
       </div>
@@ -649,7 +743,11 @@ const Registration = ({ onPageChange, onAuth, user }) => {
       {/* Terms and Conditions */}
       <div className="terms-section">
         <label className="terms-checkbox">
-          <input type="checkbox" required />
+          <input 
+            type="checkbox" 
+            required 
+            disabled={isLoading}
+          />
           <span className="checkmark"></span>
           <div className="terms-text">
             Nakubali <a href="#" onClick={(e) => e.preventDefault()}>Sheria na Masharti</a> ya kutumia jukwaa la Katavi E-Kilimo.
@@ -663,14 +761,26 @@ const Registration = ({ onPageChange, onAuth, user }) => {
           type="button"
           className="btn btn-outline"
           onClick={handleBack}
+          disabled={isLoading}
         >
           <i className="fas fa-arrow-left"></i> Nyuma
         </button>
         <button 
           type="submit"
-          className="btn btn-primary"
+          className={`btn btn-primary ${isLoading ? 'loading' : ''}`}
+          disabled={isLoading}
         >
-          <i className="fas fa-user-plus"></i> Kamilisha Usajili
+          {isLoading ? (
+            <>
+              <i className="fas fa-spinner fa-spin"></i>
+              Inasajili...
+            </>
+          ) : (
+            <>
+              <i className="fas fa-user-plus"></i>
+              Kamilisha Usajili
+            </>
+          )}
         </button>
       </div>
     </div>
@@ -712,6 +822,14 @@ const Registration = ({ onPageChange, onAuth, user }) => {
               </div>
             </div>
 
+            {/* Error Display */}
+            {errors.general && (
+              <div className="alert alert-error">
+                <i className="fas fa-exclamation-circle"></i>
+                {errors.general}
+              </div>
+            )}
+
             {/* Registration Form */}
             <form onSubmit={handleSubmit} className="registration-form">
               {step === 1 && renderStep1()}
@@ -723,8 +841,9 @@ const Registration = ({ onPageChange, onAuth, user }) => {
             <div className="login-prompt">
               <p>Tayari una akaunti? 
                 <button 
-                  onClick={() => onAuth('login')}
+                  onClick={() => navigate('/login')}
                   className="login-link"
+                  disabled={isLoading}
                 >
                   Ingia hapa
                 </button>

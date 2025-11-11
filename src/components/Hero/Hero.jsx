@@ -25,18 +25,18 @@ const Hero = ({ onAuth }) => {
             katika Mkoa wa Katavi. Pata soko la mazao, ushauri wa kilimo, na habari za hali ya hewa.
           </p>
           
-          <div className="hero-stats">
-            <div className="stat">
-              <div className="stat-number">500+</div>
-              <div className="stat-label">Wakulima Waliosajiliwa</div>
+          <div className="hero-stats1">
+            <div className="stat1">
+              <div className="stat-number1">500+</div>
+              <div className="stat-label1">Wakulima Waliosajiliwa</div>
             </div>
-            <div className="stat">
-              <div className="stat-number">1,200+</div>
+            <div className="stat1">
+              <div className="stat-number1">1,200+</div>
               <div className="stat-label">Mazao Yanayopatikana</div>
             </div>
-            <div className="stat">
-              <div className="stat-number">50+</div>
-              <div className="stat-label">Wataalamu wa Kilimo</div>
+            <div className="stat1">
+              <div className="stat-number1">50+</div>
+              <div className="stat-label1">Wataalamu wa Kilimo</div>
             </div>
           </div>
           

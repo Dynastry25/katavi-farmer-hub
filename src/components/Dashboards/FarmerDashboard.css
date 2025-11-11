@@ -33,6 +33,19 @@
   margin: 0;
 }
 
+.farmer-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  color: var(--text-light);
+  border-radius: 20px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin-top: 1rem;
+}
+
 .header-actions {
   display: flex;
   gap: 1rem;
@@ -239,6 +252,77 @@
 .action-btn i {
   font-size: 2rem;
   color: var(--primary);
+}
+
+/* Dashboard Links Section */
+.dashboard-links-section {
+  margin-top: 2rem;
+}
+
+.dashboard-links-section h3 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 1.5rem;
+  color: var(--text-primary);
+}
+
+.dashboard-links-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
+}
+
+.dashboard-link-card {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.5rem;
+  background: var(--background);
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-primary);
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+  text-align: left;
+  width: 100%;
+  border: none;
+}
+
+.dashboard-link-card:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow);
+}
+
+.link-icon {
+  width: 50px;
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(26, 116, 49, 0.1);
+  border-radius: 12px;
+  font-size: 1.5rem;
+  color: var(--primary);
+}
+
+.link-content {
+  flex: 1;
+}
+
+.link-content h4 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+  color: var(--text-primary);
+}
+
+.link-content p {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  margin: 0;
 }
 
 /* Farmer Sections */
@@ -755,6 +839,10 @@
     grid-template-columns: 1fr;
   }
 
+  .dashboard-links-grid {
+    grid-template-columns: 1fr;
+  }
+
   .crops-grid,
   .products-grid {
     grid-template-columns: 1fr;
@@ -795,6 +883,16 @@
   .product-actions {
     flex-direction: column;
   }
+
+  .dashboard-link-card {
+    flex-direction: column;
+    text-align: center;
+    gap: 1rem;
+  }
+
+  .link-icon {
+    align-self: center;
+  }
 }
 
 @media (max-width: 480px) {
@@ -816,6 +914,11 @@
 
   .activity-icon {
     align-self: center;
+  }
+
+  .farmer-badge {
+    font-size: 0.8rem;
+    padding: 0.4rem 0.8rem;
   }
 }
 

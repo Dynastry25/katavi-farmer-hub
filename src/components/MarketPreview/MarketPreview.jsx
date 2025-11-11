@@ -20,7 +20,7 @@ const MarketPreview = ({ crops, onPageChange, onContactFarmer }) => {
         
         <div className="crops-grid">
           {featuredCrops.map(crop => (
-            <div key={crop.id} className="crop-card">
+            <div key={crop.id} className="market-crop-card">
               <div className="crop-badge">{crop.category}</div>
               <div className="crop-image">{crop.image}</div>
               

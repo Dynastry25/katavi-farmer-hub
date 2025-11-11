@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import Navigation from '../../components/Navbar/Navbar';
-import Footer from '../../components/Footer/Footer';
+import { useNavigate } from 'react-router-dom';
+import Navigation from '../Navbar/Navbar';
+import Footer from '../Footer/Footer';
 import './BuyerDashboard.css';
 
-const BuyerDashboard = ({ onPageChange, onAuth, user, crops }) => {
+const BuyerDashboard = ({ onPageChange, onAuth, user, crops, onToggleChat, onRefresh }) => {
   const [activeTab, setActiveTab] = useState('overview');
   const [showOrderModal, setShowOrderModal] = useState(false);
   const [showContactModal, setShowContactModal] = useState(false);
@@ -16,6 +17,7 @@ const BuyerDashboard = ({ onPageChange, onAuth, user, crops }) => {
     deliveryDate: '',
     specialInstructions: ''
   });
+  const navigate = useNavigate();
 
   // Sample data for buyer
   const buyerStats = {
@@ -265,9 +267,95 @@ const BuyerDashboard = ({ onPageChange, onAuth, user, crops }) => {
             <i className="fas fa-users"></i>
             <span>Wakulima Wanaoaminika</span>
           </button>
-          <button className="action-btn">
-            <i className="fas fa-bell"></i>
-            <span>Arifa za Bei</span>
+          <button className="action-btn" onClick={onToggleChat}>
+            <i className="fas fa-comments"></i>
+            <span>Mazungumzo</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Dashboard Links */}
+      <div className="dashboard-links-section">
+        <h3>🔗 Huduma za Wanunuzi</h3>
+        <div className="dashboard-links-grid">
+          <button className="dashboard-link-card" onClick={() => navigate('/market')}>
+            <div className="link-icon">
+              <i className="fas fa-store"></i>
+            </div>
+            <div className="link-content">
+              <h4>Soko la Mazao</h4>
+              <p>Angalia na nunua mazao mbalimbali</p>
+            </div>
+          </button>
+          
+          <button className="dashboard-link-card" onClick={() => navigate('/suppliers')}>
+            <div className="link-icon">
+              <i className="fas fa-truck"></i>
+            </div>
+            <div className="link-content">
+              <h4>Wauzaji wa Pembejeo</h4>
+              <p>Pata pembejeo za kilimo</p>
+            </div>
+          </button>
+          
+          <button className="dashboard-link-card" onClick={() => navigate('/farmer-groups')}>
+            <div className="link-icon">
+              <i className="fas fa-users"></i>
+            </div>
+            <div className="link-content">
+              <h4>Wakulima</h4>
+              <p>Wasiliana na wakulima moja kwa moja</p>
+            </div>
+          </button>
+          
+          <button className="dashboard-link-card" onClick={() => navigate('/reports')}>
+            <div className="link-icon">
+              <i className="fas fa-chart-bar"></i>
+            </div>
+            <div className="link-content">
+              <h4>Ripoti za Bei</h4>
+              <p>Fuata mienendo ya bei za mazao</p>
+            </div>
+          </button>
+
+          <button className="dashboard-link-card" onClick={() => navigate('/weather')}>
+            <div className="link-icon">
+              <i className="fas fa-cloud-sun"></i>
+            </div>
+            <div className="link-content">
+              <h4>Hali ya Hewa</h4>
+              <p>Angalia utabiri wa hali ya hewa</p>
+            </div>
+          </button>
+
+          <button className="dashboard-link-card" onClick={() => navigate('/advice')}>
+            <div className="link-icon">
+              <i className="fas fa-graduation-cap"></i>
+            </div>
+            <div className="link-content">
+              <h4>Ushauri wa Kilimo</h4>
+              <p>Pata maelekezo kutoka kwa wataalamu</p>
+            </div>
+          </button>
+
+          <button className="dashboard-link-card" onClick={() => navigate('/news')}>
+            <div className="link-icon">
+              <i className="fas fa-newspaper"></i>
+            </div>
+            <div className="link-content">
+              <h4>Habari za Soko</h4>
+              <p>Taarifa mpya za soko la mazao</p>
+            </div>
+          </button>
+
+          <button className="dashboard-link-card" onClick={() => navigate('/loans')}>
+            <div className="link-icon">
+              <i className="fas fa-hand-holding-usd"></i>
+            </div>
+            <div className="link-content">
+              <h4>Mikopo ya Biashara</h4>
+              <p>Angalia fursa za mikopo</p>
+            </div>
           </button>
         </div>
       </div>
@@ -345,8 +433,40 @@ const BuyerDashboard = ({ onPageChange, onAuth, user, crops }) => {
           <i className="fas fa-search"></i>
           <h4>Hakuna mazao yaliyopatikana</h4>
           <p>Badilisha utafutaji wako au kategoria ili kuona matokeo</p>
+          <button className="btn btn-primary" onClick={() => {
+            setSearchTerm('');
+            setSelectedCategory('all');
+          }}>
+            <i className="fas fa-refresh"></i> Onyesha Mazao Yote
+          </button>
         </div>
       )}
+
+      {/* Additional Links in Marketplace Tab */}
+      <div className="dashboard-links-section">
+        <h3>🔗 Viungo vya Ziada</h3>
+        <div className="dashboard-links-grid">
+          <button className="dashboard-link-card" onClick={() => navigate('/suppliers')}>
+            <div className="link-icon">
+              <i className="fas fa-truck"></i>
+            </div>
+            <div className="link-content">
+              <h4>Wauzaji wa Pembejeo</h4>
+              <p>Pata pembejeo za ziada</p>
+            </div>
+          </button>
+          
+          <button className="dashboard-link-card" onClick={() => navigate('/reports')}>
+            <div className="link-icon">
+              <i className="fas fa-chart-line"></i>
+            </div>
+            <div className="link-content">
+              <h4>Bei za Soko</h4>
+              <p>Angalia mienendo ya bei</p>
+            </div>
+          </button>
+        </div>
+      </div>
     </div>
   );
 
@@ -427,6 +547,32 @@ const BuyerDashboard = ({ onPageChange, onAuth, user, crops }) => {
           <div className="stat-label">Jumla</div>
         </div>
       </div>
+
+      {/* Additional Links in Orders Tab */}
+      <div className="dashboard-links-section">
+        <h3>🔗 Viungo vya Usaidizi</h3>
+        <div className="dashboard-links-grid">
+          <button className="dashboard-link-card" onClick={onToggleChat}>
+            <div className="link-icon">
+              <i className="fas fa-comments"></i>
+            </div>
+            <div className="link-content">
+              <h4>Msaada wa Moja kwa Moja</h4>
+              <p>Wasiliana na msaada wa wateja</p>
+            </div>
+          </button>
+          
+          <button className="dashboard-link-card" onClick={() => navigate('/contact')}>
+            <div className="link-icon">
+              <i className="fas fa-headset"></i>
+            </div>
+            <div className="link-content">
+              <h4>Huduma kwa Wateja</h4>
+              <p>Pata msaada wa ziada</p>
+            </div>
+          </button>
+        </div>
+      </div>
     </div>
   );
 
@@ -467,7 +613,7 @@ const BuyerDashboard = ({ onPageChange, onAuth, user, crops }) => {
                 >
                   <i className="fas fa-phone"></i> Wasiliana
                 </button>
-                <button className="btn btn-sm btn-outline">
+                <button className="btn btn-sm btn-outline" onClick={() => navigate('/market')}>
                   <i className="fas fa-store"></i> Angalia Mazao
                 </button>
                 <button className="btn btn-sm btn-success">
@@ -477,6 +623,32 @@ const BuyerDashboard = ({ onPageChange, onAuth, user, crops }) => {
             </div>
           </div>
         ))}
+      </div>
+
+      {/* Additional Links in Farmers Tab */}
+      <div className="dashboard-links-section">
+        <h3>🔗 Pata Wakulima Wengine</h3>
+        <div className="dashboard-links-grid">
+          <button className="dashboard-link-card" onClick={() => navigate('/farmer-groups')}>
+            <div className="link-icon">
+              <i className="fas fa-users"></i>
+            </div>
+            <div className="link-content">
+              <h4>Vikundi vya Wakulima</h4>
+              <p>Jiunge na vikundi vya wakulima</p>
+            </div>
+          </button>
+          
+          <button className="dashboard-link-card" onClick={() => navigate('/market')}>
+            <div className="link-icon">
+              <i className="fas fa-store"></i>
+            </div>
+            <div className="link-content">
+              <h4>Soko la Mazao</h4>
+              <p>Angalia wakulima wote</p>
+            </div>
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -529,6 +701,32 @@ const BuyerDashboard = ({ onPageChange, onAuth, user, crops }) => {
           </div>
         </div>
       </div>
+
+      {/* Additional Links in Analytics Tab */}
+      <div className="dashboard-links-section">
+        <h3>🔗 Ripoti za Ziada</h3>
+        <div className="dashboard-links-grid">
+          <button className="dashboard-link-card" onClick={() => navigate('/reports')}>
+            <div className="link-icon">
+              <i className="fas fa-chart-line"></i>
+            </div>
+            <div className="link-content">
+              <h4>Ripoti Kamili</h4>
+              <p>Angalia ripoti zote za ununuzi</p>
+            </div>
+          </button>
+          
+          <button className="dashboard-link-card" onClick={() => navigate('/market')}>
+            <div className="link-icon">
+              <i className="fas fa-chart-bar"></i>
+            </div>
+            <div className="link-content">
+              <h4>Bei za Soko</h4>
+              <p>Angalia mienendo ya bei za mazao</p>
+            </div>
+          </button>
+        </div>
+      </div>
     </div>
   );
 
@@ -548,13 +746,20 @@ const BuyerDashboard = ({ onPageChange, onAuth, user, crops }) => {
             <div className="welcome-section">
               <h1>Karibu, Mnunuzi {user?.name}!</h1>
               <p>Dashibodi yako ya kununua mazao bora kutoka kwa wakulima wa Katavi</p>
+              <div className="buyer-badge">
+                <i className="fas fa-shopping-cart"></i>
+                Mnunuzi Waandaliwa
+              </div>
             </div>
             <div className="header-actions">
               <button className="btn btn-primary" onClick={() => setActiveTab('marketplace')}>
                 <i className="fas fa-search"></i> Tafuta Mazao
               </button>
-              <button className="btn btn-outline">
-                <i className="fas fa-bell"></i> Arifa
+              <button className="btn btn-outline" onClick={onToggleChat}>
+                <i className="fas fa-comments"></i> Mazungumzo
+              </button>
+              <button className="btn btn-success" onClick={() => navigate('/reports')}>
+                <i className="fas fa-chart-line"></i> Ripoti za Bei
               </button>
             </div>
           </div>

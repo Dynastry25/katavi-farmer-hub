@@ -1,14 +1,16 @@
 import React, { useState } from 'react';
-import Navigation from '../../components/Navbar/Navbar';
-import Footer from '../../components/Footer/Footer';
+import { useNavigate } from 'react-router-dom';
+import Navigation from '../Navbar/Navbar';
+import Footer from '../Footer/Footer';
 import './ExpertDashboard.css';
 
-const ExpertDashboard = ({ onPageChange, onAuth, user }) => {
+const ExpertDashboard = ({ onPageChange, onAuth, user, onToggleChat, onRefresh }) => {
   const [activeTab, setActiveTab] = useState('overview');
   const [showAddArticleModal, setShowAddArticleModal] = useState(false);
   const [showConsultationModal, setShowConsultationModal] = useState(false);
   const [showResponseModal, setShowResponseModal] = useState(false);
   const [selectedQuestion, setSelectedQuestion] = useState(null);
+  const navigate = useNavigate();
 
   const [newArticle, setNewArticle] = useState({
     title: '',
@@ -256,9 +258,95 @@ const ExpertDashboard = ({ onPageChange, onAuth, user }) => {
             <i className="fas fa-chart-line"></i>
             <span>Takwimu za Mapato</span>
           </button>
-          <button className="action-btn">
-            <i className="fas fa-cog"></i>
-            <span>Mipangilio</span>
+          <button className="action-btn" onClick={onToggleChat}>
+            <i className="fas fa-comments"></i>
+            <span>Mazungumzo</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Dashboard Links */}
+      <div className="dashboard-links-section">
+        <h3>🔗 Huduma za Wataalamu</h3>
+        <div className="dashboard-links-grid">
+          <button className="dashboard-link-card" onClick={() => navigate('/advice')}>
+            <div className="link-icon">
+              <i className="fas fa-graduation-cap"></i>
+            </div>
+            <div className="link-content">
+              <h4>Toa Ushauri</h4>
+              <p>Andika makala na ushauri wa kilimo</p>
+            </div>
+          </button>
+          
+          <button className="dashboard-link-card" onClick={() => navigate('/market')}>
+            <div className="link-icon">
+              <i className="fas fa-store"></i>
+            </div>
+            <div className="link-content">
+              <h4>Soko la Mazao</h4>
+              <p>Angalia mienendo ya soko la mazao</p>
+            </div>
+          </button>
+          
+          <button className="dashboard-link-card" onClick={() => navigate('/farmer-groups')}>
+            <div className="link-icon">
+              <i className="fas fa-users"></i>
+            </div>
+            <div className="link-content">
+              <h4>Vikundi vya Wakulima</h4>
+              <p>Wasiliana na vikundi vya wakulima</p>
+            </div>
+          </button>
+          
+          <button className="dashboard-link-card" onClick={() => navigate('/reports')}>
+            <div className="link-icon">
+              <i className="fas fa-chart-bar"></i>
+            </div>
+            <div className="link-content">
+              <h4>Ripoti za Kilimo</h4>
+              <p>Angalia takwimu na ripoti za kilimo</p>
+            </div>
+          </button>
+
+          <button className="dashboard-link-card" onClick={() => navigate('/weather')}>
+            <div className="link-icon">
+              <i className="fas fa-cloud-sun"></i>
+            </div>
+            <div className="link-content">
+              <h4>Hali ya Hewa</h4>
+              <p>Utabiri wa hali ya hewa kwa kilimo</p>
+            </div>
+          </button>
+
+          <button className="dashboard-link-card" onClick={() => navigate('/news')}>
+            <div className="link-icon">
+              <i className="fas fa-newspaper"></i>
+            </div>
+            <div className="link-content">
+              <h4>Habari za Kilimo</h4>
+              <p>Taarifa mpya za sekta ya kilimo</p>
+            </div>
+          </button>
+
+          <button className="dashboard-link-card" onClick={() => navigate('/suppliers')}>
+            <div className="link-icon">
+              <i className="fas fa-truck"></i>
+            </div>
+            <div className="link-content">
+              <h4>Wauzaji wa Pembejeo</h4>
+              <p>Pata maelezo ya wauzaji wa pembejeo</p>
+            </div>
+          </button>
+
+          <button className="dashboard-link-card" onClick={() => navigate('/about')}>
+            <div className="link-icon">
+              <i className="fas fa-info-circle"></i>
+            </div>
+            <div className="link-content">
+              <h4>Kuhusu Mfumo</h4>
+              <p>Maelezo kuhusu jukwaa la Katavi E-Kilimo</p>
+            </div>
           </button>
         </div>
       </div>
@@ -302,6 +390,32 @@ const ExpertDashboard = ({ onPageChange, onAuth, user }) => {
             </div>
           </div>
         ))}
+      </div>
+
+      {/* Additional Links in Articles Tab */}
+      <div className="dashboard-links-section">
+        <h3>🔗 Viungo vya Uandishi</h3>
+        <div className="dashboard-links-grid">
+          <button className="dashboard-link-card" onClick={() => navigate('/advice')}>
+            <div className="link-icon">
+              <i className="fas fa-edit"></i>
+            </div>
+            <div className="link-content">
+              <h4>Kituo cha Ushauri</h4>
+              <p>Andika na kusambaza ushauri wako</p>
+            </div>
+          </button>
+          
+          <button className="dashboard-link-card" onClick={() => navigate('/news')}>
+            <div className="link-icon">
+              <i className="fas fa-newspaper"></i>
+            </div>
+            <div className="link-content">
+              <h4>Habari za Kilimo</h4>
+              <p>Andika makala za habari za kilimo</p>
+            </div>
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -365,6 +479,32 @@ const ExpertDashboard = ({ onPageChange, onAuth, user }) => {
           </div>
         ))}
       </div>
+
+      {/* Additional Links in Consultations Tab */}
+      <div className="dashboard-links-section">
+        <h3>🔗 Viungo vya Usaidizi</h3>
+        <div className="dashboard-links-grid">
+          <button className="dashboard-link-card" onClick={() => navigate('/farmer-groups')}>
+            <div className="link-icon">
+              <i className="fas fa-users"></i>
+            </div>
+            <div className="link-content">
+              <h4>Vikundi vya Wakulima</h4>
+              <p>Wasiliana na vikundi vya wakulima</p>
+            </div>
+          </button>
+          
+          <button className="dashboard-link-card" onClick={onToggleChat}>
+            <div className="link-icon">
+              <i className="fas fa-comments"></i>
+            </div>
+            <div className="link-content">
+              <h4>Mazungumzo ya Moja kwa Moja</h4>
+              <p>Wasiliana na wakulima kwa mazungumzo</p>
+            </div>
+          </button>
+        </div>
+      </div>
     </div>
   );
 
@@ -411,6 +551,32 @@ const ExpertDashboard = ({ onPageChange, onAuth, user }) => {
               <span className="chart-label">{data.month}</span>
             </div>
           ))}
+        </div>
+      </div>
+
+      {/* Additional Links in Earnings Tab */}
+      <div className="dashboard-links-section">
+        <h3>🔗 Viungo vya Kifedha</h3>
+        <div className="dashboard-links-grid">
+          <button className="dashboard-link-card" onClick={() => navigate('/reports')}>
+            <div className="link-icon">
+              <i className="fas fa-chart-line"></i>
+            </div>
+            <div className="link-content">
+              <h4>Ripoti za Mapato</h4>
+              <p>Angalia ripoti za kina za mapato</p>
+            </div>
+          </button>
+          
+          <button className="dashboard-link-card" onClick={() => navigate('/loans')}>
+            <div className="link-icon">
+              <i className="fas fa-hand-holding-usd"></i>
+            </div>
+            <div className="link-content">
+              <h4>Mikopo</h4>
+              <p>Angalia fursa za mikopo kwa wataalamu</p>
+            </div>
+          </button>
         </div>
       </div>
     </div>
@@ -461,6 +627,32 @@ const ExpertDashboard = ({ onPageChange, onAuth, user }) => {
           </div>
         </div>
       </div>
+
+      {/* Additional Links in Schedule Tab */}
+      <div className="dashboard-links-section">
+        <h3>🔗 Viungo vya Mikakati</h3>
+        <div className="dashboard-links-grid">
+          <button className="dashboard-link-card" onClick={() => navigate('/farmer-groups')}>
+            <div className="link-icon">
+              <i className="fas fa-users"></i>
+            </div>
+            <div className="link-content">
+              <h4>Vikundi vya Wakulima</h4>
+              <p>Panga mikutano na vikundi vya wakulima</p>
+            </div>
+          </button>
+          
+          <button className="dashboard-link-card" onClick={() => navigate('/advice')}>
+            <div className="link-icon">
+              <i className="fas fa-graduation-cap"></i>
+            </div>
+            <div className="link-content">
+              <h4>Kituo cha Mafunzo</h4>
+              <p>Panga mafunzo na semina za kilimo</p>
+            </div>
+          </button>
+        </div>
+      </div>
     </div>
   );
 
@@ -489,8 +681,11 @@ const ExpertDashboard = ({ onPageChange, onAuth, user }) => {
               <button className="btn btn-primary" onClick={() => setShowAddArticleModal(true)}>
                 <i className="fas fa-edit"></i> Andika Makala
               </button>
-              <button className="btn btn-outline">
-                <i className="fas fa-bell"></i> Arifa
+              <button className="btn btn-outline" onClick={onToggleChat}>
+                <i className="fas fa-comments"></i> Mazungumzo
+              </button>
+              <button className="btn btn-success" onClick={() => navigate('/advice')}>
+                <i className="fas fa-graduation-cap"></i> Kituo cha Ushauri
               </button>
             </div>
           </div>
