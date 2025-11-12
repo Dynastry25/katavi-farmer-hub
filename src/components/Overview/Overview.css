@@ -1,0 +1,583 @@
+.overview {
+  padding: 80px 0;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e3f2fd 100%);
+}
+
+.overview-header {
+  text-align: center;
+  margin-bottom: 50px;
+}
+
+.overview-header h2 {
+  color: #1a237e;
+  font-size: 2.5rem;
+  margin-bottom: 15px;
+  font-weight: 700;
+}
+
+.overview-header p {
+  color: #666;
+  font-size: 1.1rem;
+  max-width: 600px;
+  margin: 0 auto;
+  line-height: 1.6;
+}
+
+/* Sehemu ya Mazao */
+.overview-section {
+  margin-bottom: 60px;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+}
+
+.section-header h3 {
+  color: #1a237e;
+  font-size: 2rem;
+  font-weight: 600;
+}
+
+.view-all-btn {
+  background: #1a237e;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 20px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9rem;
+}
+
+.view-all-btn:hover {
+  background: #283593;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(26, 35, 126, 0.3);
+}
+
+.crops-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+}
+
+.crop-card {
+  background: white;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 3px 15px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s ease;
+  border: 1px solid #f0f0f0;
+}
+
+.crop-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+}
+
+.crop-image {
+  position: relative;
+  height: 140px; /* Reduced from 200px */
+  overflow: hidden;
+}
+
+.crop-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.4s ease;
+}
+
+.crop-card:hover .crop-image img {
+  transform: scale(1.08);
+}
+
+.crop-overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.8));
+  padding: 15px;
+  color: white;
+}
+
+.crop-name {
+  font-size: 1.1rem;
+  font-weight: 600;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+.crop-content {
+  padding: 15px;
+}
+
+.crop-content h4 {
+  color: #1a237e;
+  font-size: 1.1rem;
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+
+.crop-content p {
+  color: #666;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  margin-bottom: 12px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.crop-details {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  color: #888;
+}
+
+.crop-production,
+.crop-season {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.crop-production i,
+.crop-season i {
+  font-size: 0.7rem;
+}
+
+/* Grid kuu ya Overview */
+.overview-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 25px;
+  margin-bottom: 60px;
+}
+
+.overview-card {
+  background: white;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 3px 15px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s ease;
+  border: 1px solid #f0f0f0;
+}
+
+.overview-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+  padding: 15px 15px 0;
+}
+
+.card-icon {
+  font-size: 1.5rem; /* Reduced from 2rem */
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #e3f2fd;
+  border-radius: 10px;
+}
+
+.card-header h4 {
+  color: #1a237e;
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.card-image {
+  height: 120px; /* Reduced from 150px */
+  overflow: hidden;
+  margin: 0 15px;
+  border-radius: 8px;
+}
+
+.card-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.4s ease;
+}
+
+.overview-card:hover .card-image img {
+  transform: scale(1.05);
+}
+
+/* Hali ya Hewa */
+.weather-preview {
+  padding: 0 15px;
+  margin: 12px 0;
+}
+
+.weather-temp {
+  font-size: 1.5rem; /* Reduced from 2rem */
+  font-weight: bold;
+  color: #1a237e;
+  margin-bottom: 4px;
+}
+
+.weather-desc {
+  color: #666;
+  font-weight: 500;
+  margin-bottom: 4px;
+  font-size: 0.9rem;
+}
+
+.weather-location {
+  font-size: 0.75rem;
+  color: #888;
+}
+
+/* Udongo */
+.soil-preview {
+  padding: 0 15px;
+  margin: 12px 0;
+}
+
+.soil-types {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.soil-type {
+  background: #e3f2fd;
+  color: #1a237e;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+/* Pembejeo */
+.inputs-preview {
+  padding: 0 15px;
+  margin: 12px 0;
+}
+
+.input-items {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.input-item {
+  background: #e8f5e8;
+  color: #2e7d32;
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-align: center;
+}
+
+/* Ushauri */
+.advisory-preview {
+  padding: 0 15px;
+  margin: 12px 0;
+}
+
+.experts-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.expert-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  background: #fff3e0;
+  border-radius: 6px;
+  color: #e65100;
+  font-size: 0.8rem;
+}
+
+.expert-item i {
+  font-size: 1rem; /* Reduced from 1.2rem */
+}
+
+/* Content ya kadi */
+.overview-card p {
+  padding: 0 15px;
+  color: #666;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  margin-bottom: 15px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Vitendo vya kadi */
+.card-action-btn {
+  margin: 0 15px 15px;
+  width: calc(100% - 30px);
+  background: transparent;
+  color: #1a237e;
+  border: 1.5px solid #1a237e;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 0.85rem;
+}
+
+.card-action-btn:hover {
+  background: #1a237e;
+  color: white;
+  transform: translateY(-1px);
+}
+
+/* Takwimu */
+.stats-section {
+  text-align: center;
+}
+
+.stats-section h3 {
+  color: #1a237e;
+  font-size: 1.8rem; /* Reduced from 2rem */
+  margin-bottom: 25px;
+  font-weight: 600;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); /* Reduced from 200px */
+  gap: 20px;
+}
+
+.stat-item {
+  background: white;
+  padding: 20px 15px; /* Reduced padding */
+  border-radius: 12px;
+  box-shadow: 0 3px 15px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s ease;
+}
+
+.stat-item:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+}
+
+.stat-icon {
+  font-size: 2rem; /* Reduced from 2.5rem */
+  margin-bottom: 10px;
+}
+
+.stat-value {
+  font-size: 1.4rem; /* Reduced from 1.8rem */
+  font-weight: bold;
+  color: #1a237e;
+  margin-bottom: 4px;
+}
+
+.stat-label {
+  color: #666;
+  font-size: 0.8rem; /* Reduced from 0.9rem */
+  font-weight: 500;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .overview {
+    padding: 40px 0;
+  }
+
+  .overview-header h2 {
+    font-size: 2rem;
+  }
+
+  .overview-header p {
+    font-size: 1rem;
+    padding: 0 15px;
+  }
+
+  .section-header {
+    flex-direction: column;
+    gap: 12px;
+    text-align: center;
+    padding: 0 15px;
+  }
+
+  .section-header h3 {
+    font-size: 1.5rem;
+  }
+
+  .view-all-btn {
+    font-size: 0.85rem;
+    padding: 8px 16px;
+  }
+
+  .crops-grid {
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 15px;
+    padding: 0 10px;
+  }
+
+  .overview-grid {
+    grid-template-columns: 1fr;
+    gap: 20px;
+    padding: 0 10px;
+  }
+
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px;
+    padding: 0 10px;
+  }
+
+  .crop-image {
+    height: 120px;
+  }
+
+  .card-image {
+    height: 100px;
+    margin: 0 10px;
+  }
+
+  .card-header {
+    padding: 12px 12px 0;
+  }
+
+  .overview-card p {
+    padding: 0 12px;
+  }
+
+  .card-action-btn {
+    margin: 0 12px 12px;
+    width: calc(100% - 24px);
+  }
+}
+
+@media (max-width: 480px) {
+  .stats-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .stat-item {
+    padding: 15px 10px;
+  }
+
+  .crop-content {
+    padding: 12px;
+  }
+
+  .crops-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .input-items {
+    grid-template-columns: 1fr;
+  }
+
+  .overview-header h2 {
+    font-size: 1.6rem;
+  }
+
+  .stats-section h3 {
+    font-size: 1.4rem;
+  }
+
+  .section-header h3 {
+    font-size: 1.3rem;
+  }
+}
+
+/* Fallback styles for missing images */
+.crop-image,
+.card-image {
+  position: relative;
+}
+
+.crop-image::after,
+.card-image::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.crop-image::after {
+  content: "Picha ya " attr(data-crop);
+}
+
+.card-image::after {
+  content: "Picha";
+}
+
+.crop-image img,
+.card-image img {
+  position: relative;
+  z-index: 2;
+}
+
+/* Smooth animations */
+.overview-card,
+.crop-card,
+.stat-item {
+  animation: fadeInUp 0.6s ease-out;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Styling improvements for better visual hierarchy */
+.overview-section:not(:last-child) {
+  border-bottom: 1px solid #e0e0e0;
+  padding-bottom: 40px;
+}
+
+.stats-section {
+  background: rgba(255, 255, 255, 0.6);
+  padding: 30px;
+  border-radius: 15px;
+  margin-top: 20px;
+}

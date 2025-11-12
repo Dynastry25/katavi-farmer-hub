@@ -113,6 +113,8 @@
   transition: var(--transition);
   border: 1px solid var(--border);
   position: relative;
+  display: flex;
+  flex-direction: column;
 }
 
 .market-crop-card:hover {
@@ -131,21 +133,43 @@
   font-size: 0.8rem;
   font-weight: 600;
   z-index: 2;
+  text-transform: capitalize;
+}
+
+/* Picha Improvements - UPDATED */
+.crop-image-container {
+  height: 200px;
+  position: relative;
+  overflow: hidden;
+  background: var(--surface);
+  flex-shrink: 0;
 }
 
 .crop-image {
-  height: 200px;
-  background: linear-gradient(45deg, var(--primary-light), var(--secondary));
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+  display: block;
+}
+
+.market-crop-card:hover .crop-image {
+  transform: scale(1.05);
+}
+
+.crop-image-fallback {
+  width: 100%;
+  height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
+  font-size: 3rem;
+  background: linear-gradient(45deg, var(--primary-light), var(--secondary));
   color: var(--text-light);
-  font-size: 4rem;
   position: relative;
-  overflow: hidden;
 }
 
-.crop-image::after {
+.crop-image-fallback::after {
   content: '';
   position: absolute;
   top: 0;
@@ -155,8 +179,44 @@
   background: linear-gradient(to bottom, transparent, rgba(0,0,0,0.1));
 }
 
+.crop-image-fallback.hidden {
+  display: none;
+}
+
+.crop-image.hidden {
+  display: none;
+}
+
+/* Background colors based on crop categories */
+.crop-image-container.cereals {
+  background: linear-gradient(45deg, #fff8e1, #ffecb3);
+}
+
+.crop-image-container.legumes {
+  background: linear-gradient(45deg, #fbe9e7, #ffccbc);
+}
+
+.crop-image-container.vegetables {
+  background: linear-gradient(45deg, #e8f5e8, #c8e6c9);
+}
+
+.crop-image-container.fruits {
+  background: linear-gradient(45deg, #fff3e0, #ffe0b2);
+}
+
+.crop-image-container.tubers {
+  background: linear-gradient(45deg, #e3f2fd, #bbdefb);
+}
+
+.crop-image-container.oilseeds {
+  background: linear-gradient(45deg, #f3e5f5, #e1bee7);
+}
+
 .crop-content {
   padding: 1.5rem;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
 }
 
 .crop-name {
@@ -172,6 +232,7 @@
   line-height: 1.5;
   margin-bottom: 1rem;
   font-size: 0.9rem;
+  flex: 1;
 }
 
 .crop-price {
@@ -226,7 +287,7 @@
 }
 
 .stars .fa-star.filled {
-  color: var(--warning);
+  color: #ffc107;
 }
 
 .rating-text {
@@ -238,10 +299,52 @@
 .crop-actions {
   display: flex;
   gap: 0.75rem;
+  margin-top: auto;
 }
 
 .crop-actions .btn {
   flex: 1;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  border: 2px solid;
+  border-radius: 6px;
+  font-weight: 500;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 0.9rem;
+  justify-content: center;
+}
+
+.btn-primary {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
+}
+
+.btn-primary:hover {
+  background: var(--primary-dark);
+  border-color: var(--primary-dark);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.btn-outline {
+  background: transparent;
+  color: var(--primary);
+  border-color: var(--primary);
+}
+
+.btn-outline:hover {
+  background: var(--primary);
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 .no-results {
@@ -307,6 +410,30 @@
   font-weight: 500;
 }
 
+/* Loading state for images */
+.image-loading {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: loading 1.5s infinite;
+}
+
+@keyframes loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* High DPI screen support */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  .crop-image {
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+  }
+}
+
 @media (max-width: 768px) {
   .market-filters {
     grid-template-columns: 1fr;
@@ -339,5 +466,89 @@
 
   .market-header h1 {
     font-size: 2.5rem;
+  }
+
+  .crop-image-container {
+    height: 180px;
+  }
+  
+  .crop-image-fallback {
+    font-size: 2.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .market-container {
+    padding: 1rem 0;
+  }
+  
+  .market-header {
+    padding: 1rem 0;
+    margin-bottom: 2rem;
+  }
+  
+  .market-header h1 {
+    font-size: 2rem;
+  }
+  
+  .market-header p {
+    font-size: 1rem;
+  }
+  
+  .market-filters {
+    padding: 1.5rem;
+  }
+  
+  .crop-image-container {
+    height: 160px;
+  }
+  
+  .crop-image-fallback {
+    font-size: 2rem;
+  }
+  
+  .crop-content {
+    padding: 1.2rem;
+  }
+  
+  .crop-name {
+    font-size: 1.1rem;
+  }
+  
+  .crop-price {
+    font-size: 1.5rem;
+  }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .market-crop-card,
+  .stat-card {
+    background: var(--background-dark);
+    border-color: var(--border-dark);
+  }
+  
+  .market-crop-card:hover {
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.3);
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .market-crop-card,
+  .stat-card,
+  .crop-image,
+  .btn {
+    transition: none;
+  }
+  
+  .market-crop-card:hover,
+  .stat-card:hover,
+  .btn:hover {
+    transform: none;
+  }
+  
+  .market-crop-card:hover .crop-image {
+    transform: none;
   }
 }

@@ -6,6 +6,7 @@ import MarketPreview from '../components/MarketPreview/MarketPreview';
 import WeatherWidget from '../components/WeatherWidget/WeatherWidget';
 import ExpertSection from '../components/ExpertSection/ExpertSection';
 import Footer from '../components/Footer/Footer';
+import Overview from '../components/Overview/Overview'; // Import component mpya
 
 const Home = ({ crops, onPageChange, onAuth, user }) => {
   const handleContactFarmer = (crop) => {
@@ -22,6 +23,10 @@ const Home = ({ crops, onPageChange, onAuth, user }) => {
       />
       <Hero onAuth={onAuth} />
       <Features onPageChange={onPageChange} />
+      
+      {/* Add KataviOverview component here */}
+      <Overview onPageChange={onPageChange} />
+      
       <MarketPreview 
         crops={crops}
         onPageChange={onPageChange}

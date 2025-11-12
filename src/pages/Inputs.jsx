@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import Navigation from '../components/Navbar/Navbar';
 import Footer from '../components/Footer/Footer';
 import './CSS/Inputs.css';
+import Dawa from '../components/assets/Dawa.jpeg';
 
 const Inputs = ({ onPageChange, onAuth, user }) => {
   const [selectedCategory, setSelectedCategory] = useState('all');
@@ -25,7 +26,8 @@ const Inputs = ({ onPageChange, onAuth, user }) => {
       supplier: 'Agro Supplies Ltd',
       location: 'Mpanda',
       description: 'Mbolea bora ya nitrojeni inayofaa kwa mimea yote',
-      image: '🧪',
+      image: '/images/fertilizer-can.jpg',
+      fallback: '🧪',
       rating: 4.7
     },
     {
@@ -37,7 +39,8 @@ const Inputs = ({ onPageChange, onAuth, user }) => {
       supplier: 'SeedCo Tanzania',
       location: 'Mlele',
       description: 'Mbegu bora za mahindi zenye mazao mengi na upinzani wa magonjwa',
-      image: '🌽',
+      image: '/images/corn-seeds.jpg',
+      fallback: '🌽',
       rating: 4.8
     },
     {
@@ -49,7 +52,8 @@ const Inputs = ({ onPageChange, onAuth, user }) => {
       supplier: 'CropCare Solutions',
       location: 'Nsimbo',
       description: 'Dawa bora ya kudhibiti aina mbalimbali za wadudu wa mimea',
-      image: '🐛',
+      image: Dawa,
+      fallback: '🐛',
       rating: 4.5
     },
     {
@@ -61,7 +65,8 @@ const Inputs = ({ onPageChange, onAuth, user }) => {
       supplier: 'Farm Tools Tanzania',
       location: 'Mpanda',
       description: 'Jembe la kisasa lenye kushikilia vizuri na kudumu muda mrefu',
-      image: '🛠️',
+      image: '/images/farm-tools.jpg',
+      fallback: '🛠️',
       rating: 4.6
     },
     {
@@ -73,7 +78,8 @@ const Inputs = ({ onPageChange, onAuth, user }) => {
       supplier: 'IrriTech Systems',
       location: 'Mlele',
       description: 'Mfumo wa kisasa wa umwagiliaji unaookoa maji na kuongeza mazao',
-      image: '💧',
+      image: '/images/irrigation-system.jpg',
+      fallback: '💧',
       rating: 4.9
     },
     {
@@ -85,10 +91,18 @@ const Inputs = ({ onPageChange, onAuth, user }) => {
       supplier: 'Organic Farms Ltd',
       location: 'Nsimbo',
       description: 'Mbolea asilia ya kuku yenye virutubisho vingi vya mimea',
-      image: '🐔',
+      image: '/images/chicken-manure.jpg',
+      fallback: '🐔',
       rating: 4.4
     }
   ];
+
+  const handleImageError = (e, fallback) => {
+    e.target.classList.add('hidden');
+    const fallbackElement = e.target.nextSibling;
+    fallbackElement.classList.remove('hidden');
+    fallbackElement.textContent = fallback;
+  };
 
   const filteredInputs = selectedCategory === 'all' 
     ? agriculturalInputs 
@@ -128,7 +142,17 @@ const Inputs = ({ onPageChange, onAuth, user }) => {
           <div className="inputs-grid">
             {filteredInputs.map(input => (
               <div key={input.id} className="input-card">
-                <div className="input-image">{input.image}</div>
+                <div className="input-image-container">
+                  <img 
+                    className="input-image" 
+                    src={input.image} 
+                    alt={input.name}
+                    onError={(e) => handleImageError(e, input.fallback)}
+                  />
+                  <div className="input-image-fallback hidden">
+                    {input.fallback}
+                  </div>
+                </div>
                 
                 <div className="input-content">
                   <div className="input-category">{input.category}</div>
@@ -178,7 +202,16 @@ const Inputs = ({ onPageChange, onAuth, user }) => {
             <h2>Wauzaji Walioidhinishwa</h2>
             <div className="suppliers-grid">
               <div className="supplier-card">
-                <div className="supplier-logo">🌱</div>
+                <img 
+                  className="supplier-logo real-image" 
+                  src="/images/agro-supplies-logo.jpg" 
+                  alt="Agro Supplies Ltd"
+                  onError={(e) => {
+                    e.target.style.display = 'none';
+                    e.target.nextSibling.style.display = 'block';
+                  }}
+                />
+                <div className="supplier-logo" style={{display: 'none'}}>🌱</div>
                 <h3>Agro Supplies Ltd</h3>
                 <p>Wauzaji wakuu wa mbolea na dawa za wadudu</p>
                 <div className="supplier-contact">
@@ -187,7 +220,16 @@ const Inputs = ({ onPageChange, onAuth, user }) => {
               </div>
               
               <div className="supplier-card">
-                <div className="supplier-logo">🌾</div>
+                <img 
+                  className="supplier-logo real-image" 
+                  src="/images/seedco-logo.jpg" 
+                  alt="SeedCo Tanzania"
+                  onError={(e) => {
+                    e.target.style.display = 'none';
+                    e.target.nextSibling.style.display = 'block';
+                  }}
+                />
+                <div className="supplier-logo" style={{display: 'none'}}>🌾</div>
                 <h3>SeedCo Tanzania</h3>
                 <p>Mbegu bora za kilimo za aina mbalimbali</p>
                 <div className="supplier-contact">
@@ -196,7 +238,16 @@ const Inputs = ({ onPageChange, onAuth, user }) => {
               </div>
               
               <div className="supplier-card">
-                <div className="supplier-logo">🚜</div>
+                <img 
+                  className="supplier-logo real-image" 
+                  src="/images/farm-tools-logo.jpg" 
+                  alt="Farm Tools Tanzania"
+                  onError={(e) => {
+                    e.target.style.display = 'none';
+                    e.target.nextSibling.style.display = 'block';
+                  }}
+                />
+                <div className="supplier-logo" style={{display: 'none'}}>🚜</div>
                 <h3>Farm Tools Tanzania</h3>
                 <p>Vifaa vyote vya kilimo kwa bei nafuu</p>
                 <div className="supplier-contact">
