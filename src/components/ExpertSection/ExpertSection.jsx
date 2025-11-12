@@ -86,7 +86,7 @@ const ExpertSection = ({ onPageChange }) => {
                   <div className="expert-image">{expert.image}</div>
                   <div className="expert-status">
                     <span className={`status ${expert.available ? 'available' : 'busy'}`}>
-                      {expert.available ? 'Inapatikana' : 'Haipatikani'}
+                      {expert.available ? 'Anapatikana' : 'Hapatikani'}
                     </span>
                   </div>
                 </div>

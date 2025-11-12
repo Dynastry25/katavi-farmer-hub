@@ -67,7 +67,7 @@ const Overview = ({ onPageChange }) => {
         {/* Sehemu ya Mazao */}
         <div className="overview-section">
           <div className="section-header">
-            <h3>Mazao Mikuu ya Katavi</h3>
+            <h3>Mazao Makuu ya Katavi</h3>
             <button 
               className="view-all-btn"
               onClick={() => onPageChange('market')}

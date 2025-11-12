@@ -8,7 +8,6 @@ const WeatherWidget = ({ onPageChange }) => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Simulate API call with loading delay
     const mockWeatherData = {
       Mpanda: {
         temperature: 25,
@@ -36,7 +35,6 @@ const WeatherWidget = ({ onPageChange }) => {
       }
     };
 
-    // Simulate API loading delay
     setTimeout(() => {
       setWeatherData(mockWeatherData);
       setIsLoading(false);
@@ -55,14 +53,14 @@ const WeatherWidget = ({ onPageChange }) => {
     }
   };
 
-  // Animation variants
+  // Enhanced animation variants
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
       opacity: 1,
       transition: {
         delayChildren: 0.3,
-        staggerChildren: 0.2
+        staggerChildren: 0.15
       }
     }
   };
@@ -74,7 +72,8 @@ const WeatherWidget = ({ onPageChange }) => {
       opacity: 1,
       transition: {
         type: "spring",
-        stiffness: 100
+        stiffness: 120,
+        damping: 12
       }
     }
   };
@@ -94,7 +93,7 @@ const WeatherWidget = ({ onPageChange }) => {
       scale: [1, 1.1, 1],
       rotate: [0, 5, -5, 0],
       transition: { 
-        duration: 2,
+        duration: 3,
         repeat: Infinity,
         repeatType: "reverse"
       }
@@ -106,7 +105,11 @@ const WeatherWidget = ({ onPageChange }) => {
     animate: { 
       scale: 1, 
       opacity: 1,
-      transition: { type: "spring", stiffness: 200 }
+      transition: { 
+        type: "spring", 
+        stiffness: 200,
+        delay: 0.5 
+      }
     }
   };
 
@@ -115,7 +118,7 @@ const WeatherWidget = ({ onPageChange }) => {
       <section className="weather-widget">
         <div className="container">
           <motion.div 
-            className="weather-loading"
+            className="weather-loading glass-effect"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
@@ -138,6 +141,28 @@ const WeatherWidget = ({ onPageChange }) => {
             >
               Inapakia taarifa za hali ya hewa...
             </motion.p>
+            <motion.div
+              style={{
+                width: '100%',
+                height: '4px',
+                background: 'rgba(255,255,255,0.3)',
+                borderRadius: '2px',
+                marginTop: '1rem',
+                overflow: 'hidden'
+              }}
+            >
+              <motion.div
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  background: 'var(--primary)',
+                  borderRadius: '2px'
+                }}
+                initial={{ x: '-100%' }}
+                animate={{ x: '100%' }}
+                transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+              />
+            </motion.div>
           </motion.div>
         </div>
       </section>
@@ -153,10 +178,22 @@ const WeatherWidget = ({ onPageChange }) => {
           className="weather-header"
           initial={{ opacity: 0, y: -30 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8 }}
+          transition={{ duration: 0.8, type: "spring" }}
         >
-          <h2>Hali ya Hewa ya Mkoa wa Katavi</h2>
-          <p>Pata taarifa za hali ya hewa kwa maeneo mbalimbali ya mkoa</p>
+          <motion.h2
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.2 }}
+          >
+            Hali ya Hewa ya Mkoa wa Katavi
+          </motion.h2>
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.4 }}
+          >
+            Pata taarifa za hali ya hewa kwa maeneo mbalimbali ya mkoa
+          </motion.p>
         </motion.div>
 
         <motion.div 
@@ -194,6 +231,7 @@ const WeatherWidget = ({ onPageChange }) => {
               initial="hidden"
               animate="visible"
               exit="hidden"
+              transition={{ duration: 0.3 }}
             >
               <motion.div 
                 className="weather-main"
@@ -213,6 +251,7 @@ const WeatherWidget = ({ onPageChange }) => {
                     variants={temperatureVariants}
                     initial="initial"
                     animate="animate"
+                    key={currentWeather.temperature}
                   >
                     {currentWeather.temperature}°C
                   </motion.div>
@@ -239,9 +278,16 @@ const WeatherWidget = ({ onPageChange }) => {
                 <motion.div 
                   className="detail-item"
                   variants={itemVariants}
-                  whileHover={{ scale: 1.05 }}
+                  whileHover={{ 
+                    scale: 1.05,
+                    y: -2,
+                    transition: { type: "spring", stiffness: 300 }
+                  }}
                 >
-                  <i className="fas fa-tint"></i>
+                  <motion.i 
+                    className="fas fa-tint"
+                    whileHover={{ scale: 1.2, rotate: 10 }}
+                  />
                   <div>
                     <div className="detail-value">{currentWeather.humidity}%</div>
                     <div className="detail-label">Unyevu</div>
@@ -250,9 +296,16 @@ const WeatherWidget = ({ onPageChange }) => {
                 <motion.div 
                   className="detail-item"
                   variants={itemVariants}
-                  whileHover={{ scale: 1.05 }}
+                  whileHover={{ 
+                    scale: 1.05,
+                    y: -2,
+                    transition: { type: "spring", stiffness: 300 }
+                  }}
                 >
-                  <i className="fas fa-cloud-rain"></i>
+                  <motion.i 
+                    className="fas fa-cloud-rain"
+                    whileHover={{ scale: 1.2, rotate: 10 }}
+                  />
                   <div>
                     <div className="detail-value">{currentWeather.rainfall}</div>
                     <div className="detail-label">Mvua</div>
@@ -261,9 +314,16 @@ const WeatherWidget = ({ onPageChange }) => {
                 <motion.div 
                   className="detail-item"
                   variants={itemVariants}
-                  whileHover={{ scale: 1.05 }}
+                  whileHover={{ 
+                    scale: 1.05,
+                    y: -2,
+                    transition: { type: "spring", stiffness: 300 }
+                  }}
                 >
-                  <i className="fas fa-wind"></i>
+                  <motion.i 
+                    className="fas fa-wind"
+                    whileHover={{ scale: 1.2, rotate: 10 }}
+                  />
                   <div>
                     <div className="detail-value">{currentWeather.wind}</div>
                     <div className="detail-label">Upepo</div>
@@ -278,7 +338,13 @@ const WeatherWidget = ({ onPageChange }) => {
             className="weather-forecast"
             variants={itemVariants}
           >
-            <h3>Tabiri ya Vijuma Vitatu</h3>
+            <motion.h3
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.6 }}
+            >
+              Tabiri ya Siku Tatu
+            </motion.h3>
             <div className="forecast-grid">
               {currentWeather.forecast.map((day, index) => (
                 <motion.div 
@@ -292,7 +358,7 @@ const WeatherWidget = ({ onPageChange }) => {
                   }}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.1 }}
+                  transition={{ delay: 0.7 + index * 0.1 }}
                 >
                   <div className="forecast-date">
                     {index === 0 ? 'Kesho' : index === 1 ? 'Kesho Kutwa' : 'Kesho Tatu'}
@@ -317,6 +383,7 @@ const WeatherWidget = ({ onPageChange }) => {
             variants={itemVariants}
             whileHover={{ 
               scale: 1.02,
+              y: -2,
               transition: { type: "spring", stiffness: 300 }
             }}
           >
@@ -324,6 +391,7 @@ const WeatherWidget = ({ onPageChange }) => {
               className="advisory-icon"
               animate={{ 
                 y: [0, -10, 0],
+                scale: [1, 1.1, 1],
                 transition: { duration: 3, repeat: Infinity }
               }}
             >
@@ -350,9 +418,17 @@ const WeatherWidget = ({ onPageChange }) => {
               onClick={() => onPageChange('weather')}
               whileHover={{ 
                 scale: 1.05,
-                boxShadow: "0 10px 25px rgba(0, 0, 0, 0.2)"
+                y: -2,
+                boxShadow: "0 12px 25px rgba(0, 0, 0, 0.2)"
               }}
               whileTap={{ scale: 0.95 }}
+              style={{
+                background: 'linear-gradient(135deg, var(--primary), var(--primary-dark))',
+                border: 'none',
+                padding: '1rem 2rem',
+                fontSize: '1.1rem',
+                borderRadius: 'var(--radius)'
+              }}
             >
               <motion.i 
                 className="fas fa-chart-line"
@@ -361,7 +437,7 @@ const WeatherWidget = ({ onPageChange }) => {
                   transition: { duration: 1.5, repeat: Infinity }
                 }}
               />
-              Angalia Maelezo Zaidi ya Hali ya Hewa
+              &nbsp; Angalia Maelezo Zaidi ya Hali ya Hewa
             </motion.button>
           </motion.div>
         </motion.div>

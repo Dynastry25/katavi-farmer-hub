@@ -1,3 +1,4 @@
+// Contact.jsx
 import React, { useState } from 'react';
 import Navigation from '../components/Navbar/Navbar';
 import Footer from '../components/Footer/Footer';
@@ -96,7 +97,7 @@ const Contact = ({ onPageChange, onAuth, user }) => {
   };
 
   return (
-    <div className="page contact-page">
+    <div className="contact-page-wrapper">
       <Navigation 
         currentPage="contact"
         onPageChange={onPageChange}
@@ -104,29 +105,29 @@ const Contact = ({ onPageChange, onAuth, user }) => {
         user={user}
       />
       
-      <div className="contact-container">
-        <div className="container">
+      <div className="contact-main-container">
+        <div className="contact-content-wrapper">
           {/* Header */}
-          <div className="contact-header">
-            <h1>Wasiliana Nasi</h1>
-            <p>Tupo tayari kukusikiliza na kukusaidia kwa maswali yoyote kuhusu jukwaa letu la E-Kilimo</p>
+          <div className="contact-hero-section">
+            <h1 className="contact-main-title">Wasiliana Nasi</h1>
+            <p className="contact-subtitle">Tupo tayari kukusikiliza na kukusaidia kwa maswali yoyote kuhusu jukwaa letu la E-Kilimo</p>
           </div>
 
-          <div className="contact-content">
+          <div className="contact-sections-container">
             {/* Contact Methods */}
-            <div className="contact-methods">
-              <h2>Njia za Kuwasiliana</h2>
-              <div className="methods-grid">
+            <div className="contact-methods-section">
+              <h2 className="section-heading">Njia za Kuwasiliana</h2>
+              <div className="contact-methods-grid">
                 {contactMethods.map(method => (
-                  <div key={method.type} className="method-card">
-                    <div className="method-icon">
+                  <div key={method.type} className="contact-method-card">
+                    <div className="method-icon-wrapper">
                       <i className={method.icon}></i>
                     </div>
-                    <div className="method-content">
-                      <h3>{method.title}</h3>
-                      <p className="method-description">{method.description}</p>
+                    <div className="method-content-wrapper">
+                      <h3 className="method-title">{method.title}</h3>
+                      <p className="method-description-text">{method.description}</p>
                       {method.details.map((detail, index) => (
-                        <div key={index} className="method-detail">{detail}</div>
+                        <div key={index} className="method-detail-item">{detail}</div>
                       ))}
                     </div>
                   </div>
@@ -135,15 +136,15 @@ const Contact = ({ onPageChange, onAuth, user }) => {
             </div>
 
             {/* Contact Form */}
-            <div className="contact-form-section">
-              <h2>Tuma Ujumbe</h2>
+            <div className="contact-form-container">
+              <h2 className="section-heading">Tuma Ujumbe</h2>
               
               {/* Inquiry Type Tabs */}
-              <div className="inquiry-tabs">
+              <div className="inquiry-type-tabs">
                 {inquiryTypes.map(type => (
                   <button
                     key={type.value}
-                    className={`tab-btn ${activeTab === type.value ? 'active' : ''}`}
+                    className={`inquiry-tab-button ${activeTab === type.value ? 'inquiry-tab-active' : ''}`}
                     onClick={() => setActiveTab(type.value)}
                   >
                     {type.label}
@@ -151,10 +152,10 @@ const Contact = ({ onPageChange, onAuth, user }) => {
                 ))}
               </div>
 
-              <form onSubmit={handleSubmit} className="contact-form">
-                <div className="form-row">
-                  <div className="form-group">
-                    <label htmlFor="name">Jina Kamili *</label>
+              <form onSubmit={handleSubmit} className="message-form">
+                <div className="form-row-layout">
+                  <div className="form-field-group">
+                    <label htmlFor="name" className="form-label">Jina Kamili *</label>
                     <input
                       type="text"
                       id="name"
@@ -162,11 +163,11 @@ const Contact = ({ onPageChange, onAuth, user }) => {
                       value={formData.name}
                       onChange={handleInputChange}
                       required
-                      className="form-control"
+                      className="form-input-field"
                     />
                   </div>
-                  <div className="form-group">
-                    <label htmlFor="email">Barua Pepe *</label>
+                  <div className="form-field-group">
+                    <label htmlFor="email" className="form-label">Barua Pepe *</label>
                     <input
                       type="email"
                       id="email"
@@ -174,14 +175,14 @@ const Contact = ({ onPageChange, onAuth, user }) => {
                       value={formData.email}
                       onChange={handleInputChange}
                       required
-                      className="form-control"
+                      className="form-input-field"
                     />
                   </div>
                 </div>
 
-                <div className="form-row">
-                  <div className="form-group">
-                    <label htmlFor="phone">Namba ya Simu *</label>
+                <div className="form-row-layout">
+                  <div className="form-field-group">
+                    <label htmlFor="phone" className="form-label">Namba ya Simu *</label>
                     <input
                       type="tel"
                       id="phone"
@@ -189,11 +190,11 @@ const Contact = ({ onPageChange, onAuth, user }) => {
                       value={formData.phone}
                       onChange={handleInputChange}
                       required
-                      className="form-control"
+                      className="form-input-field"
                     />
                   </div>
-                  <div className="form-group">
-                    <label htmlFor="subject">Mada *</label>
+                  <div className="form-field-group">
+                    <label htmlFor="subject" className="form-label">Mada *</label>
                     <input
                       type="text"
                       id="subject"
@@ -201,14 +202,14 @@ const Contact = ({ onPageChange, onAuth, user }) => {
                       value={formData.subject}
                       onChange={handleInputChange}
                       required
-                      className="form-control"
+                      className="form-input-field"
                       placeholder={`Mada kuhusu ${inquiryTypes.find(t => t.value === activeTab)?.label}`}
                     />
                   </div>
                 </div>
 
-                <div className="form-group">
-                  <label htmlFor="message">Ujumbe Wako *</label>
+                <div className="form-field-group">
+                  <label htmlFor="message" className="form-label">Ujumbe Wako *</label>
                   <textarea
                     id="message"
                     name="message"
@@ -216,39 +217,39 @@ const Contact = ({ onPageChange, onAuth, user }) => {
                     onChange={handleInputChange}
                     required
                     rows="6"
-                    className="form-control"
+                    className="form-textarea-field"
                     placeholder="Andika ujumbe wako hapa..."
                   ></textarea>
                 </div>
 
-                <button type="submit" className="btn btn-primary btn-lg">
+                <button type="submit" className="submit-message-button">
                   <i className="fas fa-paper-plane"></i> Tuma Ujumbe
                 </button>
               </form>
             </div>
 
             {/* Regional Offices */}
-            <div className="regional-offices">
-              <h2>Ofisi za Kieneo</h2>
-              <div className="offices-grid">
+            <div className="regional-offices-section">
+              <h2 className="section-heading">Ofisi za Kieneo</h2>
+              <div className="offices-grid-layout">
                 {regionalOffices.map(office => (
-                  <div key={office.location} className="office-card">
-                    <h3>Ofisi ya {office.location}</h3>
-                    <div className="office-details">
-                      <div className="office-detail">
+                  <div key={office.location} className="office-info-card">
+                    <h3 className="office-location-title">Ofisi ya {office.location}</h3>
+                    <div className="office-details-list">
+                      <div className="office-detail-row">
                         <i className="fas fa-phone"></i>
                         <span>{office.phone}</span>
                       </div>
-                      <div className="office-detail">
+                      <div className="office-detail-row">
                         <i className="fas fa-map-marker-alt"></i>
                         <span>{office.address}</span>
                       </div>
-                      <div className="office-detail">
+                      <div className="office-detail-row">
                         <i className="fas fa-clock"></i>
                         <span>{office.hours}</span>
                       </div>
                     </div>
-                    <button className="btn btn-outline btn-sm">
+                    <button className="direction-button">
                       <i className="fas fa-directions"></i> Onyesha Njia
                     </button>
                   </div>
@@ -257,24 +258,24 @@ const Contact = ({ onPageChange, onAuth, user }) => {
             </div>
 
             {/* FAQ Section */}
-            <div className="faq-section">
-              <h2>Maswali Yanayoulizwa Mara Kwa Mara</h2>
-              <div className="faq-grid">
-                <div className="faq-item">
-                  <h3>Je, nawezaje kujiunga kama mkulima?</h3>
-                  <p>Bofya kitufe cha "Jisajili" juu ukichague "Mkulima". Utahitaji kujaza fomu na kutoa taarifa kuhusu shamba lako na mazao unayolima.</p>
+            <div className="faq-questions-section">
+              <h2 className="section-heading">Maswali Yanayoulizwa Mara Kwa Mara</h2>
+              <div className="faq-grid-layout">
+                <div className="faq-question-item">
+                  <h3 className="faq-question">Je, nawezaje kujiunga kama mkulima?</h3>
+                  <p className="faq-answer">Bofya kitufe cha "Jisajili" juu ukichague "Mkulima". Utahitaji kujaza fomu na kutoa taarifa kuhusu shamba lako na mazao unayolima.</p>
                 </div>
-                <div className="faq-item">
-                  <h3>Mazao yangu yanaweza kuuzwa wapi?</h3>
-                  <p>Mazao yako yataonekana kwenye soko la mtandaoni na wanunuzi wanaweza kukuona na kuwasiliana nawe moja kwa moja.</p>
+                <div className="faq-question-item">
+                  <h3 className="faq-question">Mazao yangu yanaweza kuuzwa wapi?</h3>
+                  <p className="faq-answer">Mazao yako yataonekana kwenye soko la mtandaoni na wanunuzi wanaweza kukuona na kuwasiliana nawe moja kwa moja.</p>
                 </div>
-                <div className="faq-item">
-                  <h3>Je, kuna malipo ya kujiunga?</h3>
-                  <p>Hakuna malipo ya kujiunga kwa wakulima. Mfumo unatumika bure ili kuwasaidia wakulima kufikia soko.</p>
+                <div className="faq-question-item">
+                  <h3 className="faq-question">Je, kuna malipo ya kujiunga?</h3>
+                  <p className="faq-answer">Hakuna malipo ya kujiunga kwa wakulima. Mfumo unatumika bure ili kuwasaidia wakulima kufikia soko.</p>
                 </div>
-                <div className="faq-item">
-                  <h3>Nawezaje kupata ushauri wa kilimo?</h3>
-                  <p>Tuna wataalamu wa kilimo ambao wanaweza kukupa ushauri kupitia simu, ujumbe, au mkutano wa moja kwa moja.</p>
+                <div className="faq-question-item">
+                  <h3 className="faq-question">Nawezaje kupata ushauri wa kilimo?</h3>
+                  <p className="faq-answer">Tuna wataalamu wa kilimo ambao wanaweza kukupa ushauri kupitia simu, ujumbe, au mkutano wa moja kwa moja.</p>
                 </div>
               </div>
             </div>
