@@ -2,7 +2,14 @@ import React, { useState } from 'react';
 import Navigation from '../components/Navbar/Navbar';
 import Footer from '../components/Footer/Footer';
 import './CSS/Market.css';
-import Mpunga from '../components/assets/mpunga.jpg'
+import Mpunga from '../components/assets/mpunga.jpeg'
+import Mahindi from '../components/assets/mahindi4.jpg'
+import Viazi from '../components/assets/viazi.jpeg'
+import Karoti from '../components/assets/karoti.jpeg'
+import Mchele from '../components/assets/mchele.jpeg'
+import Maharage from '../components/assets/maharage.jpeg'
+import Machungwa from '../components/assets/machungwa.webp'
+import Alizeti from '../components/assets/alizeti.jpeg'
 
 
 const Market = ({ crops, onPageChange, onAuth, user, onContactFarmer, onCropDetails }) => {
@@ -44,7 +51,7 @@ const Market = ({ crops, onPageChange, onAuth, user, onContactFarmer, onCropDeta
   const sampleCrops = [
     {
       id: 1,
-      name: 'Mahindi Mweupe',
+      name: 'Mahindi ',
       category: 'cereals',
       price: 1200,
       quantity: '500',
@@ -52,7 +59,7 @@ const Market = ({ crops, onPageChange, onAuth, user, onContactFarmer, onCropDeta
       location: 'Mpanda',
       farmer: 'Juma Mohamed',
       description: 'Mahindi mweupe wa hali ya juu, mazao mazuri na nafaka nzuri.',
-      image: '',
+      image: Mahindi,
       fallback: '🌽',
       rating: 4.5,
       reviews: 24,
@@ -60,7 +67,7 @@ const Market = ({ crops, onPageChange, onAuth, user, onContactFarmer, onCropDeta
     },
     {
       id: 2,
-      name: 'Mchele wa Mbeya',
+      name: 'Mchele',
       category: 'cereals',
       price: 2500,
       quantity: '300',
@@ -68,7 +75,7 @@ const Market = ({ crops, onPageChange, onAuth, user, onContactFarmer, onCropDeta
       location: 'Mlele',
       farmer: 'Asha Juma',
       description: 'Mchele mzuri wa aina ya Super, mwenye ubora wa hali ya juu.',
-      image: '/images/mbeya-rice.jpg',
+      image: Mchele,
       fallback: '🍚',
       rating: 4.8,
       reviews: 31,
@@ -76,7 +83,7 @@ const Market = ({ crops, onPageChange, onAuth, user, onContactFarmer, onCropDeta
     },
     {
       id: 3,
-      name: 'Maharage Yawe',
+      name: 'Maharage',
       category: 'legumes',
       price: 3000,
       quantity: '200',
@@ -84,7 +91,7 @@ const Market = ({ crops, onPageChange, onAuth, user, onContactFarmer, onCropDeta
       location: 'Nsimbo',
       farmer: 'Rajab Suleiman',
       description: 'Maharage mekundu ya aina ya Yawe, yenye virutubisho vingi.',
-      image: '/images/red-beans.jpg',
+      image: Maharage,
       fallback: '🫘',
       rating: 4.3,
       reviews: 18,
@@ -92,7 +99,7 @@ const Market = ({ crops, onPageChange, onAuth, user, onContactFarmer, onCropDeta
     },
     {
       id: 4,
-      name: 'Viazi Mviringo',
+      name: 'Viazi ',
       category: 'tubers',
       price: 800,
       quantity: '600',
@@ -100,7 +107,7 @@ const Market = ({ crops, onPageChange, onAuth, user, onContactFarmer, onCropDeta
       location: 'Mpanda',
       farmer: 'Mariam Charles',
       description: 'Viazi vitamu vya aina mbalimbali, fresh kutoka shambani.',
-      image: '/images/potatoes.jpg',
+      image: Viazi,
       fallback: '🥔',
       rating: 4.6,
       reviews: 42,
@@ -108,7 +115,7 @@ const Market = ({ crops, onPageChange, onAuth, user, onContactFarmer, onCropDeta
     },
     {
       id: 5,
-      name: 'Michungwa',
+      name: 'Machungwa',
       category: 'fruits',
       price: 500,
       quantity: '400',
@@ -116,7 +123,7 @@ const Market = ({ crops, onPageChange, onAuth, user, onContactFarmer, onCropDeta
       location: 'Mlele',
       farmer: 'John Petro',
       description: 'Michungwa mizuri yenye vitamini C nyingi, tamu na fresh.',
-      image: '/images/oranges.jpg',
+      image: Machungwa,
       fallback: '🍊',
       rating: 4.7,
       reviews: 29,
@@ -148,7 +155,7 @@ const Market = ({ crops, onPageChange, onAuth, user, onContactFarmer, onCropDeta
       location: 'Karema',
       farmer: 'Ali Hassan',
       description: 'Karoti nyekundu zenye vitamini A nyingi, fresh na tamu.',
-      image: '/images/carrots.jpg',
+      image: Karoti,
       fallback: '🥕',
       rating: 4.5,
       reviews: 27,
@@ -164,7 +171,7 @@ const Market = ({ crops, onPageChange, onAuth, user, onContactFarmer, onCropDeta
       location: 'Mpanda',
       farmer: 'Sarah Michael',
       description: 'Mbegu za alizeti za hali ya juu kwa utengenezaji wa mafuta.',
-      image: '/images/sunflower.jpg',
+      image: Alizeti,
       fallback: '🌻',
       rating: 4.2,
       reviews: 16,
