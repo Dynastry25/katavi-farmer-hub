@@ -1,0 +1,625 @@
+.market-preview {
+  padding: 6rem 0;
+  background: var(--surface);
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+.section-header {
+  text-align: center;
+  margin-bottom: 4rem;
+}
+
+.section-header h2 {
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+  color: var(--text-primary);
+}
+
+.section-header p {
+  font-size: 1.25rem;
+  color: var(--text-secondary);
+  margin-bottom: 2rem;
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
+  line-height: 1.6;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  border: 2px solid;
+  border-radius: 6px;
+  font-weight: 500;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 0.9rem;
+}
+
+.btn-outline {
+  background: transparent;
+  color: var(--primary);
+  border-color: var(--primary);
+}
+
+.btn-outline:hover {
+  background: var(--primary);
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.crops-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2rem;
+  margin-bottom: 4rem;
+}
+
+.market-crop-card {
+  background: var(--background);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+  border: 1px solid var(--border);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.market-crop-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15);
+}
+
+.market-crop-card .crop-badge {
+  position: absolute;
+  top: 1rem;
+  left: 1rem;
+  background: var(--accent);
+  color: white;
+  padding: 0.25rem 0.75rem;
+  border-radius: 1rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  z-index: 2;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Picha Improvements - UPDATED */
+.market-crop-card .crop-image-container {
+  height: 200px;
+  position: relative;
+  overflow: hidden;
+  background: var(--surface);
+  flex-shrink: 0;
+}
+
+.market-crop-card .crop-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+  display: block;
+}
+
+.market-crop-card:hover .crop-image {
+  transform: scale(1.05);
+}
+
+.market-crop-card .crop-image-fallback {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 3rem;
+  background: linear-gradient(45deg, var(--primary-light), var(--secondary));
+  color: var(--text-light);
+  position: relative;
+}
+
+.market-crop-card .crop-image-fallback::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(to bottom, transparent, rgba(0,0,0,0.1));
+}
+
+.market-crop-card .crop-image-fallback.hidden {
+  display: none;
+}
+
+.market-crop-card .crop-image.hidden {
+  display: none;
+}
+
+/* Background colors based on crop categories */
+.crop-image-container.fruits {
+  background: linear-gradient(45deg, #fff3e0, #ffe0b2);
+}
+
+.crop-image-container.vegetables {
+  background: linear-gradient(45deg, #e8f5e8, #c8e6c9);
+}
+
+.crop-image-container.grains {
+  background: linear-gradient(45deg, #fff8e1, #ffecb3);
+}
+
+.crop-image-container.legumes {
+  background: linear-gradient(45deg, #fbe9e7, #ffccbc);
+}
+
+.crop-image-container.tubers {
+  background: linear-gradient(45deg, #e3f2fd, #bbdefb);
+}
+
+.crop-image-container.spices {
+  background: linear-gradient(45deg, #f3e5f5, #e1bee7);
+}
+
+.market-crop-card .crop-content {
+  padding: 1.5rem;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.crop-name {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  color: var(--text-primary);
+  line-height: 1.3;
+}
+
+.crop-description {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  line-height: 1.5;
+  margin-bottom: 1rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  flex: 1;
+}
+
+.crop-details {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  padding: 1rem 0;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+
+.crop-price {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--primary);
+}
+
+.crop-quantity {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.crop-meta {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+  font-size: 0.9rem;
+  gap: 1rem;
+}
+
+.crop-location,
+.crop-farmer {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--text-secondary);
+  flex: 1;
+}
+
+.crop-location i,
+.crop-farmer i {
+  color: var(--primary);
+  font-size: 0.8rem;
+}
+
+.crop-actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: auto;
+}
+
+.crop-actions .btn {
+  flex: 1;
+  justify-content: center;
+  padding: 0.6rem 1rem;
+  font-size: 0.8rem;
+}
+
+.btn-primary {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
+}
+
+.btn-primary:hover {
+  background: var(--primary-dark);
+  border-color: var(--primary-dark);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.btn-sm {
+  padding: 0.5rem 1rem;
+  font-size: 0.8rem;
+}
+
+.market-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 2rem;
+  text-align: center;
+}
+
+.market-stats .stat-item {
+  padding: 2rem;
+  background: var(--background);
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  transition: transform 0.3s ease;
+}
+
+.market-stats .stat-item:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+}
+
+.market-stats .stat-item .stat-number {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: var(--primary);
+  margin-bottom: 0.5rem;
+}
+
+.market-stats .stat-item .stat-label {
+  color: var(--text-secondary);
+  font-weight: 500;
+  font-size: 1rem;
+}
+
+/* Loading state for images */
+.image-loading {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: loading 1.5s infinite;
+}
+
+@keyframes loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* High DPI screen support */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  .market-crop-card .crop-image {
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+  }
+}
+
+/* RESPONSIVE DESIGN */
+@media (max-width: 1024px) {
+  .market-preview {
+    padding: 5rem 0;
+  }
+  
+  .crops-grid {
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
+  }
+  
+  .section-header h2 {
+    font-size: 2.2rem;
+  }
+  
+  .section-header p {
+    font-size: 1.1rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .market-preview {
+    padding: 3rem 0;
+  }
+  
+  .section-header {
+    margin-bottom: 3rem;
+  }
+  
+  .section-header h2 {
+    font-size: 2rem;
+  }
+  
+  .section-header p {
+    font-size: 1rem;
+    margin-bottom: 1.5rem;
+  }
+  
+  .crops-grid {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+    margin-bottom: 3rem;
+  }
+  
+  .market-crop-card {
+    margin: 0 0.5rem;
+  }
+  
+  .market-crop-card .crop-image-container {
+    height: 180px;
+  }
+  
+  .crop-details {
+    flex-direction: column;
+    gap: 0.5rem;
+    align-items: flex-start;
+  }
+  
+  .crop-meta {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .crop-location,
+  .crop-farmer {
+    justify-content: flex-start;
+  }
+  
+  .market-stats {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+  }
+  
+  .market-stats .stat-item {
+    padding: 1.5rem 1rem;
+  }
+  
+  .market-stats .stat-item .stat-number {
+    font-size: 2rem;
+  }
+  
+  .market-stats .stat-item .stat-label {
+    font-size: 0.9rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .market-preview {
+    padding: 2rem 0;
+  }
+  
+  .container {
+    padding: 0 0.8rem;
+  }
+  
+  .section-header {
+    margin-bottom: 2rem;
+  }
+  
+  .section-header h2 {
+    font-size: 1.75rem;
+  }
+  
+  .section-header p {
+    font-size: 0.9rem;
+    margin-bottom: 1rem;
+  }
+  
+  .btn {
+    padding: 0.6rem 1.2rem;
+    font-size: 0.85rem;
+  }
+  
+  .crops-grid {
+    gap: 1rem;
+    margin-bottom: 2rem;
+  }
+  
+  .market-crop-card .crop-image-container {
+    height: 160px;
+  }
+  
+  .market-crop-card .crop-image-fallback {
+    font-size: 2.5rem;
+  }
+  
+  .market-crop-card .crop-content {
+    padding: 1.2rem;
+  }
+  
+  .crop-name {
+    font-size: 1.1rem;
+  }
+  
+  .crop-description {
+    font-size: 0.85rem;
+  }
+  
+  .crop-price {
+    font-size: 1.3rem;
+  }
+  
+  .crop-actions {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .crop-actions .btn {
+    width: 100%;
+  }
+  
+  .market-stats {
+    grid-template-columns: 1fr;
+    gap: 0.8rem;
+  }
+  
+  .market-stats .stat-item {
+    padding: 1.2rem 0.8rem;
+  }
+  
+  .market-stats .stat-item .stat-number {
+    font-size: 1.75rem;
+  }
+  
+  .market-stats .stat-item .stat-label {
+    font-size: 0.85rem;
+  }
+}
+
+/* Extra Small Devices */
+@media (max-width: 320px) {
+  .market-preview {
+    padding: 1.5rem 0;
+  }
+  
+  .section-header h2 {
+    font-size: 1.5rem;
+  }
+  
+  .market-crop-card .crop-image-container {
+    height: 140px;
+  }
+  
+  .market-crop-card .crop-image-fallback {
+    font-size: 2rem;
+  }
+  
+  .crop-details {
+    padding: 0.8rem 0;
+  }
+  
+  .crop-price {
+    font-size: 1.2rem;
+  }
+}
+
+/* Landscape Mode for Mobile */
+@media (max-height: 500px) and (orientation: landscape) {
+  .market-preview {
+    padding: 2rem 0;
+  }
+  
+  .crops-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+  }
+  
+  .market-crop-card .crop-image-container {
+    height: 120px;
+  }
+  
+  .market-crop-card .crop-image-fallback {
+    font-size: 2rem;
+  }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .market-crop-card,
+  .market-stats .stat-item {
+    background: var(--background-dark);
+    border-color: var(--border-dark);
+  }
+  
+  .market-crop-card:hover {
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.3);
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .market-crop-card,
+  .market-stats .stat-item,
+  .btn,
+  .market-crop-card .crop-image {
+    transition: none;
+  }
+  
+  .market-crop-card:hover,
+  .market-stats .stat-item:hover,
+  .btn:hover {
+    transform: none;
+  }
+  
+  .market-crop-card:hover .crop-image {
+    transform: none;
+  }
+}
+
+/* High contrast mode */
+@media (prefers-contrast: high) {
+  .market-crop-card {
+    border: 2px solid var(--text-primary);
+  }
+  
+  .market-crop-card .crop-badge {
+    border: 1px solid white;
+  }
+  
+  .btn-outline {
+    border-width: 3px;
+  }
+}
+
+/* Print styles */
+@media print {
+  .market-preview {
+    background: white !important;
+    color: black !important;
+    padding: 2rem 0 !important;
+  }
+  
+  .btn {
+    display: none !important;
+  }
+  
+  .market-crop-card {
+    break-inside: avoid;
+    box-shadow: none !important;
+    border: 1px solid #ccc !important;
+  }
+  
+  .market-crop-card:hover {
+    transform: none !important;
+  }
+  
+  .market-crop-card .crop-image {
+    filter: grayscale(100%) !important;
+  }
+}

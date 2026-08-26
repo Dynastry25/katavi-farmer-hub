@@ -1,0 +1,30 @@
+{
+  "short_name": "Katavi E-Kilimo",
+  "name": "Katavi Farmers Hub - E-Kilimo",
+  "description": "Jukwaa la kidijitali la wakulima wa Katavi",
+  "icons": [
+    {
+      "src": "favicon.ico",
+      "sizes": "64x64 32x32 24x24 16x16",
+      "type": "image/x-icon"
+    },
+    {
+      "src": "logo.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "logo.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#1a7431",
+  "background_color": "#ffffff",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "lang": "sw-TZ",
+  "categories": ["business", "productivity", "utilities"]
+}
