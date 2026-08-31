@@ -1,8 +1,10 @@
-// Features.jsx - IMPROVED VERSION WITH MOUNTAIN BACKGROUND
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import './Features.css';
 
 const Features = ({ onPageChange }) => {
+  const navigate = useNavigate();
+
   const features = [
     {
       icon: 'fas fa-store',
@@ -50,53 +52,41 @@ const Features = ({ onPageChange }) => {
 
   return (
     <section className="features">
-      {/* Mountain Background */}
-      <div className="features-mountain-bg">
-        <svg className="mountain-separator" viewBox="0 0 1000 200" preserveAspectRatio="none">
-          <path 
-            className="mountain-path-1" 
-            d="M1000,200 L0,200 L0,150 C150,100 300,180 450,120 C600,60 750,140 900,80 L1000,120 Z"
-          />
-          <path 
-            className="mountain-path-2" 
-            d="M1000,200 L0,200 L0,170 C100,140 250,190 400,150 C550,110 700,160 850,130 L1000,160 Z"
-          />
-        </svg>
-      </div>
-      
-      <div className="container">
+      <div className="features-decor decor-1"></div>
+      <div className="features-decor decor-2"></div>
+
+      <div className="features-container">
         <div className="features-header">
+          <span className="features-eyebrow">Huduma Zetu</span>
           <h2>Kwa Nini Uchague Katavi E-Kilimo?</h2>
           <p>Jukwaa letu linakupa huduma zote muhimu za kilimo katika sehemu moja ya uhakika na rahisi</p>
         </div>
-        
+
         <div className="features-grid">
           {features.map((feature, index) => (
             <div key={index} className="feature-card">
               <div className="feature-icon">
                 <i className={feature.icon}></i>
               </div>
-              
               <h3 className="feature-title">{feature.title}</h3>
-              
               <p className="feature-description">{feature.description}</p>
-              
-              <button 
+              <button
                 className="feature-action"
                 onClick={() => onPageChange(feature.page)}
               >
-                {feature.action}
+                <span>{feature.action}</span>
                 <i className="fas fa-arrow-right"></i>
               </button>
             </div>
           ))}
         </div>
-        
+
         <div className="features-cta">
+          <div className="cta-glow"></div>
           <div className="cta-content">
             <h3>Tayari Kujiunga na Jukwaa Letu?</h3>
             <p>Jiunge na maelfu ya wakulima na wanunuzi tayari wanaofaidika na mfumo wetu</p>
-            <button className="btn btn-primary btn-lg">
+            <button className="cta-btn" onClick={() => navigate('/register')}>
               Jisajili Sasa <i className="fas fa-arrow-right"></i>
             </button>
           </div>

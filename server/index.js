@@ -1,6 +1,10 @@
 const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
+const compression = require('compression');
+const helmet = require('helmet');
+const morgan = require('morgan');
+const rateLimit = require('express-rate-limit');
 const connectDB = require('./config/db');
 
 // Load env vars
@@ -11,7 +15,43 @@ connectDB();
 
 const app = express();
 
-// Middleware
+// Security headers
+app.use(helmet({ contentSecurityPolicy: false }));
+
+// Enable trust proxy (needed for rate limiting behind reverse proxy)
+app.set('trust proxy', 1);
+
+// Request logging
+if (process.env.NODE_ENV !== 'production') {
+  app.use(morgan('dev'));
+}
+
+// Compress all responses (gzip)
+app.use(compression());
+
+// Rate limiting
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 300,
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res) => {
+    res.status(429).json({ message: 'Umeshatuma maombi mengi. Jaribu tena baada ya dakika.' });
+  },
+  skip: (req) => req.path.startsWith('/chatbot'),
+});
+
+const chatbotLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res) => {
+    res.status(429).json({ message: 'Umetuma messagi nyingi. Tafadhali subiri kidogo.' });
+  },
+});
+
+// CORS
 app.use(cors({
   origin: process.env.FRONTEND_URL || 'http://localhost:5173',
   credentials: true,
@@ -20,7 +60,8 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
 // Routes
-app.use('/api/auth', require('./routes/auth'));
+app.use('/api/auth', apiLimiter, require('./routes/auth'));
+app.use('/api/chatbot', chatbotLimiter, require('./routes/chatbot'));
 app.use('/api/crops', require('./routes/crops'));
 app.use('/api/products', require('./routes/products'));
 app.use('/api/orders', require('./routes/orders'));

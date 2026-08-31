@@ -8,6 +8,7 @@ import Navigation from './components/Navbar/Navbar';
 import Footer from './components/Footer/Footer';
 import Loading from './components/Loading/Loading';
 import ErrorBoundary from './components/ErrorBoundary/ErrorBoundary';
+import ChatWidget from './components/ChatWidget/ChatWidget';
 
 // Lazy load components for better performance
 const Home = lazy(() => import('./pages/Home'));
@@ -602,6 +603,9 @@ function App() {
             />
           </Suspense>
         )}
+
+        {/* Global AI Chatbot Widget */}
+        <ChatWidget />
 
         {/* Global Refresh Button */}
         <button 

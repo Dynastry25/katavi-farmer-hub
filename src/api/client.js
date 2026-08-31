@@ -149,4 +149,59 @@ export const uploadAPI = {
   }),
 };
 
+// Chatbot API
+export const chatbotAPI = {
+  sendMessage: async ({ message, history, language, location, onDelta, signal }) => {
+    const token = localStorage.getItem('kataviToken');
+    const response = await fetch('/api/chatbot', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify({ message, history, language, location }),
+      signal,
+    });
+
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      throw new Error(err.message || 'Hitilafu imetokea kwenye chatbot');
+    }
+
+    if (!response.body) {
+      const data = await response.json();
+      return data.reply;
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let fullText = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      const chunk = decoder.decode(value, { stream: true });
+      const lines = chunk.split('\n');
+
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+        const data = line.slice(6).trim();
+        if (data === '[DONE]') continue;
+        try {
+          const parsed = JSON.parse(data);
+          if (parsed.delta) {
+            fullText += parsed.delta;
+            if (onDelta) onDelta(fullText);
+          }
+        } catch (e) {
+          // ignore parse errors for incomplete lines
+        }
+      }
+    }
+
+    return fullText;
+  },
+};
+
 export default api;
