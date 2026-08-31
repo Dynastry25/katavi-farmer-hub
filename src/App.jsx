@@ -2,6 +2,7 @@ import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import './App.css';
 import { cropsAPI, ordersAPI } from './api/client';
+import { sampleCrops } from './data/sampleData';
 
 // Import Components
 import Navigation from './components/Navbar/Navbar';
@@ -91,9 +92,10 @@ function App() {
       // Fetch crops from API
       try {
         const cropsRes = await cropsAPI.getAll();
-        setCrops(cropsRes.data);
+        setCrops(Array.isArray(cropsRes.data) ? cropsRes.data : sampleCrops);
       } catch (err) {
         console.error('Error loading crops:', err);
+        setCrops(sampleCrops);
       }
 
       // Check if user is logged in from localStorage
