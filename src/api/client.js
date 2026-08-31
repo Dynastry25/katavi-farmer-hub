@@ -153,7 +153,7 @@ export const uploadAPI = {
 export const chatbotAPI = {
   sendMessage: async ({ message, history, language, location, onDelta, signal }) => {
     const token = localStorage.getItem('kataviToken');
-    const response = await fetch('/api/chatbot', {
+    const response = await fetch(`${API_BASE_URL}/chatbot`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
