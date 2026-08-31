@@ -1,188 +1,198 @@
 import React, { useState } from 'react';
 import './MarketPreview.css';
 
-// Import all images at the top
 import Mpunga from '../assets/mpunga.jpeg';
 import Mahindi from '../assets/mahindi4.jpg';
 import MaharagePlaceholder from '../assets/maharage.jpeg';
 import ViaziPlaceholder from '../assets/viazi.jpeg';
 import MichungwaPlaceholder from '../assets/machungwa.webp';
-import SukumaPlaceholder from '../assets/karanga2.jpeg';
+import KarangaPlaceholder from '../assets/karanga2.jpeg';
+
+// Category fallback photos (shown when a live crop has no image)
+import FallbackGrains from '../assets/mahindi.jpeg';
+import FallbackLegumes from '../assets/maharage.jpeg';
+import FallbackTubers from '../assets/mihogo.jpeg';
+import FallbackFruits from '../assets/machungwa.webp';
+import FallbackVegetables from '../assets/karoti.jpeg';
+import FallbackOilseeds from '../assets/alizeti.jpeg';
+import FallbackDefault from '../assets/crops-marketplace.jpg';
+
+const sampleCrops = [
+  {
+    id: 1, name: 'Mahindi', category: 'grains', price: '1,200', unit: 'kg', quantity: '500',
+    location: 'Mpanda', farmer: 'Juma Mohamed', image: Mahindi, fallback: FallbackGrains
+  },
+  {
+    id: 2, name: 'Mchele', category: 'grains', price: '2,500', unit: 'kg', quantity: '300',
+    location: 'Mlele', farmer: 'Asha Juma', image: Mpunga, fallback: FallbackGrains
+  },
+  {
+    id: 3, name: 'Maharage', category: 'legumes', price: '3,000', unit: 'kg', quantity: '200',
+    location: 'Nsimbo', farmer: 'Rajab Suleiman', image: MaharagePlaceholder, fallback: FallbackLegumes
+  },
+  {
+    id: 4, name: 'Viazi Vitamu', category: 'tubers', price: '800', unit: 'kg', quantity: '600',
+    location: 'Mpanda', farmer: 'Mariam Charles', image: ViaziPlaceholder, fallback: FallbackTubers
+  },
+  {
+    id: 5, name: 'Machungwa', category: 'fruits', price: '500', unit: 'kg', quantity: '400',
+    location: 'Mlele', farmer: 'John Petro', image: MichungwaPlaceholder, fallback: FallbackFruits
+  },
+  {
+    id: 6, name: 'Karanga', category: 'legumes', price: '300', unit: 'kg', quantity: '350',
+    location: 'Nsimbo', farmer: 'Fatma Rajab', image: KarangaPlaceholder, fallback: FallbackLegumes
+  }
+];
+
+const categoryMeta = {
+  grains: { label: 'Nafaka', emoji: '🌾', photo: FallbackGrains },
+  legumes: { label: 'Kunde', emoji: '🫘', photo: FallbackLegumes },
+  tubers: { label: 'Mizizi', emoji: '🥔', photo: FallbackTubers },
+  fruits: { label: 'Matunda', emoji: '🍊', photo: FallbackFruits },
+  vegetables: { label: 'Mboga', emoji: '🥬', photo: FallbackVegetables },
+  oilseeds: { label: 'Mbegu za Mafuta', emoji: '🌻', photo: FallbackOilseeds },
+};
+
+const normalizeCrops = (crops) => {
+  if (!Array.isArray(crops) || crops.length === 0) return sampleCrops;
+  return crops.slice(0, 6).map(c => {
+    const cat = categoryMeta[c.category] || categoryMeta.grains;
+    return {
+      id: c._id ?? c.id ?? c._id,
+      name: c.name || 'Zao',
+      category: c.category || 'grains',
+      price: String(c.price || 0).replace(/\B(?=(\d{3})+(?!\d))/g, ','),
+      unit: c.unit || 'kg',
+      quantity: String(c.quantity ?? ''),
+      location: c.location || 'Katavi',
+      farmer: c.farmerName || c.farmer || 'Mkulima',
+      image: c.image,
+      fallback: c.fallback || cat.photo || FallbackDefault
+    };
+  });
+};
 
 const MarketPreview = ({ crops, onPageChange, onContactFarmer }) => {
   const [imageErrors, setImageErrors] = useState({});
   const [imageLoaded, setImageLoaded] = useState({});
 
-  const handleImageError = (cropId) => {
-    setImageErrors(prev => ({
-      ...prev,
-      [cropId]: true
-    }));
+  const displayCrops = normalizeCrops(crops);
+
+  const handleImageError = (id) => {
+    setImageErrors(prev => ({ ...prev, [id]: true }));
   };
 
-  const handleImageLoad = (cropId) => {
-    setImageLoaded(prev => ({
-      ...prev,
-      [cropId]: true
-    }));
+  const handleImageLoad = (id) => {
+    setImageLoaded(prev => ({ ...prev, [id]: true }));
   };
-
-  // Sample crops data with proper image structure - FIXED VERSION
-  const sampleCrops = [
-    {
-      id: 1,
-      name: 'Mahindi ',
-      category: 'grains',
-      price: '1,200',
-      quantity: '500',
-      location: 'Mpanda',
-      farmer: 'Juma Mohamed',
-      description: 'Mahindi  yenye ubora zaidi, mazao mazuri na nafaka nzuri',
-      image: Mahindi,
-      fallback: '🌽'
-    },
-    {
-      id: 2,
-      name: 'Mchele ',
-      category: 'grains',
-      price: '2,500',
-      quantity: '300',
-      location: 'Mlele',
-      farmer: 'Asha Juma',
-      description: 'Mchele mzuri wa aina ya Super, wenye ubora wa hali ya juu',
-      image: Mpunga,
-      fallback: '🍚'
-    },
-    {
-      id: 3,
-      name: 'Maharage ',
-      category: 'legumes',
-      price: '3,000',
-      quantity: '200',
-      location: 'Nsimbo',
-      farmer: 'Rajab Suleiman',
-      description: 'Maharage  yenye virutubisho vingi',
-      image: MaharagePlaceholder,
-      fallback: '🫘'
-    },
-    {
-      id: 4,
-      name: 'Viazi Vitamu',
-      category: 'tubers',
-      price: '800',
-      quantity: '600',
-      location: 'Mpanda',
-      farmer: 'Mariam Charles',
-      description: 'Viazi vitamu vya aina mbalimbali, fresh kutoka shambani',
-      image: ViaziPlaceholder,
-      fallback: '🥔'
-    },
-    {
-      id: 5,
-      name: 'Machungwa',
-      category: 'fruits',
-      price: '500',
-      quantity: '400',
-      location: 'Mlele',
-      farmer: 'John Petro',
-      description: 'Michungwa mizuri yenye vitamini C nyingi, tamu na fresh',
-      image: MichungwaPlaceholder,
-      fallback: '🍊'
-    },
-    {
-      id: 6,
-      name: 'Karanga',
-      category: 'legumes',
-      price: '300',
-      quantity: '350',
-      location: 'Nsimbo',
-      farmer: 'Fatma Rajab',
-      description: 'Karanga fresh, yenye virutubisho vingi na afya',
-      image: SukumaPlaceholder,
-      fallback: '🥜'
-    }
-  ];
-
-  // FIXED: Use sample crops directly for testing
-  const displayCrops = sampleCrops;
-
-  console.log('Displaying crops:', displayCrops.length, 'items');
-  console.log('Crops data:', displayCrops);
 
   return (
     <section className="market-preview">
+      <div className="market-decor decor-1"></div>
+      <div className="market-decor decor-2"></div>
+
       <div className="container">
-        <div className="section-header">
-          <h2>Mazao Bora ya Soko</h2>
-          <p>Angalia mazao bora yaliyopo soko leo. Wasiliana moja kwa moja na wakulima</p>
-          <button 
-            className="btn btn-outline"
+        <div className="market-header">
+          <div className="market-header-left">
+            <span className="market-eyebrow">Soko la Moja kwa Moja</span>
+            <h2>Mazao Bora ya Soko</h2>
+            <p>Mazao fresh kutoka shambani, bei za moja kwa moja kutoka kwa wakulima wa Katavi</p>
+          </div>
+          <button
+            className="market-view-all"
             onClick={() => onPageChange('market')}
           >
-            Angalia Mazao Yote <i className="fas fa-arrow-right"></i>
+            Fungua Soko Kamili <i className="fas fa-arrow-right"></i>
           </button>
         </div>
-        
+
+        <div className="market-note">
+          <i className="fas fa-bolt"></i>
+          <span>Fresh leo — mazao haya yameorodheshwa na wakulima wa eneo la Katavi</span>
+        </div>
+
         <div className="crops-grid">
           {displayCrops.map(crop => {
-            const hasError = imageErrors[crop.id];
-            const isLoaded = imageLoaded[crop.id];
-            
+            const id = crop.id;
+            const hasError = imageErrors[id];
+            const isLoaded = imageLoaded[id];
+            const cat = categoryMeta[crop.category] || categoryMeta.grains;
+
             return (
-              <div key={crop.id} className="market-crop-card">
-                <div className="crop-badge">{crop.category}</div>
-                
-                <div className={`crop-image-container ${crop.category}`}>
-                  {!hasError ? (
+              <div key={id} className="market-crop-card">
+                <div className="crop-image-container">
+                  {!hasError && crop.image ? (
                     <>
-                      {!isLoaded && (
-                        <div className="crop-image-loading image-loading"></div>
-                      )}
-                      <img 
-                        className={`crop-image ${isLoaded ? 'loaded' : 'loading'}`} 
-                        src={crop.image} 
+                      {!isLoaded && <div className="crop-image-loading image-loading"></div>}
+                      <img
+                        className={`crop-image ${isLoaded ? 'loaded' : 'loading'}`}
+                        src={crop.image}
                         alt={crop.name}
-                        onError={() => handleImageError(crop.id)}
-                        onLoad={() => handleImageLoad(crop.id)}
+                        onError={() => handleImageError(id)}
+                        onLoad={() => handleImageLoad(id)}
                         loading="lazy"
                       />
                     </>
                   ) : (
-                    <div className="crop-image-fallback">
-                      {crop.fallback}
-                    </div>
+                    <img
+                      className="crop-image"
+                      src={crop.fallback}
+                      alt={crop.name}
+                      loading="lazy"
+                    />
                   )}
-                </div>
-                
-                <div className="crop-content">
-                  <h3 className="crop-name">{crop.name}</h3>
-                  <p className="crop-description">{crop.description}</p>
-                  
-                  <div className="crop-details">
-                    <div className="crop-price">TZS {crop.price}/kg</div>
-                    <div className="crop-quantity">{crop.quantity} kg inapatikana</div>
+
+                  <div className="crop-badge">{cat.emoji} {cat.label}</div>
+
+                  <div className="crop-sold">
+                    {crop.quantity ? `${crop.quantity} ${crop.unit}` : 'Ipo Soko'}
                   </div>
-                  
-                  <div className="crop-meta">
+                </div>
+
+                <div className="crop-content">
+                  <div className="crop-topline">
+                    <h3 className="crop-name">{crop.name}</h3>
+                    <span className="crop-fresh">
+                      <i className="fas fa-leaf"></i> Fresh
+                    </span>
+                  </div>
+
+                  <div className="crop-details">
+                    <div className="crop-price">
+                      <span className="crop-price-currency">TZS</span>
+                      {crop.price}
+                      <span className="crop-price-unit">/{crop.unit}</span>
+                    </div>
                     <div className="crop-location">
                       <i className="fas fa-map-marker-alt"></i>
                       {crop.location}
                     </div>
+                  </div>
+
+                  <div className="crop-meta">
                     <div className="crop-farmer">
-                      <i className="fas fa-user"></i>
-                      {crop.farmer}
+                      <div className="farmer-avatar">
+                        <i className="fas fa-user"></i>
+                      </div>
+                      <div>
+                        <span className="farmer-label">Muuzaji</span>
+                        <span className="farmer-name">{crop.farmer}</span>
+                      </div>
                     </div>
                   </div>
-                  
+
                   <div className="crop-actions">
-                    <button 
-                      className="btn btn-primary btn-sm"
+                    <button
+                      className="btn-contact"
                       onClick={() => onContactFarmer(crop)}
                     >
                       <i className="fas fa-phone"></i> Wasiliana
                     </button>
-                    <button className="btn btn-outline btn-sm">
-                      <i className="fas fa-info-circle"></i> Maelezo
+                    <button
+                      className="btn-buy"
+                      onClick={() => onPageChange('market')}
+                    >
+                      Nunua <i className="fas fa-arrow-right"></i>
                     </button>
                   </div>
                 </div>
@@ -190,19 +200,27 @@ const MarketPreview = ({ crops, onPageChange, onContactFarmer }) => {
             );
           })}
         </div>
-        
+
         <div className="market-stats">
           <div className="stat-item">
+            <div className="stat-icon"><i className="fas fa-seedling"></i></div>
             <div className="stat-number">1,200+</div>
             <div className="stat-label">Mazao Yanayopatikana</div>
           </div>
           <div className="stat-item">
+            <div className="stat-icon"><i className="fas fa-users"></i></div>
             <div className="stat-number">500+</div>
             <div className="stat-label">Wakulima Waliojiunga</div>
           </div>
           <div className="stat-item">
+            <div className="stat-icon"><i className="fas fa-smile"></i></div>
             <div className="stat-number">95%</div>
             <div className="stat-label">Wateja Walioridhika</div>
+          </div>
+          <div className="stat-item">
+            <div className="stat-icon"><i className="fas fa-handshake"></i></div>
+            <div className="stat-number">24/7</div>
+            <div className="stat-label">Msaada kwa Wakulima</div>
           </div>
         </div>
       </div>

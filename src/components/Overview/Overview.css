@@ -1,90 +1,165 @@
+/* Overview - Modern & Clean */
 .overview {
-  padding: 80px 0;
-  background: linear-gradient(135deg, #f8f9fa 0%, #e3f2fd 100%);
+  position: relative;
+  padding: 5.5rem 0;
+  background: linear-gradient(180deg, #ffffff 0%, #f0fdf4 100%);
+  overflow: hidden;
 }
 
+.overview-decor {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(70px);
+  opacity: 0.22;
+  pointer-events: none;
+}
+
+.decor-1 {
+  width: 380px;
+  height: 380px;
+  background: #86efac;
+  top: 100px;
+  left: -120px;
+}
+
+.decor-2 {
+  width: 320px;
+  height: 320px;
+  background: #a7f3d0;
+  bottom: 150px;
+  right: -110px;
+}
+
+.overview .container {
+  position: relative;
+  z-index: 1;
+}
+
+/* Header */
 .overview-header {
   text-align: center;
-  margin-bottom: 50px;
+  max-width: 640px;
+  margin: 0 auto 3.5rem;
+}
+
+.overview-eyebrow {
+  display: inline-block;
+  padding: 6px 16px;
+  background: rgba(26, 116, 49, 0.08);
+  border: 1px solid rgba(26, 116, 49, 0.15);
+  color: #1a7431;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 999px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 16px;
 }
 
 .overview-header h2 {
-  color: #1a237e;
   font-size: 2.5rem;
-  margin-bottom: 15px;
-  font-weight: 700;
+  font-weight: 800;
+  color: #111827;
+  margin-bottom: 16px;
+  letter-spacing: -0.5px;
+  line-height: 1.2;
 }
 
 .overview-header p {
-  color: #666;
   font-size: 1.1rem;
-  max-width: 600px;
-  margin: 0 auto;
-  line-height: 1.6;
+  color: #6b7280;
+  line-height: 1.7;
 }
 
-/* Sehemu ya Mazao */
+/* Sections */
 .overview-section {
-  margin-bottom: 60px;
+  margin-bottom: 3.5rem;
 }
 
 .section-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  margin-bottom: 30px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 2rem;
+}
+
+.section-eyebrow {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  color: #1a7431;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  margin-bottom: 6px;
+}
+
+.section-eyebrow.light {
+  color: #a7f3d0;
 }
 
 .section-header h3 {
-  color: #1a237e;
-  font-size: 2rem;
-  font-weight: 600;
+  font-size: 1.9rem;
+  font-weight: 700;
+  color: #111827;
+  letter-spacing: -0.3px;
 }
 
 .view-all-btn {
-  background: #1a237e;
-  color: white;
-  border: none;
-  padding: 10px 20px;
-  border-radius: 20px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 8px;
+  padding: 11px 22px;
+  background: rgba(26, 116, 49, 0.07);
+  border: 1.5px solid rgba(26, 116, 49, 0.25);
+  color: #1a7431;
   font-size: 0.9rem;
+  font-weight: 600;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .view-all-btn:hover {
-  background: #283593;
+  background: #1a7431;
+  color: white;
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(26, 35, 126, 0.3);
+  box-shadow: 0 8px 24px rgba(26, 116, 49, 0.2);
 }
 
+.view-all-btn i {
+  transition: transform 0.25s ease;
+}
+
+.view-all-btn:hover i {
+  transform: translateX(2px);
+}
+
+/* Mazao makuu grid */
 .crops-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 20px;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 22px;
 }
 
 .crop-card {
   background: white;
-  border-radius: 12px;
+  border-radius: 18px;
   overflow: hidden;
-  box-shadow: 0 3px 15px rgba(0, 0, 0, 0.08);
-  transition: all 0.3s ease;
-  border: 1px solid #f0f0f0;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .crop-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+  transform: translateY(-6px);
+  box-shadow: 0 16px 40px rgba(26, 116, 49, 0.12);
+  border-color: rgba(26, 116, 49, 0.15);
 }
 
 .crop-image {
   position: relative;
-  height: 140px; /* Reduced from 200px */
+  height: 160px;
   overflow: hidden;
 }
 
@@ -104,111 +179,116 @@
   bottom: 0;
   left: 0;
   right: 0;
-  background: linear-gradient(transparent, rgba(0, 0, 0, 0.8));
-  padding: 15px;
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.75));
+  padding: 16px;
   color: white;
 }
 
 .crop-name {
-  font-size: 1.1rem;
-  font-weight: 600;
-  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+  font-size: 1.15rem;
+  font-weight: 700;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
 }
 
 .crop-content {
-  padding: 15px;
-}
-
-.crop-content h4 {
-  color: #1a237e;
-  font-size: 1.1rem;
-  margin-bottom: 8px;
-  font-weight: 600;
+  padding: 1.25rem 1.25rem 1.5rem;
 }
 
 .crop-content p {
-  color: #666;
-  font-size: 0.85rem;
-  line-height: 1.5;
-  margin-bottom: 12px;
+  color: #6b7280;
+  font-size: 0.88rem;
+  line-height: 1.6;
+  margin-bottom: 1rem;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  min-height: 2.8rem;
 }
 
 .crop-details {
   display: flex;
-  justify-content: space-between;
-  font-size: 0.75rem;
-  color: #888;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 0.8rem;
+  color: #4b5563;
 }
 
 .crop-production,
 .crop-season {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 8px;
+  font-weight: 500;
 }
 
 .crop-production i,
 .crop-season i {
-  font-size: 0.7rem;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: rgba(26, 116, 49, 0.08);
+  color: #1a7431;
+  font-size: 0.75rem;
 }
 
-/* Grid kuu ya Overview */
+/* Huduma grid */
 .overview-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 25px;
-  margin-bottom: 60px;
+  gap: 24px;
 }
 
 .overview-card {
   background: white;
-  border-radius: 12px;
+  border-radius: 18px;
   overflow: hidden;
-  box-shadow: 0 3px 15px rgba(0, 0, 0, 0.08);
-  transition: all 0.3s ease;
-  border: 1px solid #f0f0f0;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  flex-direction: column;
 }
 
 .overview-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+  transform: translateY(-6px);
+  box-shadow: 0 16px 40px rgba(26, 116, 49, 0.12);
+  border-color: rgba(26, 116, 49, 0.15);
 }
 
 .card-header {
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-bottom: 12px;
-  padding: 15px 15px 0;
+  padding: 1.25rem 1.25rem 0;
 }
 
 .card-icon {
-  font-size: 1.5rem; /* Reduced from 2rem */
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #e3f2fd;
-  border-radius: 10px;
+  background: linear-gradient(135deg, rgba(26, 116, 49, 0.08), rgba(74, 222, 128, 0.15));
+  border-radius: 12px;
+  color: #1a7431;
+  font-size: 1.05rem;
 }
 
 .card-header h4 {
-  color: #1a237e;
+  color: #111827;
   font-size: 1.1rem;
-  font-weight: 600;
+  font-weight: 700;
   margin: 0;
 }
 
 .card-image {
-  height: 120px; /* Reduced from 150px */
+  height: 120px;
   overflow: hidden;
-  margin: 0 15px;
-  border-radius: 8px;
+  margin: 1rem 1.25rem 0;
+  border-radius: 12px;
 }
 
 .card-image img {
@@ -222,362 +302,223 @@
   transform: scale(1.05);
 }
 
-/* Hali ya Hewa */
-.weather-preview {
-  padding: 0 15px;
-  margin: 12px 0;
+.card-preview {
+  padding: 0 1.25rem;
+  margin-top: 0.9rem;
 }
 
 .weather-temp {
-  font-size: 1.5rem; /* Reduced from 2rem */
-  font-weight: bold;
-  color: #1a237e;
-  margin-bottom: 4px;
-}
-
-.weather-desc {
-  color: #666;
-  font-weight: 500;
-  margin-bottom: 4px;
-  font-size: 0.9rem;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #1a7431;
+  margin-bottom: 2px;
 }
 
 .weather-location {
-  font-size: 0.75rem;
-  color: #888;
+  font-size: 0.78rem;
+  color: #9ca3af;
 }
 
-/* Udongo */
-.soil-preview {
-  padding: 0 15px;
-  margin: 12px 0;
-}
-
-.soil-types {
+.tag-list {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  margin-top: 8px;
 }
 
-.soil-type {
-  background: #e3f2fd;
-  color: #1a237e;
-  padding: 4px 8px;
-  border-radius: 12px;
-  font-size: 0.75rem;
+.tag-item {
+  background: rgba(26, 116, 49, 0.07);
+  border: 1px solid rgba(26, 116, 49, 0.12);
+  color: #1a7431;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.72rem;
   font-weight: 500;
-}
-
-/* Pembejeo */
-.inputs-preview {
-  padding: 0 15px;
-  margin: 12px 0;
-}
-
-.input-items {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 6px;
-  margin-top: 8px;
-}
-
-.input-item {
-  background: #e8f5e8;
-  color: #2e7d32;
-  padding: 6px 10px;
-  border-radius: 8px;
-  font-size: 0.75rem;
-  font-weight: 500;
-  text-align: center;
-}
-
-/* Ushauri */
-.advisory-preview {
-  padding: 0 15px;
-  margin: 12px 0;
 }
 
 .experts-list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  margin-top: 8px;
+  gap: 6px;
 }
 
 .expert-item {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px;
-  background: #fff3e0;
-  border-radius: 6px;
-  color: #e65100;
   font-size: 0.8rem;
+  color: #4b5563;
 }
 
 .expert-item i {
-  font-size: 1rem; /* Reduced from 1.2rem */
+  color: #1a7431;
+  font-size: 0.85rem;
+  width: 16px;
+  text-align: center;
 }
 
-/* Content ya kadi */
-.overview-card p {
-  padding: 0 15px;
-  color: #666;
+.card-text {
+  padding: 0.9rem 1.25rem 0;
+  color: #6b7280;
   font-size: 0.85rem;
-  line-height: 1.5;
-  margin-bottom: 15px;
+  line-height: 1.6;
+  flex: 1;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
 
-/* Vitendo vya kadi */
 .card-action-btn {
-  margin: 0 15px 15px;
-  width: calc(100% - 30px);
-  background: transparent;
-  color: #1a237e;
-  border: 1.5px solid #1a237e;
-  padding: 8px 12px;
-  border-radius: 6px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  display: flex;
+  margin: 1.1rem 1.25rem 1.25rem;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 8px;
+  padding: 10px 16px;
+  background: rgba(26, 116, 49, 0.07);
+  border: 1.5px solid rgba(26, 116, 49, 0.25);
+  color: #1a7431;
+  font-weight: 600;
   font-size: 0.85rem;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .card-action-btn:hover {
-  background: #1a237e;
+  background: #1a7431;
   color: white;
   transform: translateY(-1px);
+  box-shadow: 0 8px 24px rgba(26, 116, 49, 0.2);
 }
 
 /* Takwimu */
 .stats-section {
-  text-align: center;
+  margin-top: 2rem;
 }
 
-.stats-section h3 {
-  color: #1a237e;
-  font-size: 1.8rem; /* Reduced from 2rem */
-  margin-bottom: 25px;
-  font-weight: 600;
+.stats-inner {
+  text-align: center;
+  padding: 3rem 2.5rem;
+  background: linear-gradient(135deg, #1a7431 0%, #145a25 100%);
+  border-radius: 22px;
+  color: white;
+  box-shadow: 0 20px 50px rgba(26, 116, 49, 0.3);
+}
+
+.stats-inner h3 {
+  font-size: 1.9rem;
+  font-weight: 800;
+  margin-bottom: 2rem;
 }
 
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); /* Reduced from 200px */
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 20px;
 }
 
 .stat-item {
-  background: white;
-  padding: 20px 15px; /* Reduced padding */
-  border-radius: 12px;
-  box-shadow: 0 3px 15px rgba(0, 0, 0, 0.08);
-  transition: all 0.3s ease;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  padding: 1.75rem 1.25rem;
+  border-radius: 16px;
+  backdrop-filter: blur(4px);
+  transition: all 0.25s ease;
 }
 
 .stat-item:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+  background: rgba(255, 255, 255, 0.14);
+  transform: translateY(-4px);
 }
 
 .stat-icon {
-  font-size: 2rem; /* Reduced from 2.5rem */
+  font-size: 2rem;
   margin-bottom: 10px;
 }
 
 .stat-value {
-  font-size: 1.4rem; /* Reduced from 1.8rem */
-  font-weight: bold;
-  color: #1a237e;
+  font-size: 1.6rem;
+  font-weight: 800;
   margin-bottom: 4px;
 }
 
 .stat-label {
-  color: #666;
-  font-size: 0.8rem; /* Reduced from 0.9rem */
+  font-size: 0.85rem;
+  opacity: 0.85;
   font-weight: 500;
 }
 
-/* Responsive Design */
+/* Responsive */
 @media (max-width: 768px) {
   .overview {
-    padding: 40px 0;
+    padding: 3.5rem 0;
   }
 
   .overview-header h2 {
-    font-size: 2rem;
+    font-size: 1.8rem;
   }
 
   .overview-header p {
     font-size: 1rem;
-    padding: 0 15px;
   }
 
   .section-header {
     flex-direction: column;
-    gap: 12px;
-    text-align: center;
-    padding: 0 15px;
+    align-items: flex-start;
   }
 
   .section-header h3 {
     font-size: 1.5rem;
   }
 
-  .view-all-btn {
-    font-size: 0.85rem;
-    padding: 8px 16px;
-  }
-
   .crops-grid {
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap: 15px;
-    padding: 0 10px;
+    grid-template-columns: 1fr;
+    gap: 16px;
   }
 
   .overview-grid {
     grid-template-columns: 1fr;
-    gap: 20px;
-    padding: 0 10px;
+    gap: 18px;
   }
 
   .stats-grid {
     grid-template-columns: repeat(2, 1fr);
-    gap: 15px;
-    padding: 0 10px;
+    gap: 14px;
   }
 
-  .crop-image {
-    height: 120px;
-  }
-
-  .card-image {
-    height: 100px;
-    margin: 0 10px;
-  }
-
-  .card-header {
-    padding: 12px 12px 0;
-  }
-
-  .overview-card p {
-    padding: 0 12px;
-  }
-
-  .card-action-btn {
-    margin: 0 12px 12px;
-    width: calc(100% - 24px);
+  .stats-inner {
+    padding: 2.5rem 1.5rem;
   }
 }
 
 @media (max-width: 480px) {
-  .stats-grid {
-    grid-template-columns: 1fr;
-    gap: 12px;
-  }
-
-  .stat-item {
-    padding: 15px 10px;
-  }
-
-  .crop-content {
-    padding: 12px;
-  }
-
-  .crops-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .input-items {
-    grid-template-columns: 1fr;
+  .overview {
+    padding: 2.5rem 0;
   }
 
   .overview-header h2 {
-    font-size: 1.6rem;
+    font-size: 1.5rem;
   }
 
-  .stats-section h3 {
-    font-size: 1.4rem;
+  .stats-grid {
+    grid-template-columns: 1fr;
   }
 
-  .section-header h3 {
-    font-size: 1.3rem;
-  }
-}
-
-/* Fallback styles for missing images */
-.crop-image,
-.card-image {
-  position: relative;
-}
-
-.crop-image::after,
-.card-image::after {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-  font-size: 0.9rem;
-  font-weight: 500;
-}
-
-.crop-image::after {
-  content: "Picha ya " attr(data-crop);
-}
-
-.card-image::after {
-  content: "Picha";
-}
-
-.crop-image img,
-.card-image img {
-  position: relative;
-  z-index: 2;
-}
-
-/* Smooth animations */
-.overview-card,
-.crop-card,
-.stat-item {
-  animation: fadeInUp 0.6s ease-out;
-}
-
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
+  .stats-inner h3 {
+    font-size: 1.5rem;
   }
 }
 
-/* Styling improvements for better visual hierarchy */
-.overview-section:not(:last-child) {
-  border-bottom: 1px solid #e0e0e0;
-  padding-bottom: 40px;
-}
-
-.stats-section {
-  background: rgba(255, 255, 255, 0.6);
-  padding: 30px;
-  border-radius: 15px;
-  margin-top: 20px;
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .crop-card,
+  .overview-card,
+  .stat-item,
+  .view-all-btn,
+  .card-action-btn,
+  .crop-image img,
+  .card-image img {
+    transition: none;
+  }
 }
