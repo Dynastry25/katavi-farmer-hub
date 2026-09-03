@@ -485,7 +485,7 @@ const Registration = ({ onPageChange, onAuth, user, onRefresh }) => {
           </div>
           
           <div className="buyer-benefits">
-            <h4>✅ Faida za Kujiandikisha kama Mnunuzi:</h4>
+            <h4><i className="fas fa-check-circle" style={{color:'#16a34a'}}></i> Faida za Kujiandikisha kama Mnunuzi:</h4>
             <ul>
               <li>Pata mazao moja kwa moja kutoka kwa wakulima</li>
               <li>Punguza gharama za wapatanishi</li>
@@ -536,7 +536,7 @@ const Registration = ({ onPageChange, onAuth, user, onRefresh }) => {
           </div>
           
           <div className="expert-benefits">
-            <h4>✅ Faida za Kujiandikisha kama Mtaalamu:</h4>
+            <h4><i className="fas fa-check-circle" style={{color:'#16a34a'}}></i> Faida za Kujiandikisha kama Mtaalamu:</h4>
             <ul>
               <li>Toa ushauri kwa wakulima na upate malipo</li>
               <li>Andika makala za kilimo na ujenge sifa</li>
@@ -667,12 +667,12 @@ const Registration = ({ onPageChange, onAuth, user, onRefresh }) => {
 
       {/* User Type Summary */}
       <div className="user-summary">
-        <h3>📊 Muhtasari wa Akaunti Yako</h3>
+        <h3><i className="fas fa-chart-bar" style={{color:'#3b82f6'}}></i> Muhtasari wa Akaunti Yako</h3>
         <div className="summary-content">
           <div className="summary-item">
             <strong>Aina ya Akaunti:</strong>
             <span className={`user-type-badge ${userType}`}>
-              {userType === 'farmer' && '👨‍🌾 Mkulima'}
+              {userType === 'farmer' && <><i className="fas fa-user"></i> Mkulima</>}
               {userType === 'buyer' && '🛒 Mnunuzi'}
               {userType === 'expert' && '🎓 Mtaalamu'}
             </span>

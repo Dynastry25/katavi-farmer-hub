@@ -144,16 +144,16 @@ const ExpertDashboard = ({ onPageChange, onAuth, user, onToggleChat, onRefresh }
     {
       id: 3,
       type: 'rating',
-      description: 'Umepokea tathmini mpya: ⭐⭐⭐⭐⭐',
+      description: 'Umepokea tathmini mpya: ★★★★★',
       time: '1 siku iliyopita',
-      icon: '⭐'
+      icon: 'fas fa-star'
     },
     {
       id: 4,
       type: 'payment',
       description: 'Malipo yameingia kwa ushauri uliotoa',
       time: '2 siku zilizopita',
-      icon: '💰'
+      icon: 'fas fa-coins'
     }
   ];
 
@@ -223,7 +223,7 @@ const ExpertDashboard = ({ onPageChange, onAuth, user, onToggleChat, onRefresh }
           </div>
         </div>
         <div className="stat-card">
-          <div className="stat-icon">⭐</div>
+          <div className="stat-icon"><i className="fas fa-star"></i></div>
           <div className="stat-content">
             <div className="stat-number">{expertStats.averageRating}</div>
             <div className="stat-label">Wastani wa Tathmini</div>
@@ -250,7 +250,7 @@ const ExpertDashboard = ({ onPageChange, onAuth, user, onToggleChat, onRefresh }
         <div className="activities-list">
           {recentActivities.map(activity => (
             <div key={activity.id} className="activity-item">
-              <div className="activity-icon">{activity.icon}</div>
+              <div className="activity-icon">{activity.icon.startsWith('fas') ? <i className={activity.icon}></i> : activity.icon}</div>
               <div className="activity-content">
                 <p className="activity-description">{activity.description}</p>
                 <span className="activity-time">{activity.time}</span>

@@ -41,7 +41,7 @@ const News = ({ onPageChange, onAuth, user }) => {
       author: 'Dk. Anna Mrosso',
       date: 'Novemba 15, 2024',
       readTime: '5 min',
-      image: '🌽',
+      image: 'fas fa-seedling',
       featured: true
     },
     {
@@ -52,7 +52,7 @@ const News = ({ onPageChange, onAuth, user }) => {
       author: 'Bw. Juma Hassan',
       date: 'Novemba 14, 2024',
       readTime: '4 min',
-      image: '🌾',
+      image: 'fas fa-wheat-awn',
       featured: false
     },
     {
@@ -63,7 +63,7 @@ const News = ({ onPageChange, onAuth, user }) => {
       author: 'Mtaalamu wa Hali ya Hewa',
       date: 'Novemba 13, 2024',
       readTime: '3 min',
-      image: '🌧️',
+      image: 'fas fa-cloud-rain',
       featured: true
     },
     {
@@ -74,7 +74,7 @@ const News = ({ onPageChange, onAuth, user }) => {
       author: 'Bi. Sarah William',
       date: 'Novemba 12, 2024',
       readTime: '6 min',
-      image: '💧',
+      image: 'fas fa-droplet',
       featured: false
     },
     {
@@ -85,7 +85,7 @@ const News = ({ onPageChange, onAuth, user }) => {
       author: 'Mwandishi Wetu',
       date: 'Novemba 11, 2024',
       readTime: '4 min',
-      image: '👨‍🌾',
+      image: 'fas fa-user',
       featured: false
     },
     {
@@ -126,7 +126,7 @@ const News = ({ onPageChange, onAuth, user }) => {
       duration: '10:20',
       views: '3,120',
       category: 'technology',
-      thumbnail: '📦',
+      thumbnail: 'fas fa-box',
       description: 'Mbinu bora za kuvuna na kuhifadhi mazao kwa muda mrefu'
     }
   ];
@@ -192,7 +192,7 @@ const News = ({ onPageChange, onAuth, user }) => {
               {featuredArticles.map(article => (
                 <article key={article.id} className="featured-article">
                   <div className="featured-image">
-                    {article.image}
+                    {article.image && article.image.startsWith('fas') ? <i className={article.image}></i> : article.image}
                   </div>
                   <div className="featured-content">
                     <span className="article-category">{article.category}</span>
@@ -232,7 +232,7 @@ const News = ({ onPageChange, onAuth, user }) => {
                 {filteredArticles.map(article => (
                   <article key={article.id} className="news-card">
                     <div className="card-image">
-                      {article.image}
+                      {article.image && article.image.startsWith('fas') ? <i className={article.image}></i> : article.image}
                     </div>
                     <div className="card-content">
                       <span className="card-category">{article.category}</span>
@@ -285,7 +285,7 @@ const News = ({ onPageChange, onAuth, user }) => {
                   {videos.map(video => (
                     <div key={video.id} className="video-item">
                       <div className="video-thumbnail">
-                        {video.thumbnail}
+                        {video.thumbnail && video.thumbnail.startsWith('fas') ? <i className={video.thumbnail}></i> : video.thumbnail}
                         <div className="video-play">
                           <i className="fas fa-play"></i>
                         </div>

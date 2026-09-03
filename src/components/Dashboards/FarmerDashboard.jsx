@@ -83,7 +83,7 @@ const FarmerDashboard = ({ onPageChange, onAuth, user, crops, onToggleChat, onAd
       type: 'sale',
       description: 'Umekuza mahindi kwa TZS 450,000',
       time: '2 saa zilizopita',
-      icon: '💰'
+      icon: 'fas fa-coins'
     },
     {
       id: 2,
@@ -97,14 +97,14 @@ const FarmerDashboard = ({ onPageChange, onAuth, user, crops, onToggleChat, onAd
       type: 'order',
       description: 'Agizo jipya la mpunga',
       time: '1 siku iliyopita',
-      icon: '📦'
+      icon: 'fas fa-box'
     },
     {
       id: 4,
       type: 'weather',
       description: 'Mvua inatarajiwa kesho',
       time: '1 siku iliyopita',
-      icon: '🌧️'
+      icon: 'fas fa-cloud-rain'
     }
   ];
 
@@ -149,21 +149,21 @@ const FarmerDashboard = ({ onPageChange, onAuth, user, crops, onToggleChat, onAd
       {/* Stats Cards */}
       <div className="stats-grid">
         <div className="stat-card">
-          <div className="stat-icon">🌾</div>
+          <div className="stat-icon"><i className="fas fa-wheat-awn"></i></div>
           <div className="stat-content">
             <div className="stat-number">{farmerStats.totalCrops}</div>
             <div className="stat-label">Mazao Yaliyowekwa</div>
           </div>
         </div>
         <div className="stat-card">
-          <div className="stat-icon">📦</div>
+          <div className="stat-icon"><i className="fas fa-box"></i></div>
           <div className="stat-content">
             <div className="stat-number">{farmerStats.activeListings}</div>
             <div className="stat-label">Mazao Yanayopatikana</div>
           </div>
         </div>
         <div className="stat-card">
-          <div className="stat-icon">💰</div>
+          <div className="stat-icon"><i className="fas fa-coins"></i></div>
           <div className="stat-content">
             <div className="stat-number">{farmerStats.totalSales}</div>
             <div className="stat-label">Mauzo Yaliyokamilika</div>
@@ -184,7 +184,7 @@ const FarmerDashboard = ({ onPageChange, onAuth, user, crops, onToggleChat, onAd
         <div className="activities-list">
           {recentActivities.map(activity => (
             <div key={activity.id} className="activity-item">
-              <div className="activity-icon">{activity.icon}</div>
+              <div className="activity-icon">{activity.icon.startsWith('fas') ? <i className={activity.icon}></i> : activity.icon}</div>
               <div className="activity-content">
                 <p className="activity-description">{activity.description}</p>
                 <span className="activity-time">{activity.time}</span>
@@ -319,7 +319,7 @@ const FarmerDashboard = ({ onPageChange, onAuth, user, crops, onToggleChat, onAd
           {myCrops.map(crop => (
             <div key={crop.id} className="crop-card">
               <div className="crop-image">
-                {crop.image || '🌾'}
+                {crop.image ? crop.image : <i className="fas fa-wheat-awn"></i>}
               </div>
               <div className="crop-content">
                 <h4>{crop.name}</h4>

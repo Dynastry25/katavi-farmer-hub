@@ -10,7 +10,7 @@ const About = ({ onPageChange, onAuth, user }) => {
       name: 'Dk. Anna Mrosso',
       role: 'Mkurugenzi wa Kilimo',
       experience: 'Miaka 15',
-      image: '👩‍🌾',
+      icon: 'fas fa-user',
       description: 'Mtaalamu wa kilimo cha kisasa na mbinu endelevu'
     },
     {
@@ -18,7 +18,7 @@ const About = ({ onPageChange, onAuth, user }) => {
       name: 'Bw. Juma Hassan',
       role: 'Meneja wa Masoko',
       experience: 'Miaka 12',
-      image: '👨‍💼',
+      icon: 'fas fa-briefcase',
       description: 'Mtaalamu wa soko la mazao na uhusiano na wakulima'
     },
     {
@@ -26,7 +26,7 @@ const About = ({ onPageChange, onAuth, user }) => {
       name: 'Bi. Sarah William',
       role: 'Mtaalamu wa Teknolojia',
       experience: 'Miaka 8',
-      image: '👩‍💻',
+      icon: 'fas fa-laptop-code',
       description: 'Mtaalamu wa mifumo ya kidijitali na utoaji huduma'
     },
     {
@@ -34,7 +34,7 @@ const About = ({ onPageChange, onAuth, user }) => {
       name: 'Dk. Robert Kipanga',
       role: 'Mtaalamu wa Afya ya Mimea',
       experience: 'Miaka 18',
-      image: '👨‍🔬',
+      icon: 'fas fa-flask',
       description: 'Daktari wa mimea na mtaalamu wa magonjwa ya mazao'
     }
   ];
@@ -63,12 +63,12 @@ const About = ({ onPageChange, onAuth, user }) => {
   ];
 
   const partners = [
-    { name: 'Wizara ya Kilimo Tanzania', logo: '🏛️' },
-    { name: 'Taifa MIS', logo: '🌍' },
-    { name: 'Kilimo Kwanza', logo: '🚜' },
-    { name: 'Serikali ya Mkoa wa Katavi', logo: '⭐' },
-    { name: 'Vodacom Tanzania', logo: '📱' },
-    { name: 'CRDB Bank', logo: '🏦' }
+    { name: 'Wizara ya Kilimo Tanzania', icon: 'fas fa-landmark' },
+    { name: 'Taifa MIS', icon: 'fas fa-globe' },
+    { name: 'Kilimo Kwanza', icon: 'fas fa-tractor' },
+    { name: 'Serikali ya Mkoa wa Katavi', icon: 'fas fa-star' },
+    { name: 'Vodacom Tanzania', icon: 'fas fa-mobile-alt' },
+    { name: 'CRDB Bank', icon: 'fas fa-university' }
   ];
 
   return (
@@ -110,7 +110,7 @@ const About = ({ onPageChange, onAuth, user }) => {
               </div>
             </div>
             <div className="hero-visual">
-              <div className="visual-icon">🌱</div>
+              <div className="visual-icon"><i className="fas fa-seedling"></i></div>
             </div>
           </div>
 
@@ -166,7 +166,7 @@ const About = ({ onPageChange, onAuth, user }) => {
             <div className="team-grid">
               {teamMembers.map(member => (
                 <div key={member.id} className="team-card">
-                  <div className="member-image">{member.image}</div>
+                  <div className="member-image"><i className={member.icon}></i></div>
                   <div className="member-info">
                     <h3 className="member-name">{member.name}</h3>
                     <p className="member-role">{member.role}</p>
@@ -205,7 +205,7 @@ const About = ({ onPageChange, onAuth, user }) => {
             <div className="partners-grid">
               {partners.map((partner, index) => (
                 <div key={index} className="partner-card">
-                  <div className="partner-logo">{partner.logo}</div>
+                  <div className="partner-logo"><i className={partner.icon}></i></div>
                   <div className="partner-name">{partner.name}</div>
                 </div>
               ))}

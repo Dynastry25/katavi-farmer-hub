@@ -305,7 +305,7 @@ const Login = ({ onPageChange, onAuth, user, onRefresh }) => {
                 <h4>Akaunti za Majaribio:</h4>
                 <div className="demo-grid">
                   <div className="demo-account">
-                    <div className="demo-role">👨‍🌾 Mkulima</div>
+                    <div className="demo-role"><i className="fas fa-user"></i> Mkulima</div>
                     <div className="demo-email">juma@example.com</div>
                     <div className="demo-password">password123</div>
                     <button 

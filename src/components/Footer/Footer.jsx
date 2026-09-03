@@ -14,11 +14,11 @@ const Footer = ({ onPageChange }) => {
   ];
 
   const services = [
-    { label: 'Soko la Mazao', description: 'Uza na nunua mazao' },
-    { label: 'Ushauri wa Kilimo', description: 'Pata msaada wa wataalamu' },
-    { label: 'Taarifa za Hali ya Hewa', description: 'Fuata utabiri wa hali ya hewa' },
-    { label: 'Mafunzo ya Kilimo', description: 'Jifunze mbinu bora za kilimo' },
-    { label: 'Pembejeo Bora', description: 'Pata mbolea na mbegu bora' }
+    { label: 'Soko la Mazao', description: 'Uza na nunua mazao', icon: 'fas fa-store' },
+    { label: 'Ushauri wa Kilimo', description: 'Pata msaada wa wataalamu', icon: 'fas fa-headset' },
+    { label: 'Taarifa za Hali ya Hewa', description: 'Fuata utabiri wa hali ya hewa', icon: 'fas fa-cloud-sun' },
+    { label: 'Mafunzo ya Kilimo', description: 'Jifunze mbinu bora za kilimo', icon: 'fas fa-graduation-cap' },
+    { label: 'Pembejeo Bora', description: 'Pata mbolea na mbegu bora', icon: 'fas fa-seedling' }
   ];
 
   const contactInfo = [
@@ -115,7 +115,7 @@ const Footer = ({ onPageChange }) => {
               {services.map((service, index) => (
                 <li key={index} className="service-item">
                   <div className="service-icon">
-                    <i className="fas fa-check"></i>
+                    <i className={service.icon}></i>
                   </div>
                   <div className="service-info">
                     <span className="service-name">{service.label}</span>

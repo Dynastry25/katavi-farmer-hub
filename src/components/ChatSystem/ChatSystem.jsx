@@ -42,7 +42,7 @@ const ChatSystem = ({ user, onClose, onPageChange }) => {
       lastMessage: 'Nina mahindi ya bei nafuu',
       lastTime: '10:30 AM',
       online: true,
-      avatar: '👨‍🌾',
+      avatar: 'fas fa-user',
       rating: 4.8
     },
     {
@@ -64,7 +64,7 @@ const ChatSystem = ({ user, onClose, onPageChange }) => {
       lastMessage: 'Mkopo wako umeidhinishwa',
       lastTime: '2 days ago',
       online: true,
-      avatar: '💰',
+      avatar: 'fas fa-coins',
       rating: 4.7
     },
     {
@@ -103,7 +103,7 @@ const ChatSystem = ({ user, onClose, onPageChange }) => {
   };
 
   // Emojis for quick selection
-  const quickEmojis = ['👍', '❤️', '😂', '😮', '😢', '🙏', '👏', '🔥'];
+  const quickEmojis = ['fas fa-thumbs-up', 'fas fa-heart', 'fas fa-face-laugh', 'fas fa-face-surprise', 'fas fa-face-sad-tear', 'fas fa-hands-praying', 'fas fa-hands-clapping', 'fas fa-fire'];
 
   useEffect(() => {
     if (activeChat) {
@@ -257,15 +257,15 @@ const ChatSystem = ({ user, onClose, onPageChange }) => {
   const getChatSubtitle = (chat) => {
     switch (chat.type) {
       case 'farmer':
-        return `Mkulima • ⭐ ${chat.rating}`;
+        return `Mkulima • <i className="fas fa-star" style={{color:'#f59e0b'}}></i> ${chat.rating}`;
       case 'supplier':
-        return `Msambazaji • ⭐ ${chat.rating}`;
+        return `Msambazaji • <i className="fas fa-star" style={{color:'#f59e0b'}}></i> ${chat.rating}`;
       case 'loan':
-        return `Mikopo • ⭐ ${chat.rating}`;
+        return `Mikopo • <i className="fas fa-star" style={{color:'#f59e0b'}}></i> ${chat.rating}`;
       case 'group':
         return `Kikundi • ${chat.members} wanachama`;
       case 'expert':
-        return `Mtaalamu • ⭐ ${chat.rating}`;
+        return `Mtaalamu • <i className="fas fa-star" style={{color:'#f59e0b'}}></i> ${chat.rating}`;
       default:
         return 'Mtu binafsi';
     }
@@ -276,7 +276,7 @@ const ChatSystem = ({ user, onClose, onPageChange }) => {
       {/* Chat Header */}
       <div className="chat-header">
         <div className="header-content">
-          <h3>💬 Mazungumzo</h3>
+          <h3><i className="fas fa-comment" style={{color:'#3b82f6'}}></i> Mazungumzo</h3>
           <p>Wasiliana na wakulima na wadau</p>
         </div>
         <div className="header-actions">
@@ -312,7 +312,7 @@ const ChatSystem = ({ user, onClose, onPageChange }) => {
                 onClick={() => setActiveChat(chat)}
               >
                 <div className="chat-avatar">
-                  {chat.avatar}
+                  <i className={chat.avatar}></i>
                   {chat.online && <div className="online-indicator"></div>}
                 </div>
                 
@@ -354,7 +354,7 @@ const ChatSystem = ({ user, onClose, onPageChange }) => {
               <div className="chat-header-info">
                 <div className="chat-user-info">
                   <div className="user-avatar">
-                    {activeChat.avatar}
+                    <i className={activeChat.avatar}></i>
                     {activeChat.online && <div className="online-indicator"></div>}
                   </div>
                   <div className="user-details">
@@ -382,7 +382,7 @@ const ChatSystem = ({ user, onClose, onPageChange }) => {
               <div className="chat-messages">
                 {messages.length === 0 ? (
                   <div className="empty-chat">
-                    <div className="empty-icon">💬</div>
+                    <div className="empty-icon"><i className="fas fa-comment"></i></div>
                     <h4>Hakuna ujumbe bado</h4>
                     <p>Anza mazungumzo kwa kutuma ujumbe wa kwanza</p>
                   </div>
@@ -441,7 +441,7 @@ const ChatSystem = ({ user, onClose, onPageChange }) => {
                     
                     {isTyping && (
                       <div className="typing-indicator">
-                        <div className="typing-avatar">{activeChat.avatar}</div>
+                        <div className="typing-avatar"><i className={activeChat.avatar}></i></div>
                         <div className="typing-content">
                           <div className="typing-dots">
                             <span></span>
@@ -516,7 +516,7 @@ const ChatSystem = ({ user, onClose, onPageChange }) => {
                             className="emoji-btn"
                             onClick={() => handleEmojiSelect(emoji)}
                           >
-                            {emoji}
+                            <i className={emoji}></i>
                           </button>
                         ))}
                       </div>
@@ -537,7 +537,7 @@ const ChatSystem = ({ user, onClose, onPageChange }) => {
           ) : (
             <div className="no-chat-selected">
               <div className="welcome-illustration">
-                <div className="illustration">💬</div>
+                <div className="illustration"><i className="fas fa-comment"></i></div>
                 <h3>Chagua Mazungumzo</h3>
                 <p>Chagua mazungumzo kutoka kwenye orodha ya kulia kuanza kuwasiliana</p>
                 <div className="welcome-features">

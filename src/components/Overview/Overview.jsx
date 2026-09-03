@@ -95,10 +95,10 @@ const Overview = ({ onPageChange }) => {
   ];
 
   const kataviStats = [
-    { label: 'Eneo la Kilimo', value: '45,843 km²', icon: '🌍' },
-    { label: 'Wakulima', value: '250,000+', icon: '👨‍🌾' },
-    { label: 'Uzalishaji wa Chakula', value: '120,000 Tani', icon: '📊' },
-    { label: 'Mito mikuu', value: '4', icon: '💧' }
+    { label: 'Eneo la Kilimo', value: '45,843 km²', icon: 'fas fa-map-marker-alt' },
+    { label: 'Wakulima', value: '250,000+', icon: 'fas fa-users' },
+    { label: 'Uzalishaji wa Chakula', value: '120,000 Tani', icon: 'fas fa-chart-bar' },
+    { label: 'Mito mikuu', value: '4', icon: 'fas fa-tint' }
   ];
 
   return (
@@ -223,7 +223,7 @@ const Overview = ({ onPageChange }) => {
             <div className="stats-grid">
               {kataviStats.map((stat, index) => (
                 <div key={index} className="stat-item">
-                  <div className="stat-icon">{stat.icon}</div>
+                  <div className="stat-icon"><i className={stat.icon}></i></div>
                   <div className="stat-value">{stat.value}</div>
                   <div className="stat-label">{stat.label}</div>
                 </div>

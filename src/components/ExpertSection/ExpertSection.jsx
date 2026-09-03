@@ -8,7 +8,7 @@ const ExpertSection = ({ onPageChange }) => {
       name: 'Dk. Anna Mrosso',
       specialization: 'Utaalamu wa Mbolea na Udongo',
       experience: 'Miaka 15',
-      image: '👩‍🌾',
+      icon: 'fas fa-user',
       rating: 4.9,
       reviews: 127,
       available: true
@@ -18,7 +18,7 @@ const ExpertSection = ({ onPageChange }) => {
       name: 'Bw. Juma Hassan',
       specialization: 'Uvunaji na Uhifadhi wa Mazao',
       experience: 'Miaka 12',
-      image: '👨‍🌾',
+      icon: 'fas fa-user',
       rating: 4.8,
       reviews: 98,
       available: true
@@ -28,7 +28,7 @@ const ExpertSection = ({ onPageChange }) => {
       name: 'Bi. Sarah William',
       specialization: 'Kilimo cha Mboga na Matunda',
       experience: 'Miaka 10',
-      image: '👩‍🔬',
+      icon: 'fas fa-flask',
       rating: 4.7,
       reviews: 84,
       available: false
@@ -38,7 +38,7 @@ const ExpertSection = ({ onPageChange }) => {
       name: 'Dk. Robert Kipanga',
       specialization: 'Dawa za Wadudu na Magonjwa',
       experience: 'Miaka 18',
-      image: '👨‍🔬',
+      icon: 'fas fa-flask',
       rating: 5.0,
       reviews: 156,
       available: true
@@ -83,7 +83,7 @@ const ExpertSection = ({ onPageChange }) => {
             {experts.map(expert => (
               <div key={expert.id} className="expert-card">
                 <div className="expert-header">
-                  <div className="expert-image">{expert.image}</div>
+                  <div className="expert-image"><i className={expert.icon}></i></div>
                   <div className="expert-status">
                     <span className={`status ${expert.available ? 'available' : 'busy'}`}>
                       {expert.available ? 'Anapatikana' : 'Hapatikani'}

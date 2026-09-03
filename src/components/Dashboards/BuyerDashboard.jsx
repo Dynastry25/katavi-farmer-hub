@@ -144,7 +144,7 @@ const BuyerDashboard = ({ onPageChange, onAuth, user, crops, onToggleChat, onRef
       type: 'order',
       description: 'Umetuma agizo jipya la mahindi',
       time: '2 saa zilizopita',
-      icon: '📦'
+      icon: 'fas fa-box'
     },
     {
       id: 2,
@@ -165,7 +165,7 @@ const BuyerDashboard = ({ onPageChange, onAuth, user, crops, onToggleChat, onRef
       type: 'price',
       description: 'Bei ya maharage imeshuka kwenye soko',
       time: '2 siku zilizopita',
-      icon: '💰'
+      icon: 'fas fa-coins'
     }
   ];
 
@@ -225,7 +225,7 @@ const BuyerDashboard = ({ onPageChange, onAuth, user, crops, onToggleChat, onRef
       {/* Stats Cards */}
       <div className="stats-grid">
         <div className="stat-card">
-          <div className="stat-icon">📦</div>
+          <div className="stat-icon"><i className="fas fa-box"></i></div>
           <div className="stat-content">
             <div className="stat-number">{buyerStats.totalOrders}</div>
             <div className="stat-label">Maagizo Yote</div>
@@ -239,14 +239,14 @@ const BuyerDashboard = ({ onPageChange, onAuth, user, crops, onToggleChat, onRef
           </div>
         </div>
         <div className="stat-card">
-          <div className="stat-icon">✅</div>
+          <div className="stat-icon"><i className="fas fa-check-circle"></i></div>
           <div className="stat-content">
             <div className="stat-number">{buyerStats.completedOrders}</div>
             <div className="stat-label">Maagizo Yakamilika</div>
           </div>
         </div>
         <div className="stat-card">
-          <div className="stat-icon">💰</div>
+          <div className="stat-icon"><i className="fas fa-coins"></i></div>
           <div className="stat-content">
             <div className="stat-number">{buyerStats.totalSpent}</div>
             <div className="stat-label">Jumla ya Matumizi</div>
@@ -270,7 +270,7 @@ const BuyerDashboard = ({ onPageChange, onAuth, user, crops, onToggleChat, onRef
         <div className="activities-list">
           {recentActivities.map(activity => (
             <div key={activity.id} className="activity-item">
-              <div className="activity-icon">{activity.icon}</div>
+              <div className="activity-icon">{activity.icon.startsWith('fas') ? <i className={activity.icon}></i> : activity.icon}</div>
               <div className="activity-content">
                 <p className="activity-description">{activity.description}</p>
                 <span className="activity-time">{activity.time}</span>
@@ -423,7 +423,7 @@ const BuyerDashboard = ({ onPageChange, onAuth, user, crops, onToggleChat, onRef
         {filteredCrops.map(crop => (
           <div key={crop.id} className="crop-card">
             <div className="crop-image">
-              {crop.image || '🌾'}
+                {crop.image ? crop.image : <i className="fas fa-wheat-awn"></i>}
             </div>
             <div className="crop-content">
               <h4>{crop.name}</h4>
@@ -436,7 +436,7 @@ const BuyerDashboard = ({ onPageChange, onAuth, user, crops, onToggleChat, onRef
               <div className="farmer-info">
                 <i className="fas fa-user"></i>
                 <span>{crop.farmer}</span>
-                <span className="rating">⭐ {crop.rating || 4.5}</span>
+                <span className="rating"><i className="fas fa-star" style={{color:'#f59e0b'}}></i> {crop.rating || 4.5}</span>
               </div>
               <div className="crop-actions">
                 <button 
@@ -622,7 +622,7 @@ const BuyerDashboard = ({ onPageChange, onAuth, user, crops, onToggleChat, onRef
                 {farmer.location}
               </div>
               <div className="farmer-rating">
-                ⭐ {farmer.rating} ({farmer.totalSales} mauzo)
+                <i className="fas fa-star" style={{color:'#f59e0b'}}></i> {farmer.rating} ({farmer.totalSales} mauzo)
               </div>
               <div className="farmer-crops">
                 <strong>Mazao:</strong>
@@ -938,7 +938,7 @@ const BuyerDashboard = ({ onPageChange, onAuth, user, crops, onToggleChat, onRef
                   <p><strong>Namba ya Simu:</strong> {selectedFarmer.contact}</p>
                   <p><strong>Eneo:</strong> {selectedFarmer.location}</p>
                   {selectedFarmer.rating && (
-                    <p><strong>Ukadiriaji:</strong> ⭐ {selectedFarmer.rating}</p>
+                    <p><strong>Ukadiriaji:</strong> <i className="fas fa-star" style={{color:'#f59e0b'}}></i> {selectedFarmer.rating}</p>
                   )}
                 </div>
                 

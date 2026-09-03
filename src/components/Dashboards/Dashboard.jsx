@@ -108,7 +108,7 @@ const Dashboard = ({ onPageChange, onAuth, user, crops, onToggleChat, onCreateGr
           type: 'sale',
           description: 'Umekuza mahindi kwa TZS 450,000',
           time: '2 saa zilizopita',
-          icon: '💰',
+          icon: 'fas fa-coins',
           priority: 'high'
         },
         {
@@ -124,7 +124,7 @@ const Dashboard = ({ onPageChange, onAuth, user, crops, onToggleChat, onCreateGr
           type: 'order',
           description: 'Agizo jipya la mpunga',
           time: '1 siku iliyopita',
-          icon: '📦',
+          icon: 'fas fa-box',
           priority: 'high'
         }
       ];
@@ -136,7 +136,7 @@ const Dashboard = ({ onPageChange, onAuth, user, crops, onToggleChat, onCreateGr
           type: 'order',
           description: 'Umetuma agizo jipya la mahindi',
           time: '2 saa zilizopita',
-          icon: '📦',
+          icon: 'fas fa-box',
           priority: 'high'
         },
         {
@@ -178,9 +178,9 @@ const Dashboard = ({ onPageChange, onAuth, user, crops, onToggleChat, onCreateGr
         {
           id: 4,
           type: 'rating',
-          description: 'Umepokea tathmini mpya: ⭐⭐⭐⭐⭐',
+          description: 'Umepokea tathmini mpya: ★★★★★',
           time: '1 siku iliyopita',
-          icon: '⭐',
+          icon: 'fas fa-star',
           priority: 'medium'
         }
       ];
@@ -294,7 +294,7 @@ const Dashboard = ({ onPageChange, onAuth, user, crops, onToggleChat, onCreateGr
         {user?.role === 'farmer' && (
           <>
             <div className="stat-card">
-              <div className="stat-icon">🌾</div>
+              <div className="stat-icon"><i className="fas fa-wheat-awn"></i></div>
               <div className="stat-content">
                 <div className="stat-number">{stats.totalCrops}</div>
                 <div className="stat-label">Mazao Yaliyowekwa</div>
@@ -302,7 +302,7 @@ const Dashboard = ({ onPageChange, onAuth, user, crops, onToggleChat, onCreateGr
               </div>
             </div>
             <div className="stat-card">
-              <div className="stat-icon">💰</div>
+              <div className="stat-icon"><i className="fas fa-coins"></i></div>
               <div className="stat-content">
                 <div className="stat-number">{stats.totalSales || 0}</div>
                 <div className="stat-label">Mauzo Yaliyokamilika</div>
@@ -331,7 +331,7 @@ const Dashboard = ({ onPageChange, onAuth, user, crops, onToggleChat, onCreateGr
         {user?.role === 'buyer' && (
           <>
             <div className="stat-card">
-              <div className="stat-icon">📦</div>
+              <div className="stat-icon"><i className="fas fa-box"></i></div>
               <div className="stat-content">
                 <div className="stat-number">{stats.totalOrders}</div>
                 <div className="stat-label">Maagizo Yote</div>
@@ -347,7 +347,7 @@ const Dashboard = ({ onPageChange, onAuth, user, crops, onToggleChat, onCreateGr
               </div>
             </div>
             <div className="stat-card">
-              <div className="stat-icon">✅</div>
+              <div className="stat-icon"><i className="fas fa-check-circle"></i></div>
               <div className="stat-content">
                 <div className="stat-number">{stats.completedOrders}</div>
                 <div className="stat-label">Maagizo Yakamilika</div>
@@ -355,7 +355,7 @@ const Dashboard = ({ onPageChange, onAuth, user, crops, onToggleChat, onCreateGr
               </div>
             </div>
             <div className="stat-card">
-              <div className="stat-icon">💰</div>
+              <div className="stat-icon"><i className="fas fa-coins"></i></div>
               <div className="stat-content">
                 <div className="stat-number">{stats.totalSpent}</div>
                 <div className="stat-label">Jumla ya Matumizi</div>
@@ -392,7 +392,7 @@ const Dashboard = ({ onPageChange, onAuth, user, crops, onToggleChat, onCreateGr
               </div>
             </div>
             <div className="stat-card">
-              <div className="stat-icon">⭐</div>
+              <div className="stat-icon"><i className="fas fa-star"></i></div>
               <div className="stat-content">
                 <div className="stat-number">{stats.averageRating}</div>
                 <div className="stat-label">Wastani wa Tathmini</div>
@@ -405,7 +405,7 @@ const Dashboard = ({ onPageChange, onAuth, user, crops, onToggleChat, onCreateGr
         {!user?.role && (
           <>
             <div className="stat-card">
-              <div className="stat-icon">🌾</div>
+              <div className="stat-icon"><i className="fas fa-wheat-awn"></i></div>
               <div className="stat-content">
                 <div className="stat-number">0</div>
                 <div className="stat-label">Mazao Yaliyowekwa</div>
@@ -413,7 +413,7 @@ const Dashboard = ({ onPageChange, onAuth, user, crops, onToggleChat, onCreateGr
               </div>
             </div>
             <div className="stat-card">
-              <div className="stat-icon">💰</div>
+              <div className="stat-icon"><i className="fas fa-coins"></i></div>
               <div className="stat-content">
                 <div className="stat-number">0</div>
                 <div className="stat-label">Mauzo</div>
@@ -568,7 +568,7 @@ const Dashboard = ({ onPageChange, onAuth, user, crops, onToggleChat, onCreateGr
             <div className="activities-list">
               {recentActivities.map(activity => (
                 <div key={activity.id} className={`activity-item ${activity.priority}`}>
-                  <div className="activity-icon">{activity.icon}</div>
+                  <div className="activity-icon">{activity.icon.startsWith('fas') ? <i className={activity.icon}></i> : activity.icon}</div>
                   <div className="activity-content">
                     <p className="activity-description">{activity.description}</p>
                     <span className="activity-time">{activity.time}</span>

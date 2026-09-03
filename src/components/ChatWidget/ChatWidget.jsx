@@ -195,7 +195,7 @@ const ChatWidget = () => {
         <div className="chat-widget-window" role="dialog" aria-label="Chatbot">
           <div className="chat-widget-header">
             <div className="chat-widget-header-info">
-              <div className="chat-widget-avatar">🌱</div>
+              <div className="chat-widget-avatar"><i className="fas fa-seedling"></i></div>
               <div>
                 <div className="chat-widget-title">Msaada wa Kilimo</div>
                 <div className="chat-widget-status">✓ Mtandaoni</div>
@@ -228,7 +228,7 @@ const ChatWidget = () => {
           <div className="chat-widget-messages">
             {messages.map((msg, idx) => (
               <div key={idx} className={`chat-msg ${msg.role === 'user' ? 'user' : 'bot'}`}>
-                {msg.role === 'bot' && <div className="chat-msg-avatar">🌱</div>}
+                {msg.role === 'bot' && <div className="chat-msg-avatar"><i className="fas fa-seedling"></i></div>}
                 <div className="chat-bubble">
                   {msg.text ? (
                     <span className="chat-text">{msg.text}</span>
@@ -285,7 +285,7 @@ const ChatWidget = () => {
         onClick={toggleChat}
         aria-label={isOpen ? 'Funga chatbot' : 'Fungua chatbot'}
       >
-        {isOpen ? '✕' : '🌱'}
+        {isOpen ? <i className="fas fa-times"></i> : <i className="fas fa-comment-dots"></i>}
       </button>
     </>
   );

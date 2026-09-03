@@ -40,7 +40,7 @@ const Inputs = ({ onPageChange, onAuth, user }) => {
       location: 'Mlele',
       description: 'Mbegu bora za mahindi zenye mazao mengi na upinzani wa magonjwa',
       image: '/images/corn-seeds.jpg',
-      fallback: '🌽',
+      fallback: 'fas fa-seedling',
       rating: 4.8
     },
     {
@@ -66,7 +66,7 @@ const Inputs = ({ onPageChange, onAuth, user }) => {
       location: 'Mpanda',
       description: 'Jembe la kisasa lenye kushikilia vizuri na kudumu muda mrefu',
       image: '/images/farm-tools.jpg',
-      fallback: '🛠️',
+      fallback: 'fas fa-wrench',
       rating: 4.6
     },
     {
@@ -79,7 +79,7 @@ const Inputs = ({ onPageChange, onAuth, user }) => {
       location: 'Mlele',
       description: 'Mfumo wa kisasa wa umwagiliaji unaookoa maji na kuongeza mazao',
       image: '/images/irrigation-system.jpg',
-      fallback: '💧',
+      fallback: 'fas fa-droplet',
       rating: 4.9
     },
     {
@@ -101,7 +101,14 @@ const Inputs = ({ onPageChange, onAuth, user }) => {
     e.target.classList.add('hidden');
     const fallbackElement = e.target.nextSibling;
     fallbackElement.classList.remove('hidden');
-    fallbackElement.textContent = fallback;
+    if (fallback && fallback.startsWith('fas')) {
+      fallbackElement.innerHTML = '';
+      const icon = document.createElement('i');
+      icon.className = fallback;
+      fallbackElement.appendChild(icon);
+    } else {
+      fallbackElement.textContent = fallback;
+    }
   };
 
   const filteredInputs = selectedCategory === 'all' 
@@ -150,7 +157,7 @@ const Inputs = ({ onPageChange, onAuth, user }) => {
                     onError={(e) => handleImageError(e, input.fallback)}
                   />
                   <div className="input-image-fallback hidden">
-                    {input.fallback}
+                    {input.fallback && input.fallback.startsWith('fas') ? <i className={input.fallback}></i> : input.fallback}
                   </div>
                 </div>
                 
@@ -211,7 +218,7 @@ const Inputs = ({ onPageChange, onAuth, user }) => {
                     e.target.nextSibling.style.display = 'block';
                   }}
                 />
-                <div className="supplier-logo" style={{display: 'none'}}>🌱</div>
+                <div className="supplier-logo" style={{display: 'none'}}><i className="fas fa-seedling"></i></div>
                 <h3>Agro Supplies Ltd</h3>
                 <p>Wauzaji wakuu wa mbolea na dawa za wadudu</p>
                 <div className="supplier-contact">
@@ -229,7 +236,7 @@ const Inputs = ({ onPageChange, onAuth, user }) => {
                     e.target.nextSibling.style.display = 'block';
                   }}
                 />
-                <div className="supplier-logo" style={{display: 'none'}}>🌾</div>
+                <div className="supplier-logo" style={{display: 'none'}}><i className="fas fa-wheat-awn"></i></div>
                 <h3>SeedCo Tanzania</h3>
                 <p>Mbegu bora za kilimo za aina mbalimbali</p>
                 <div className="supplier-contact">

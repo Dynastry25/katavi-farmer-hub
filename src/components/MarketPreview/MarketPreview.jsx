@@ -45,10 +45,10 @@ const sampleCrops = [
 ];
 
 const categoryMeta = {
-  grains: { label: 'Nafaka', emoji: '🌾', photo: FallbackGrains },
-  legumes: { label: 'Kunde', emoji: '🫘', photo: FallbackLegumes },
-  tubers: { label: 'Mizizi', emoji: '🥔', photo: FallbackTubers },
-  fruits: { label: 'Matunda', emoji: '🍊', photo: FallbackFruits },
+  grains: { label: 'Nafaka', icon: 'fas fa-wheat-awn', photo: FallbackGrains },
+  legumes: { label: 'Kunde', icon: 'fas fa-circle-dot', photo: FallbackLegumes },
+  tubers: { label: 'Mizizi', icon: 'fas fa-apple-whole', photo: FallbackTubers },
+  fruits: { label: 'Matunda', icon: 'fas fa-lemon', photo: FallbackFruits },
   vegetables: { label: 'Mboga', emoji: '🥬', photo: FallbackVegetables },
   oilseeds: { label: 'Mbegu za Mafuta', emoji: '🌻', photo: FallbackOilseeds },
 };
@@ -142,7 +142,7 @@ const MarketPreview = ({ crops, onPageChange, onContactFarmer }) => {
                     />
                   )}
 
-                  <div className="crop-badge">{cat.emoji} {cat.label}</div>
+                  <div className="crop-badge">{cat.icon ? <i className={cat.icon}></i> : cat.emoji} {cat.label}</div>
 
                   <div className="crop-sold">
                     {crop.quantity ? `${crop.quantity} ${crop.unit}` : 'Ipo Soko'}

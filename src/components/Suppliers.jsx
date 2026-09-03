@@ -102,7 +102,7 @@ const Suppliers = ({ onPageChange, onAuth, user }) => {
                     {supplier.location}
                   </div>
                   <div className="supplier-rating">
-                    ⭐ {supplier.rating}
+                    <i className="fas fa-star" style={{color:'#f59e0b'}}></i> {supplier.rating}
                   </div>
                 </div>
 

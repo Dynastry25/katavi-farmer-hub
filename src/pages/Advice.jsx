@@ -36,7 +36,7 @@ const Advice = ({ onPageChange, onAuth, user }) => {
       category: 'Kilimo cha Nafaka',
       readTime: '5 min',
       date: 'Okt 20, 2023',
-      image: '🌽'
+      icon: 'fas fa-seedling'
     },
     {
       id: 2,
@@ -45,7 +45,7 @@ const Advice = ({ onPageChange, onAuth, user }) => {
       category: 'Udhibiti wa Wadudu',
       readTime: '4 min',
       date: 'Okt 18, 2023',
-      image: '🐛'
+      icon: null
     },
     {
       id: 3,
@@ -54,7 +54,7 @@ const Advice = ({ onPageChange, onAuth, user }) => {
       category: 'Umwagiliaji',
       readTime: '6 min',
       date: 'Okt 15, 2023',
-      image: '💧'
+      icon: 'fas fa-droplet'
     },
     {
       id: 4,
@@ -63,7 +63,7 @@ const Advice = ({ onPageChange, onAuth, user }) => {
       category: 'Uhifadhi wa Mazao',
       readTime: '4 min',
       date: 'Okt 12, 2023',
-      image: '📦'
+      icon: 'fas fa-box'
     }
   ];
 
@@ -74,7 +74,7 @@ const Advice = ({ onPageChange, onAuth, user }) => {
       duration: '5:30',
       views: '1.2K',
       category: 'Mbolea',
-      thumbnail: '🧪'
+      thumbnail: 'fas fa-flask'
     },
     {
       id: 2,
@@ -82,7 +82,7 @@ const Advice = ({ onPageChange, onAuth, user }) => {
       duration: '7:15',
       views: '2.1K',
       category: 'Upandaji',
-      thumbnail: '🌾'
+      thumbnail: 'fas fa-wheat-awn'
     },
     {
       id: 3,
@@ -90,7 +90,7 @@ const Advice = ({ onPageChange, onAuth, user }) => {
       duration: '6:45',
       views: '1.8K',
       category: 'Udhibiti wa Wadudu',
-      thumbnail: '🐞'
+      thumbnail: 'fas fa-bug'
     },
     {
       id: 4,
@@ -98,7 +98,7 @@ const Advice = ({ onPageChange, onAuth, user }) => {
       duration: '8:20',
       views: '3.2K',
       category: 'Umwagiliaji',
-      thumbnail: '🚿'
+      thumbnail: 'fas fa-shower'
     }
   ];
 
@@ -108,7 +108,7 @@ const Advice = ({ onPageChange, onAuth, user }) => {
       name: 'Dk. Anna Mrosso',
       specialization: 'Utaalamu wa Mbolea na Udongo',
       experience: 'Miaka 15',
-      image: '👩‍🌾',
+      image: 'fas fa-user',
       available: true
     },
     {
@@ -116,7 +116,7 @@ const Advice = ({ onPageChange, onAuth, user }) => {
       name: 'Bw. Juma Hassan',
       specialization: 'Uvunaji na Uhifadhi wa Mazao',
       experience: 'Miaka 12',
-      image: '👨‍🌾',
+      image: 'fas fa-user',
       available: true
     },
     {
@@ -124,7 +124,7 @@ const Advice = ({ onPageChange, onAuth, user }) => {
       name: 'Dk. Robert Kipanga',
       specialization: 'Dawa za Wadudu na Magonjwa',
       experience: 'Miaka 18',
-      image: '👨‍🔬',
+      image: 'fas fa-flask',
       available: false
     }
   ];
@@ -136,7 +136,7 @@ const Advice = ({ onPageChange, onAuth, user }) => {
           <div className="articles-grid">
             {articles.map(article => (
               <div key={article.id} className="article-card">
-                <div className="article-image">{article.image}</div>
+                <div className="article-image">{article.icon ? <i className={article.icon}></i> : null}</div>
                 <div className="article-content">
                   <div className="article-category">{article.category}</div>
                   <h3 className="article-title">{article.title}</h3>
@@ -160,7 +160,7 @@ const Advice = ({ onPageChange, onAuth, user }) => {
             {videos.map(video => (
               <div key={video.id} className="video-card">
                 <div className="video-thumbnail">
-                  {video.thumbnail}
+                  {video.thumbnail ? <i className={video.thumbnail}></i> : null}
                   <div className="video-duration">{video.duration}</div>
                 </div>
                 <div className="video-content">
@@ -186,7 +186,7 @@ const Advice = ({ onPageChange, onAuth, user }) => {
             {experts.map(expert => (
               <div key={expert.id} className="expert-card">
                 <div className="expert-header">
-                  <div className="expert-image">{expert.image}</div>
+                  <div className="expert-image">{expert.image ? <i className={expert.image}></i> : null}</div>
                   <div className={`expert-status ${expert.available ? 'available' : 'busy'}`}>
                     {expert.available ? 'Inapatikana' : 'Haipatikani'}
                   </div>
@@ -268,22 +268,22 @@ const Advice = ({ onPageChange, onAuth, user }) => {
             <h2>Vidokezo vya Haraka</h2>
             <div className="tips-grid">
               <div className="tip-card">
-                <div className="tip-icon">💧</div>
+                <div className="tip-icon"><i className="fas fa-droplet"></i></div>
                 <h3>Umwagiliaji</h3>
                 <p>Mwaga maji asubuhi na jioni epukapo jua kali la mchana</p>
               </div>
               <div className="tip-card">
-                <div className="tip-icon">🌱</div>
+                <div className="tip-icon"><i className="fas fa-seedling"></i></div>
                 <h3>Mbolea</h3>
                 <p>Tumia mbolea asilia kwa angalau wiki mbili kabla ya kupanda</p>
               </div>
               <div className="tip-card">
-                <div className="tip-icon">🐛</div>
+                <div className="tip-icon"><i className="fas fa-bug"></i></div>
                 <h3>Wadudu</h3>
                 <p>Angalia mimea yako kila siku kwa dalili za wadudu na magonjwa</p>
               </div>
               <div className="tip-card">
-                <div className="tip-icon">☀️</div>
+                <div className="tip-icon"><i className="fas fa-sun"></i></div>
                 <h3>Hali ya Hewa</h3>
                 <p>Fuata utabiri wa hali ya hewa kabla ya kufanya shughuli za kilimo</p>
               </div>

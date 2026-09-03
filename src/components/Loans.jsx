@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { loansAPI } from '../api/client';
 import Navigation from './Navbar/Navbar';
 import Footer from './Footer/Footer';
+import Loading from './Loading/Loading';
 import './Loans.css';
 
 const Loans = ({ onPageChange, onAuth, user }) => {
@@ -155,6 +156,10 @@ const Loans = ({ onPageChange, onAuth, user }) => {
       </div>
     </div>
   );
+
+  if (loading) {
+    return <Loading message="Inapakia mikopo..." />;
+  }
 
   return (
     <div className="page loans-page">

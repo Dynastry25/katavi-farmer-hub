@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Navigation from '../components/Navbar/Navbar';
 import Footer from '../components/Footer/Footer';
+import Loading from '../components/Loading/Loading';
 import './CSS/Weather.css';
 
 const Weather = ({ onPageChange, onAuth, user, onRefresh }) => {
@@ -142,19 +143,7 @@ const Weather = ({ onPageChange, onAuth, user, onRefresh }) => {
 
   if (loading) {
     return (
-      <div className="page weather-page">
-        <Navigation 
-          currentPage="weather"
-          onPageChange={onPageChange}
-          onAuth={onAuth}
-          user={user}
-        />
-        <div className="weather-loading">
-          <i className="fas fa-cloud-sun fa-spin"></i>
-          <p>Inapakia taarifa za hali ya hewa...</p>
-        </div>
-        <Footer onPageChange={onPageChange} />
-      </div>
+      <Loading message="Inapakia taarifa za hali ya hewa..." />
     );
   }
 
