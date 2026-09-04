@@ -1,10 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import Navigation from './Navbar/Navbar';
-import Footer from './Footer/Footer';
 import { farmerGroupsAPI } from '../api/client';
 import './FarmerGroups.css';
 
-const FarmerGroups = ({ onPageChange, onAuth, user }) => {
+const FarmerGroups = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newGroup, setNewGroup] = useState({
     name: '',
@@ -51,12 +49,6 @@ const FarmerGroups = ({ onPageChange, onAuth, user }) => {
 
   return (
     <div className="page farmer-groups-page">
-      <Navigation 
-        currentPage="farmer-groups"
-        onPageChange={onPageChange}
-        onAuth={onAuth}
-        user={user}
-      />
       
       <div className="groups-container">
         <div className="container">
@@ -200,7 +192,6 @@ const FarmerGroups = ({ onPageChange, onAuth, user }) => {
         </div>
       )}
 
-      <Footer onPageChange={onPageChange} />
     </div>
   );
 };

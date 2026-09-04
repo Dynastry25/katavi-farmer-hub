@@ -1,11 +1,9 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import Navigation from '../Navbar/Navbar';
-import Footer from '../Footer/Footer';
 import { authAPI } from '../../api/client';
 import './Login.css';
 
-const Login = ({ onPageChange, onAuth, user, onRefresh }) => {
+const Login = ({ onAuth, user }) => {
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -126,12 +124,6 @@ const Login = ({ onPageChange, onAuth, user, onRefresh }) => {
 
   return (
     <div className="page login-page">
-      <Navigation 
-        currentPage="login"
-        onPageChange={onPageChange}
-        onAuth={onAuth}
-        user={user}
-      />
       
       <div className="login-container">
         <div className="container">
@@ -171,6 +163,7 @@ const Login = ({ onPageChange, onAuth, user, onRefresh }) => {
                       onChange={handleInputChange}
                       className={`form-control ${errors.email ? 'error' : ''}`}
                       placeholder="Weka barua pepe yako"
+                      autoComplete="email"
                       disabled={isLoading}
                     />
                   </div>
@@ -197,6 +190,7 @@ const Login = ({ onPageChange, onAuth, user, onRefresh }) => {
                       onChange={handleInputChange}
                       className={`form-control ${errors.password ? 'error' : ''}`}
                       placeholder="Weka nenosiri lako"
+                      autoComplete="current-password"
                       disabled={isLoading}
                     />
                     <button
@@ -417,7 +411,6 @@ const Login = ({ onPageChange, onAuth, user, onRefresh }) => {
         </div>
       </div>
 
-      <Footer onPageChange={onPageChange} />
     </div>
   );
 };

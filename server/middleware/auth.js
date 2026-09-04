@@ -16,6 +16,10 @@ const auth = async (req, res, next) => {
       return res.status(401).json({ message: 'Mtumiaji huyu haupatikani' });
     }
 
+    if (user.isActive === false) {
+      return res.status(403).json({ message: 'Akaunti yako imesimamishwa. Wasiliana na msimamizi.' });
+    }
+
     req.user = user;
     req.token = token;
     next();
@@ -54,6 +58,10 @@ const requireAdmin = async (req, res, next) => {
     
     if (!user) {
       return res.status(401).json({ message: 'Mtumiaji huyu haupatikani' });
+    }
+
+    if (user.isActive === false) {
+      return res.status(403).json({ message: 'Akaunti yako imesimamishwa. Wasiliana na msimamizi.' });
     }
 
     if (user.role !== 'admin') {

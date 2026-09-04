@@ -73,6 +73,10 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ message: 'Barua pepe au nenosiri siyo sahihi' });
     }
 
+    if (user.isActive === false) {
+      return res.status(403).json({ message: 'Akaunti yako imesimamishwa. Wasiliana na msimamizi.' });
+    }
+
     const token = generateToken(user._id);
 
     res.json({

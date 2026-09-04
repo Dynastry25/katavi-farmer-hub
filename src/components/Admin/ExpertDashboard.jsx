@@ -4,9 +4,11 @@ import { adviceAPI } from '../../api/client';
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend } from 'recharts';
 import AdminLayout from './AdminLayout';
 import { getRoleNavSections } from './roleNav';
+import { useAuth } from '../../shared/context/AuthContext';
 import './ExpertDashboard.css';
 
-const ExpertDashboard = ({ onPageChange, onAuth, user, onToggleChat, onRefresh }) => {
+const ExpertDashboard = () => {
+  const { user, logout } = useAuth();
   const [activeTab, setActiveTab] = useState('overview');
   const [showAddArticleModal, setShowAddArticleModal] = useState(false);
   const [showConsultationModal, setShowConsultationModal] = useState(false);
@@ -312,10 +314,6 @@ const ExpertDashboard = ({ onPageChange, onAuth, user, onToggleChat, onRefresh }
             <i className="fas fa-chart-line"></i>
             <span>Takwimu za Mapato</span>
           </button>
-          <button className="action-btn" onClick={onToggleChat}>
-            <i className="fas fa-comments"></i>
-            <span>Mazungumzo</span>
-          </button>
         </div>
       </div>
 
@@ -543,16 +541,6 @@ const ExpertDashboard = ({ onPageChange, onAuth, user, onToggleChat, onRefresh }
               <i className="fas fa-users"></i>
             </div>
             <div className="link-content">
-              <h4>Vikundi vya Wakulima</h4>
-              <p>Wasiliana na vikundi vya wakulima</p>
-            </div>
-          </button>
-          
-          <button className="dashboard-link-card" onClick={onToggleChat}>
-            <div className="link-icon">
-              <i className="fas fa-comments"></i>
-            </div>
-            <div className="link-content">
               <h4>Mazungumzo ya Moja kwa Moja</h4>
               <p>Wasiliana na wakulima kwa mazungumzo</p>
             </div>
@@ -728,14 +716,11 @@ const ExpertDashboard = ({ onPageChange, onAuth, user, onToggleChat, onRefresh }
       subtitle="Dashibodi yako ya kutoa ushauri na kuongoza wakulima wa Katavi"
       headerBadge={<div className="admin-badge"><i className="fas fa-graduation-cap"></i> Mtaalamu wa Kilimo</div>}
       navSections={navSections}
-      onLogout={() => onAuth('logout')}
+      onLogout={logout}
       headerActions={
         <>
           <button className="btn btn-primary" onClick={() => setShowAddArticleModal(true)}>
             <i className="fas fa-edit"></i> Andika Makala
-          </button>
-          <button className="btn btn-outline" onClick={onToggleChat}>
-            <i className="fas fa-comments"></i> Mazungumzo
           </button>
           <button className="btn btn-success" onClick={() => navigate('/advice')}>
             <i className="fas fa-graduation-cap"></i> Kituo cha Ushauri

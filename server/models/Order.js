@@ -9,7 +9,7 @@ const orderSchema = new mongoose.Schema({
   farmerName: { type: String, default: '' },
   quantity: { type: String, required: true },
   price: { type: String, required: true },
-  status: { type: String, enum: ['pending', 'completed', 'cancelled'], default: 'pending' },
+  status: { type: String, enum: ['pending', 'completed', 'cancelled', 'disputed'], default: 'pending' },
   orderDate: { type: String, default: () => new Date().toISOString().split('T')[0] },
   deliveryDate: { type: String, default: '' },
   contact: { type: String, default: '' },

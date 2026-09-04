@@ -1,9 +1,7 @@
 import React from 'react';
-import Navigation from '../components/Navbar/Navbar';
-import Footer from '../components/Footer/Footer';
 import './CSS/About.css';
 
-const About = ({ onPageChange, onAuth, user }) => {
+const About = () => {
   const teamMembers = [
     {
       id: 1,
@@ -73,12 +71,6 @@ const About = ({ onPageChange, onAuth, user }) => {
 
   return (
     <div className="page about-page">
-      <Navigation 
-        currentPage="about"
-        onPageChange={onPageChange}
-        onAuth={onAuth}
-        user={user}
-      />
       
       <div className="about-container">
         <div className="container">
@@ -257,7 +249,6 @@ const About = ({ onPageChange, onAuth, user }) => {
         </div>
       </div>
 
-      <Footer onPageChange={onPageChange} />
     </div>
   );
 };

@@ -1,10 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { suppliersAPI } from '../api/client';
-import Navigation from './Navbar/Navbar';
-import Footer from './Footer/Footer';
 import './Suppliers.css';
 
-const Suppliers = ({ onPageChange, onAuth, user }) => {
+const Suppliers = () => {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [apiSuppliers, setApiSuppliers] = useState([]);
@@ -48,12 +46,6 @@ const Suppliers = ({ onPageChange, onAuth, user }) => {
 
   return (
     <div className="page suppliers-page">
-      <Navigation 
-        currentPage="suppliers"
-        onPageChange={onPageChange}
-        onAuth={onAuth}
-        user={user}
-      />
       
       <div className="suppliers-container">
         <div className="container">
@@ -151,7 +143,6 @@ const Suppliers = ({ onPageChange, onAuth, user }) => {
         </div>
       </div>
 
-      <Footer onPageChange={onPageChange} />
     </div>
   );
 };

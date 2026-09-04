@@ -1,14 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ordersAPI } from '../../api/client';
+import { cropsAPI, ordersAPI } from '../../api/client';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Cell, PieChart, Pie, Legend } from 'recharts';
 import AdminLayout from './AdminLayout';
 import { getRoleNavSections } from './roleNav';
+import { useAuth } from '../../shared/context/AuthContext';
 import './BuyerDashboard.css';
 
 
 
-const BuyerDashboard = ({ onPageChange, onAuth, user, crops, onToggleChat, onRefresh }) => {
+const BuyerDashboard = () => {
+  const { user, logout } = useAuth();
   const [activeTab, setActiveTab] = useState('overview');
   const [showOrderModal, setShowOrderModal] = useState(false);
   const [showContactModal, setShowContactModal] = useState(false);
@@ -22,14 +24,19 @@ const BuyerDashboard = ({ onPageChange, onAuth, user, crops, onToggleChat, onRef
     specialInstructions: ''
   });
 
+  const [apiCrops, setApiCrops] = useState([]);
   const [apiOrders, setApiOrders] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchOrders = async () => {
       try {
-        const res = await ordersAPI.getAll();
-        if (res.data && res.data.length > 0) setApiOrders(res.data);
+        const [cropsRes, ordersRes] = await Promise.all([
+          cropsAPI.getAll(),
+          ordersAPI.getAll(),
+        ]);
+        setApiCrops(cropsRes.data?.crops || cropsRes.data || []);
+        if (ordersRes.data && ordersRes.data.length > 0) setApiOrders(ordersRes.data);
       } catch (err) {
         console.error('Error fetching orders:', err);
       } finally {
@@ -171,10 +178,12 @@ const BuyerDashboard = ({ onPageChange, onAuth, user, crops, onToggleChat, onRef
   ];
 
   // Filter crops based on search and category
-  const filteredCrops = crops.filter(crop => {
-    const matchesSearch = crop.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         crop.farmer.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = selectedCategory === 'all' || crop.type === selectedCategory;
+  const filteredCrops = apiCrops.filter(crop => {
+    const search = searchTerm.toLowerCase();
+    const cropName = (crop.name || '').toLowerCase();
+    const farmerName = String(crop.farmerName || crop.farmer || '').toLowerCase();
+    const matchesSearch = cropName.includes(search) || farmerName.includes(search);
+    const matchesCategory = selectedCategory === 'all' || crop.category === selectedCategory || crop.type === selectedCategory;
     return matchesSearch && matchesCategory;
   });
 
@@ -336,10 +345,6 @@ const BuyerDashboard = ({ onPageChange, onAuth, user, crops, onToggleChat, onRef
           <button className="action-btn" onClick={() => setActiveTab('farmers')}>
             <i className="fas fa-users"></i>
             <span>Wakulima Wanaoaminika</span>
-          </button>
-          <button className="action-btn" onClick={onToggleChat}>
-            <i className="fas fa-comments"></i>
-            <span>Mazungumzo</span>
           </button>
         </div>
       </div>
@@ -622,16 +627,6 @@ const BuyerDashboard = ({ onPageChange, onAuth, user, crops, onToggleChat, onRef
       <div className="dashboard-links-section">
         <h3>🔗 Viungo vya Usaidizi</h3>
         <div className="dashboard-links-grid">
-          <button className="dashboard-link-card" onClick={onToggleChat}>
-            <div className="link-icon">
-              <i className="fas fa-comments"></i>
-            </div>
-            <div className="link-content">
-              <h4>Msaada wa Moja kwa Moja</h4>
-              <p>Wasiliana na msaada wa wateja</p>
-            </div>
-          </button>
-          
           <button className="dashboard-link-card" onClick={() => navigate('/contact')}>
             <div className="link-icon">
               <i className="fas fa-headset"></i>
@@ -818,14 +813,11 @@ const BuyerDashboard = ({ onPageChange, onAuth, user, crops, onToggleChat, onRef
       subtitle="Dashibodi yako ya kununua mazao bora kutoka kwa wakulima wa Katavi"
       headerBadge={<div className="admin-badge"><i className="fas fa-shopping-cart"></i> Mnunuzi Waandaliwa</div>}
       navSections={navSections}
-      onLogout={() => onAuth('logout')}
+      onLogout={logout}
       headerActions={
         <>
           <button className="btn btn-primary" onClick={() => setActiveTab('marketplace')}>
             <i className="fas fa-search"></i> Tafuta Mazao
-          </button>
-          <button className="btn btn-outline" onClick={onToggleChat}>
-            <i className="fas fa-comments"></i> Mazungumzo
           </button>
           <button className="btn btn-success" onClick={() => navigate('/reports')}>
             <i className="fas fa-chart-line"></i> Ripoti za Bei

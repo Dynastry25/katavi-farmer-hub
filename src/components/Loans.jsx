@@ -1,7 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { loansAPI } from '../api/client';
-import Navigation from './Navbar/Navbar';
-import Footer from './Footer/Footer';
 import Loading from './Loading/Loading';
 import './Loans.css';
 
@@ -74,7 +72,7 @@ const LoanCalculator = () => {
   );
 };
 
-const Loans = ({ onPageChange, onAuth, user }) => {
+const Loans = () => {
   const [activeTab, setActiveTab] = useState('available');
   const [showApplicationModal, setShowApplicationModal] = useState(false);
   const [selectedLoan, setSelectedLoan] = useState(null);
@@ -241,12 +239,6 @@ const Loans = ({ onPageChange, onAuth, user }) => {
 
   return (
     <div className="page loans-page">
-      <Navigation 
-        currentPage="loans"
-        onPageChange={onPageChange}
-        onAuth={onAuth}
-        user={user}
-      />
       
       <div className="loans-container">
         <div className="container">
@@ -357,7 +349,6 @@ const Loans = ({ onPageChange, onAuth, user }) => {
         </div>
       )}
 
-      <Footer onPageChange={onPageChange} />
     </div>
   );
 };

@@ -3,10 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import {
   ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend,
   BarChart, Bar, XAxis, YAxis, CartesianGrid,
-  LineChart, Line, AreaChart, Area
+  AreaChart, Area, LineChart, Line
 } from 'recharts';
 import AdminLayout from './AdminLayout';
-import { adminAPI } from '../../api/client';
+import { adminAPI, adminExtendedAPI, newsAPI, adviceAPI, marketPricesAPI } from '../../api/client';
+import { getRoleNavSections } from './roleNav';
+import { CROP_CATEGORIES } from '../../constants/roleConfig';
 import './AdminDashboard.css';
 
 const CHART_COLORS = ['#1a7431', '#22c55e', '#f59e0b', '#3b82f6', '#16a34a', '#86efac'];
@@ -25,11 +27,12 @@ const ROLE_ICONS = {
   admin: 'fas fa-user-shield'
 };
 
-const AdminDashboard = ({ onPageChange, onAuth, user, onToggleChat, onRefresh }) => {
+const AdminDashboard = ({ user, onAuth, onToggleChat, onRefresh }) => {
   const [activeTab, setActiveTab] = useState('overview');
   const [stats, setStats] = useState(null);
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
+
   const [roleFilter, setRoleFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -38,7 +41,32 @@ const AdminDashboard = ({ onPageChange, onAuth, user, onToggleChat, onRefresh })
   const [editingUser, setEditingUser] = useState(null);
   const [newUser, setNewUser] = useState({ name: '', email: '', phone: '', password: '', role: 'farmer', location: '' });
   const [editForm, setEditForm] = useState({ name: '', phone: '', location: '' });
+
+  const [crops, setCrops] = useState([]);
+  const [cropFilter, setCropFilter] = useState('all');
+
+  const [marketPrices, setMarketPrices] = useState([]);
+  const [priceForm, setPriceForm] = useState({ cropName: '', category: 'cereals', region: 'Mpanda', pricePerUnit: '', unit: 'kg', isBaseline: false });
+
+  const [loans, setLoans] = useState([]);
+  const [loanFilter, setLoanFilter] = useState('all');
+
+  const [groups, setGroups] = useState([]);
+  const [news, setNews] = useState([]);
+  const [articles, setArticles] = useState([]);
+  const [notifications, setNotifications] = useState([]);
+  const [auditLogs, setAuditLogs] = useState([]);
+  const [disputes, setDisputes] = useState([]);
+  const [ratings, setRatings] = useState([]);
+
+  const [broadcastForm, setBroadcastForm] = useState({ title: '', message: '', type: 'system', targetRole: '' });
+
   const [toast, setToast] = useState(null);
+  const [settings, setSettings] = useState({
+    commissionRate: 5,
+    featuredListingsEnabled: true,
+    bannerMessage: '',
+  });
 
   const navigate = useNavigate();
 
@@ -60,13 +88,103 @@ const AdminDashboard = ({ onPageChange, onAuth, user, onToggleChat, onRefresh })
     setLoading(true);
     try {
       const res = await adminAPI.getUsers({ role: roleFilter, search: searchTerm || undefined });
-      setUsers(res.data);
+      setUsers(Array.isArray(res.data) ? res.data : res.data.users || []);
     } catch (err) {
       console.error('Error loading users:', err);
     } finally {
       setLoading(false);
     }
   }, [roleFilter, searchTerm]);
+
+  const loadCrops = useCallback(async () => {
+    try {
+      const res = await adminExtendedAPI.getCrops({ status: cropFilter });
+      setCrops(Array.isArray(res.data) ? res.data : res.data.crops || []);
+    } catch (err) {
+      console.error('Error loading crops:', err);
+    }
+  }, [cropFilter]);
+
+  const loadMarketPrices = useCallback(async () => {
+    try {
+      const res = await adminExtendedAPI.getMarketPrices();
+      setMarketPrices(Array.isArray(res.data) ? res.data : res.data.prices || []);
+    } catch (err) {
+      console.error('Error loading market prices:', err);
+    }
+  }, []);
+
+  const loadLoans = useCallback(async () => {
+    try {
+      const res = await adminExtendedAPI.getLoanApplications({ status: loanFilter });
+      setLoans(Array.isArray(res.data) ? res.data : res.data.applications || []);
+    } catch (err) {
+      console.error('Error loading loans:', err);
+    }
+  }, [loanFilter]);
+
+  const loadGroups = useCallback(async () => {
+    try {
+      const res = await adminExtendedAPI.getGroups();
+      setGroups(Array.isArray(res.data) ? res.data : res.data.groups || []);
+    } catch (err) {
+      console.error('Error loading groups:', err);
+    }
+  }, []);
+
+  const loadNews = useCallback(async () => {
+    try {
+      const res = await newsAPI.getAll();
+      setNews(Array.isArray(res.data) ? res.data : []);
+    } catch (err) {
+      console.error('Error loading news:', err);
+    }
+  }, []);
+
+  const loadArticles = useCallback(async () => {
+    try {
+      const res = await adviceAPI.getArticles();
+      setArticles(Array.isArray(res.data) ? res.data : []);
+    } catch (err) {
+      console.error('Error loading articles:', err);
+    }
+  }, []);
+
+  const loadNotifications = useCallback(async () => {
+    try {
+      const res = await adminExtendedAPI.getNotifications();
+      setNotifications(Array.isArray(res.data) ? res.data : res.data.notifications || []);
+    } catch (err) {
+      console.error('Error loading notifications:', err);
+    }
+  }, []);
+
+  const loadAuditLogs = useCallback(async () => {
+    try {
+      const res = await adminExtendedAPI.getAuditLogs();
+      setAuditLogs(Array.isArray(res.data) ? res.data : res.data.logs || []);
+    } catch (err) {
+      console.error('Error loading audit logs:', err);
+    }
+  }, []);
+
+  const loadDisputes = useCallback(async () => {
+    try {
+      const res = await adminExtendedAPI.getDisputes();
+      setDisputes(Array.isArray(res.data) ? res.data : res.data.disputes || []);
+    } catch (err) {
+      console.error('Error loading disputes:', err);
+    }
+  }, []);
+
+  const loadRatings = useCallback(async () => {
+    try {
+      const res = await adminExtendedAPI.getRatings();
+      setRatings(Array.isArray(res.data) ? res.data : res.data.ratings || []);
+    } catch (err) {
+      console.error('Error loading ratings:', err);
+    }
+  }, []);
 
   useEffect(() => {
     loadStats();
@@ -76,6 +194,46 @@ const AdminDashboard = ({ onPageChange, onAuth, user, onToggleChat, onRefresh })
     if (activeTab === 'users') loadUsers();
   }, [activeTab, loadUsers]);
 
+  useEffect(() => {
+    if (activeTab === 'products') loadCrops();
+  }, [activeTab, loadCrops]);
+
+  useEffect(() => {
+    if (activeTab === 'market-prices') loadMarketPrices();
+  }, [activeTab, loadMarketPrices]);
+
+  useEffect(() => {
+    if (activeTab === 'loans') loadLoans();
+  }, [activeTab, loadLoans]);
+
+  useEffect(() => {
+    if (activeTab === 'groups') loadGroups();
+  }, [activeTab, loadGroups]);
+
+  useEffect(() => {
+    if (activeTab === 'news') loadNews();
+  }, [activeTab, loadNews]);
+
+  useEffect(() => {
+    if (activeTab === 'advisory') loadArticles();
+  }, [activeTab, loadArticles]);
+
+  useEffect(() => {
+    if (activeTab === 'notifications') loadNotifications();
+  }, [activeTab, loadNotifications]);
+
+  useEffect(() => {
+    if (activeTab === 'ratings') loadRatings();
+  }, [activeTab, loadRatings]);
+
+  useEffect(() => {
+    if (activeTab === 'audit-logs') loadAuditLogs();
+  }, [activeTab, loadAuditLogs]);
+
+  useEffect(() => {
+    if (activeTab === 'disputes') loadDisputes();
+  }, [activeTab, loadDisputes]);
+
   // Debounce search
   useEffect(() => {
     if (activeTab !== 'users') return;
@@ -83,6 +241,7 @@ const AdminDashboard = ({ onPageChange, onAuth, user, onToggleChat, onRefresh })
     return () => clearTimeout(t);
   }, [searchTerm, activeTab, loadUsers]);
 
+  // ---- User Management Handlers ----
   const handleRoleChange = async (id, role) => {
     if (id === user?._id) {
       showToast('Huwezi kubadilisha jukumu lako mwenyewe', 'error');
@@ -97,7 +256,21 @@ const AdminDashboard = ({ onPageChange, onAuth, user, onToggleChat, onRefresh })
     }
   };
 
-  const handleDelete = async (id) => {
+  const handleSuspend = async (id, suspend) => {
+    if (id === user?._id) {
+      showToast('Huwezi kusimamisha mwenyewe', 'error');
+      return;
+    }
+    try {
+      await adminExtendedAPI.suspendUser(id, suspend);
+      showToast(suspend ? 'Mtumiaji amesimamishwa' : 'Mtumiaji amewashwa');
+      loadUsers();
+    } catch (err) {
+      showToast(err.response?.data?.message || 'Hitilafu imetokea', 'error');
+    }
+  };
+
+  const handleDeleteUser = async (id) => {
     if (id === user?._id) {
       showToast('Huwezi kujifuta mwenyewe', 'error');
       return;
@@ -112,7 +285,7 @@ const AdminDashboard = ({ onPageChange, onAuth, user, onToggleChat, onRefresh })
     }
   };
 
-  const handleCreate = async (e) => {
+  const handleCreateUser = async (e) => {
     e.preventDefault();
     try {
       await adminAPI.createUser(newUser);
@@ -131,7 +304,7 @@ const AdminDashboard = ({ onPageChange, onAuth, user, onToggleChat, onRefresh })
     setShowEditModal(true);
   };
 
-  const handleEdit = async (e) => {
+  const handleEditUser = async (e) => {
     e.preventDefault();
     try {
       await adminAPI.updateUser(editingUser._id, editForm);
@@ -143,12 +316,78 @@ const AdminDashboard = ({ onPageChange, onAuth, user, onToggleChat, onRefresh })
     }
   };
 
+  // ---- Product Moderation Handlers ----
+  const handleModerateCrop = async (id, status) => {
+    try {
+      await adminExtendedAPI.moderateCrop(id, status);
+      showToast('Zao limerekebishwa');
+      loadCrops();
+    } catch (err) {
+      showToast(err.response?.data?.message || 'Hitilafu imetokea', 'error');
+    }
+  };
+
+  // ---- Market Price Handlers ----
+  const handleCreatePrice = async (e) => {
+    e.preventDefault();
+    try {
+      await adminExtendedAPI.createMarketPrice(priceForm);
+      showToast('Bei imeongezwa');
+      setPriceForm({ cropName: '', category: 'cereals', region: 'Mpanda', pricePerUnit: '', unit: 'kg', isBaseline: false });
+      loadMarketPrices();
+    } catch (err) {
+      showToast(err.response?.data?.message || 'Hitilafu imetokea', 'error');
+    }
+  };
+
+  const handleDeletePrice = async (id) => {
+    if (!window.confirm('Una uhakika unataka kufuta bei hii?')) return;
+    try {
+      await adminExtendedAPI.deleteMarketPrice(id);
+      showToast('Bei imefutwa');
+      loadMarketPrices();
+    } catch (err) {
+      showToast(err.response?.data?.message || 'Hitilafu imetokea', 'error');
+    }
+  };
+
+  // ---- Loan Moderation Handlers ----
+  const handleModerateLoan = async (id, status) => {
+    try {
+      await adminExtendedAPI.moderateLoan(id, status);
+      showToast(status === 'approved' ? 'Mkopo umekubaliwa' : 'Mkopo umekataliwa');
+      loadLoans();
+    } catch (err) {
+      showToast(err.response?.data?.message || 'Hitilafu imetokea', 'error');
+    }
+  };
+
+  // ---- Broadcast ----
+  const handleBroadcast = async (e) => {
+    e.preventDefault();
+    try {
+      const res = await adminExtendedAPI.broadcastNotification(broadcastForm);
+      showToast(res.data?.message || 'Ujumbe umetumwa');
+      setBroadcastForm({ title: '', message: '', type: 'system', targetRole: '' });
+    } catch (err) {
+      showToast(err.response?.data?.message || 'Hitilafu imetokea', 'error');
+    }
+  };
+
+  // ---- Settings ----
+  const handleSaveSettings = () => {
+    localStorage.setItem('kataviSettings', JSON.stringify(settings));
+    showToast('Mipangilio imehifadhiwa');
+  };
+
   const navSections = getRoleNavSections({
     role: 'admin',
     navigate,
     activeTab,
     onTab: setActiveTab,
   });
+
+  // ================== RENDERERS ==================
 
   const renderStats = () => {
     const statCards = [
@@ -161,6 +400,7 @@ const AdminDashboard = ({ onPageChange, onAuth, user, onToggleChat, onRefresh })
       { label: 'Bidhaa', value: stats?.totalProducts ?? 0, icon: 'fas fa-industry' },
       { label: 'Mikopo', value: stats?.totalLoans ?? 0, icon: 'fas fa-hand-holding-usd' },
       { label: 'Vikundi', value: stats?.totalGroups ?? 0, icon: 'fas fa-users' },
+      { label: 'Arifa', value: stats?.totalNotifications ?? 0, icon: 'fas fa-bell' },
     ];
 
     const roleData = [
@@ -171,11 +411,11 @@ const AdminDashboard = ({ onPageChange, onAuth, user, onToggleChat, onRefresh })
     ].filter(d => d.value > 0);
 
     const activityData = [
-      { name: 'Mazao', value: stats?.totalCrops ?? 0, icon: 'fas fa-wheat-awn' },
-      { name: 'Bidhaa', value: stats?.totalProducts ?? 0, icon: 'fas fa-industry' },
-      { name: 'Maagizo', value: stats?.totalOrders ?? 0, icon: 'fas fa-shopping-basket' },
-      { name: 'Mikopo', value: stats?.totalLoans ?? 0, icon: 'fas fa-hand-holding-usd' },
-      { name: 'Vikundi', value: stats?.totalGroups ?? 0, icon: 'fas fa-users' },
+      { name: 'Mazao', value: stats?.totalCrops ?? 0 },
+      { name: 'Bidhaa', value: stats?.totalProducts ?? 0 },
+      { name: 'Maagizo', value: stats?.totalOrders ?? 0 },
+      { name: 'Mikopo', value: stats?.totalLoans ?? 0 },
+      { name: 'Vikundi', value: stats?.totalGroups ?? 0 },
     ];
 
     const growthData = (stats?.monthlyUsers && stats.monthlyUsers.length)
@@ -285,11 +525,17 @@ const AdminDashboard = ({ onPageChange, onAuth, user, onToggleChat, onRefresh })
             <button className="action-btn" onClick={() => setActiveTab('users')}>
               <i className="fas fa-user-plus"></i> Dhibiti Watumiaji
             </button>
+            <button className="action-btn" onClick={() => setActiveTab('products')}>
+              <i className="fas fa-leaf"></i> Simamia Mazao
+            </button>
+            <button className="action-btn" onClick={() => setActiveTab('market-prices')}>
+              <i className="fas fa-chart-line"></i> Bei za Soko
+            </button>
+            <button className="action-btn" onClick={() => setActiveTab('loans')}>
+              <i className="fas fa-hand-holding-usd"></i> Mikopo
+            </button>
             <button className="action-btn" onClick={() => navigate('/admin-reports')}>
               <i className="fas fa-chart-bar"></i> Ripoti za Mfumo
-            </button>
-            <button className="action-btn" onClick={onToggleChat}>
-              <i className="fas fa-comments"></i> Mazungumzo
             </button>
             <button className="action-btn" onClick={onRefresh}>
               <i className="fas fa-sync-alt"></i> Refresh
@@ -344,6 +590,7 @@ const AdminDashboard = ({ onPageChange, onAuth, user, onToggleChat, onRefresh })
                 <th>Simu</th>
                 <th>Eneo</th>
                 <th>Jukumu</th>
+                <th>Hali</th>
                 <th>Amejiunga</th>
                 <th>Vitendo</th>
               </tr>
@@ -361,13 +608,18 @@ const AdminDashboard = ({ onPageChange, onAuth, user, onToggleChat, onRefresh })
                     </div>
                   </td>
                   <td>{u.phone}</td>
-                  <td>{u.location || u.district || 'â€”'}</td>
+                  <td>{u.location || u.district || '—'}</td>
                   <td>
                     <span className={`role-pill role-${u.role}`}>
                       <i className={ROLE_ICONS[u.role] || 'fas fa-user'}></i> {ROLE_LABELS[u.role] || u.role}
                     </span>
                   </td>
-                  <td>{u.createdAt ? new Date(u.createdAt).toLocaleDateString('sw-TZ') : 'â€”'}</td>
+                  <td>
+                    <span className={`status-pill ${u.isActive === false ? 'status-banned' : 'status-active'}`}>
+                      {u.isActive === false ? 'Imesimamishwa' : 'Hai'}
+                    </span>
+                  </td>
+                  <td>{u.createdAt ? new Date(u.createdAt).toLocaleDateString('sw-TZ') : '—'}</td>
                   <td>
                     <div className="user-actions">
                       <select
@@ -380,10 +632,18 @@ const AdminDashboard = ({ onPageChange, onAuth, user, onToggleChat, onRefresh })
                         <option value="expert">Mtaalamu</option>
                         <option value="admin">Admin</option>
                       </select>
-                      <button className="btn btn-sm btn-outline" onClick={() => openEdit(u)}>
+                      <button className="btn btn-sm btn-outline" onClick={() => openEdit(u)} title="Hariri">
                         <i className="fas fa-edit"></i>
                       </button>
-                      <button className="btn btn-sm btn-danger" onClick={() => handleDelete(u._id)} disabled={u._id === user?._id}>
+                      <button
+                        className={`btn btn-sm ${u.isActive === false ? 'btn-outline' : 'btn-warning'}`}
+                        onClick={() => handleSuspend(u._id, u.isActive !== false)}
+                        disabled={u._id === user?._id}
+                        title={u.isActive === false ? 'Washa' : 'Simamisha'}
+                      >
+                        <i className={`fas ${u.isActive === false ? 'fa-play' : 'fa-pause'}`}></i>
+                      </button>
+                      <button className="btn btn-sm btn-danger" onClick={() => handleDeleteUser(u._id)} disabled={u._id === user?._id} title="Futa">
                         <i className="fas fa-trash"></i>
                       </button>
                     </div>
@@ -397,6 +657,481 @@ const AdminDashboard = ({ onPageChange, onAuth, user, onToggleChat, onRefresh })
     </div>
   );
 
+  const renderProducts = () => (
+    <div className="admin-products">
+      <div className="users-toolbar">
+        <select className="role-filter" value={cropFilter} onChange={(e) => setCropFilter(e.target.value)}>
+          <option value="all">Mazao Yote</option>
+          <option value="available">Yanayopatikana</option>
+          <option value="sold">Yameuzwa</option>
+          <option value="reserved">Yamehifadhiwa</option>
+          <option value="rejected">Yamekataliwa</option>
+        </select>
+      </div>
+      <div className="users-table-container">
+        <table className="users-table">
+          <thead>
+            <tr>
+              <th>Zao</th>
+              <th>Aina</th>
+              <th>Bei (TZS)</th>
+              <th>Eneo</th>
+              <th>Mkulima</th>
+              <th>Hali</th>
+              <th>Vitendo</th>
+            </tr>
+          </thead>
+          <tbody>
+            {crops.map(c => (
+              <tr key={c._id}>
+                <td>
+                  <div className="user-cell">
+                    {c.image && <img src={c.image} alt={c.name} className="crop-thumb" />}
+                    <div className="user-meta"><strong>{c.name}</strong></div>
+                  </div>
+                </td>
+                <td>{c.category}</td>
+                <td>{c.price}</td>
+                <td>{c.location}</td>
+                <td>{c.farmerName}</td>
+                <td><span className={`role-pill role-${c.status}`}>{c.status}</span></td>
+                <td>
+                  <div className="user-actions">
+                    <select
+                      className="role-select"
+                      value={c.status}
+                      onChange={(e) => handleModerateCrop(c._id, e.target.value)}
+                    >
+                      <option value="available">Inapatikana</option>
+                      <option value="sold">Imeuzwa</option>
+                      <option value="reserved">Imehifadhiwa</option>
+                      <option value="rejected">Imekataliwa</option>
+                    </select>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+
+  const renderMarketPrices = () => (
+    <div className="admin-market-prices">
+      <div className="section-card">
+        <h3>Ongeza Bei Mpya</h3>
+        <form onSubmit={handleCreatePrice} className="price-form">
+          <div className="form-grid">
+            <div className="form-group">
+              <label>Zao *</label>
+              <input type="text" value={priceForm.cropName} onChange={(e) => setPriceForm({ ...priceForm, cropName: e.target.value })} required placeholder="Mf. Mahindi" />
+            </div>
+            <div className="form-group">
+              <label>Aina</label>
+              <select value={priceForm.category} onChange={(e) => setPriceForm({ ...priceForm, category: e.target.value })}>
+                {CROP_CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
+              </select>
+            </div>
+            <div className="form-group">
+              <label>Mkoa / Eneo</label>
+              <input type="text" value={priceForm.region} onChange={(e) => setPriceForm({ ...priceForm, region: e.target.value })} required placeholder="Mpanda" />
+            </div>
+            <div className="form-group">
+              <label>Bei kwa Kitengo (TZS) *</label>
+              <input type="number" min="0" value={priceForm.pricePerUnit} onChange={(e) => setPriceForm({ ...priceForm, pricePerUnit: e.target.value })} required placeholder="2500" />
+            </div>
+            <div className="form-group">
+              <label>Kitengo</label>
+              <select value={priceForm.unit} onChange={(e) => setPriceForm({ ...priceForm, unit: e.target.value })}>
+                <option value="kg">Kilogramu</option>
+                <option value="bag">Gunia</option>
+                <option value="tonne">Tani</option>
+                <option value="piece">Kipande</option>
+              </select>
+            </div>
+            <div className="form-group checkbox-group">
+              <label>
+                <input type="checkbox" checked={priceForm.isBaseline} onChange={(e) => setPriceForm({ ...priceForm, isBaseline: e.target.checked })} />
+                Bei ya Msingi
+              </label>
+            </div>
+          </div>
+          <div className="modal-actions">
+            <button type="submit" className="btn btn-primary"><i className="fas fa-plus"></i> Ongeza Bei</button>
+          </div>
+        </form>
+      </div>
+
+      <div className="users-table-container">
+        <table className="users-table">
+          <thead>
+            <tr>
+              <th>Zao</th>
+              <th>Aina</th>
+              <th>Eneo</th>
+              <th>Bei (TZS)</th>
+              <th>Tarehe</th>
+              <th>Msingi</th>
+              <th>Vitendo</th>
+            </tr>
+          </thead>
+          <tbody>
+            {marketPrices.map(p => (
+              <tr key={p._id}>
+                <td><strong>{p.cropName}</strong></td>
+                <td>{p.category}</td>
+                <td>{p.region}</td>
+                <td>{p.pricePerUnit}</td>
+                <td>{new Date(p.dateRecorded).toLocaleDateString('sw-TZ')}</td>
+                <td>{p.isBaseline ? <span className="role-pill role-admin">Msingi</span> : '—'}</td>
+                <td>
+                  <button className="btn btn-sm btn-danger" onClick={() => handleDeletePrice(p._id)}>
+                    <i className="fas fa-trash"></i>
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+
+  const renderLoans = () => (
+    <div className="admin-loans">
+      <div className="users-toolbar">
+        <select className="role-filter" value={loanFilter} onChange={(e) => setLoanFilter(e.target.value)}>
+          <option value="all">Maombi Yote</option>
+          <option value="pending">Yanasubiri</option>
+          <option value="approved">Yamekubaliwa</option>
+          <option value="rejected">Yamekataliwa</option>
+          <option value="completed">Yamekamilika</option>
+        </select>
+      </div>
+      <div className="users-table-container">
+        <table className="users-table">
+          <thead>
+            <tr>
+              <th>Mlengwa</th>
+              <th>Mkopo</th>
+              <th>Kiasi</th>
+              <th>Tarehe</th>
+              <th>Hali</th>
+              <th>Vitendo</th>
+            </tr>
+          </thead>
+          <tbody>
+            {loans.map(l => (
+              <tr key={l._id}>
+                <td><strong>{l.user?.name || 'N/A'}</strong></td>
+                <td>{l.loanName}</td>
+                <td>{l.amount}</td>
+                <td>{new Date(l.createdAt).toLocaleDateString('sw-TZ')}</td>
+                <td><span className={`role-pill role-${l.status}`}>{l.status}</span></td>
+                <td>
+                  {l.status === 'pending' && (
+                    <div className="user-actions">
+                      <button className="btn btn-sm btn-primary" onClick={() => handleModerateLoan(l._id, 'approved')}>
+                        <i className="fas fa-check"></i> Kubali
+                      </button>
+                      <button className="btn btn-sm btn-danger" onClick={() => handleModerateLoan(l._id, 'rejected')}>
+                        <i className="fas fa-times"></i> Kataa
+                      </button>
+                    </div>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+
+  const renderGroups = () => (
+    <div className="admin-groups">
+      <div className="users-table-container">
+        <table className="users-table">
+          <thead>
+            <tr>
+              <th>Kikundi</th>
+              <th>Eneo</th>
+              <th>Aina ya Mazao</th>
+              <th>Wanachama</th>
+              <th>Mwenyeji</th>
+            </tr>
+          </thead>
+          <tbody>
+            {groups.map(g => (
+              <tr key={g._id}>
+                <td><strong>{g.name}</strong></td>
+                <td>{g.location}</td>
+                <td>{g.cropType}</td>
+                <td>{g.members?.length || 0}</td>
+                <td>{g.creatorName}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+
+  const renderNews = () => (
+    <div className="admin-news">
+      <div className="users-table-container">
+        <table className="users-table">
+          <thead>
+            <tr>
+              <th>Kichwa</th>
+              <th>Aina</th>
+              <th>Mwandishi</th>
+              <th>Tarehe</th>
+              <th>Matukio</th>
+            </tr>
+          </thead>
+          <tbody>
+            {news.map(n => (
+              <tr key={n._id}>
+                <td><strong>{n.title}</strong></td>
+                <td>{n.category}</td>
+                <td>{n.author}</td>
+                <td>{new Date(n.date || n.createdAt).toLocaleDateString('sw-TZ')}</td>
+                <td>{n.views}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+
+  const renderAdvisory = () => (
+    <div className="admin-advisory">
+      <div className="users-table-container">
+        <table className="users-table">
+          <thead>
+            <tr>
+              <th>Kichwa</th>
+              <th>Aina</th>
+              <th>Tarehe</th>
+              <th>Muda wa Kusoma</th>
+            </tr>
+          </thead>
+          <tbody>
+            {articles.map(a => (
+              <tr key={a._id}>
+                <td><strong>{a.title}</strong></td>
+                <td>{a.category}</td>
+                <td>{new Date(a.date || a.createdAt).toLocaleDateString('sw-TZ')}</td>
+                <td>{a.readTime}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+
+  const renderNotifications = () => (
+    <div className="admin-notifications">
+      <div className="section-card">
+        <h3>Tuma Ujumbe kwa Watumiaji</h3>
+        <form onSubmit={handleBroadcast} className="broadcast-form">
+          <div className="form-grid">
+            <div className="form-group">
+              <label>Kichwa *</label>
+              <input type="text" value={broadcastForm.title} onChange={(e) => setBroadcastForm({ ...broadcastForm, title: e.target.value })} required placeholder="Mf. Tahadhari ya Mvua" />
+            </div>
+            <div className="form-group">
+              <label>Aina</label>
+              <select value={broadcastForm.type} onChange={(e) => setBroadcastForm({ ...broadcastForm, type: e.target.value })}>
+                <option value="system">Mfumo</option>
+                <option value="weather">Hali ya Hewa</option>
+                <option value="price">Bei</option>
+                <option value="loan">Mikopo</option>
+                <option value="order">Maagizo</option>
+              </select>
+            </div>
+            <div className="form-group">
+              <label>Lenga Jukumu</label>
+              <select value={broadcastForm.targetRole} onChange={(e) => setBroadcastForm({ ...broadcastForm, targetRole: e.target.value })}>
+                <option value="">Wafuasi Wote</option>
+                <option value="farmer">Wakulima</option>
+                <option value="buyer">Wanunuzi</option>
+                <option value="expert">Wataalamu</option>
+              </select>
+            </div>
+            <div className="form-group full-width">
+              <label>Ujumbe *</label>
+              <textarea value={broadcastForm.message} onChange={(e) => setBroadcastForm({ ...broadcastForm, message: e.target.value })} required rows="4" placeholder="Andika ujumbe..." />
+            </div>
+          </div>
+          <div className="modal-actions">
+            <button type="submit" className="btn btn-primary"><i className="fas fa-paper-plane"></i> Tuma Ujumbe</button>
+          </div>
+        </form>
+      </div>
+
+      <div className="users-table-container">
+        <table className="users-table">
+          <thead>
+            <tr>
+              <th>Kichwa</th>
+              <th>Ujumbe</th>
+              <th>Aina</th>
+              <th>Mlengwa</th>
+              <th>Tarehe</th>
+            </tr>
+          </thead>
+          <tbody>
+            {notifications.map(n => (
+              <tr key={n._id}>
+                <td><strong>{n.title}</strong></td>
+                <td>{n.message}</td>
+                <td>{n.type}</td>
+                <td>{n.user?.name || 'N/A'}</td>
+                <td>{new Date(n.createdAt).toLocaleDateString('sw-TZ')}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+
+  const renderDisputes = () => (
+    <div className="admin-disputes">
+      <div className="users-table-container">
+        <table className="users-table">
+          <thead>
+            <tr>
+              <th>Zao</th>
+              <th>Mnunuzi</th>
+              <th>Mkulima</th>
+              <th>Hali</th>
+              <th>Tarehe</th>
+            </tr>
+          </thead>
+          <tbody>
+            {disputes.map(d => (
+              <tr key={d._id}>
+                <td><strong>{d.cropName}</strong></td>
+                <td>{d.buyerName}</td>
+                <td>{d.farmerName}</td>
+                <td><span className="role-pill role-rejected">{d.status}</span></td>
+                <td>{new Date(d.createdAt).toLocaleDateString('sw-TZ')}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+
+  const renderAuditLogs = () => (
+    <div className="admin-audit-logs">
+      <div className="users-table-container">
+        <table className="users-table">
+          <thead>
+            <tr>
+              <th>Mhusika</th>
+              <th>Kitendo</th>
+              <th>Aina</th>
+              <th>Maelezo</th>
+              <th>Tarehe</th>
+            </tr>
+          </thead>
+          <tbody>
+            {auditLogs.map(l => (
+              <tr key={l._id}>
+                <td><strong>{l.userName}</strong> <span className="role-pill">{l.userRole}</span></td>
+                <td>{l.action}</td>
+                <td>{l.category}</td>
+                <td>{l.details ? JSON.stringify(l.details).slice(0, 50) : '—'}</td>
+                <td>{new Date(l.createdAt).toLocaleString('sw-TZ')}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+
+  const renderRatings = () => (
+    <div className="admin-ratings">
+      <div className="users-table-container">
+        <table className="users-table">
+          <thead>
+            <tr>
+              <th>Mtoa</th>
+              <th>Alionwa</th>
+              <th>Alama</th>
+              <th>Maoni</th>
+              <th>Tarehe</th>
+            </tr>
+          </thead>
+          <tbody>
+            {ratings.map(r => (
+              <tr key={r._id}>
+                <td><strong>{r.raterName}</strong></td>
+                <td>{r.ratedUser?.name || '—'}</td>
+                <td>{'⭐'.repeat(r.rating)} ({r.rating}/5)</td>
+                <td>{r.comment || '—'}</td>
+                <td>{new Date(r.createdAt).toLocaleDateString('sw-TZ')}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+
+  const renderSettings = () => (
+    <div className="admin-settings">
+      <div className="section-card">
+        <h3>Mipangilio ya Mfumo</h3>
+        <div className="form-grid">
+          <div className="form-group">
+            <label>Asilimia ya Tume (%)</label>
+            <input
+              type="number"
+              min="0"
+              max="100"
+              value={settings.commissionRate}
+              onChange={(e) => setSettings({ ...settings, commissionRate: e.target.value })}
+            />
+          </div>
+          <div className="form-group checkbox-group">
+            <label>
+              <input
+                type="checkbox"
+                checked={settings.featuredListingsEnabled}
+                onChange={(e) => setSettings({ ...settings, featuredListingsEnabled: e.target.checked })}
+              />
+              Wezesha Bidhaa Zilizojulikana
+            </label>
+          </div>
+          <div className="form-group full-width">
+            <label>Ujumbe wa Bendera</label>
+            <textarea
+              value={settings.bannerMessage}
+              onChange={(e) => setSettings({ ...settings, bannerMessage: e.target.value })}
+              rows="3"
+              placeholder="Ujumbe unaoonekana kwa watumiaji wote..."
+            />
+          </div>
+        </div>
+        <div className="modal-actions">
+          <button className="btn btn-primary" onClick={handleSaveSettings}>
+            <i className="fas fa-save"></i> Hifadhi Mipangilio
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <>
     <AdminLayout
@@ -404,7 +1139,7 @@ const AdminDashboard = ({ onPageChange, onAuth, user, onToggleChat, onRefresh })
       roleLabel="Admin"
       roleIcon="fas fa-user-shield"
       pageTitle="Admin Panel - Usimamizi wa Mfumo"
-      subtitle="Dhibiti watumiaji na majukumu yao katika mfumo mzima"
+      subtitle="Dhibiti watumiaji, mazao, bei, mikopo na mfumo mzima"
       headerBadge={<div className="admin-badge content-badge"><i className="fas fa-user-shield"></i> Admin - Usimamizi</div>}
       navSections={navSections}
       onLogout={() => onAuth('logout')}
@@ -418,6 +1153,17 @@ const AdminDashboard = ({ onPageChange, onAuth, user, onToggleChat, onRefresh })
     >
       {activeTab === 'overview' && renderStats()}
       {activeTab === 'users' && renderUsers()}
+      {activeTab === 'products' && renderProducts()}
+      {activeTab === 'market-prices' && renderMarketPrices()}
+      {activeTab === 'loans' && renderLoans()}
+      {activeTab === 'groups' && renderGroups()}
+      {activeTab === 'advisory' && renderAdvisory()}
+      {activeTab === 'news' && renderNews()}
+      {activeTab === 'notifications' && renderNotifications()}
+      {activeTab === 'ratings' && renderRatings()}
+      {activeTab === 'disputes' && renderDisputes()}
+      {activeTab === 'audit-logs' && renderAuditLogs()}
+      {activeTab === 'settings' && renderSettings()}
     </AdminLayout>
 
     {/* Create user modal */}
@@ -428,7 +1174,7 @@ const AdminDashboard = ({ onPageChange, onAuth, user, onToggleChat, onRefresh })
             <h3>Ongeza Mtumiaji Mpya</h3>
             <button className="close-btn" onClick={() => setShowCreateModal(false)}><i className="fas fa-times"></i></button>
           </div>
-          <form onSubmit={handleCreate} className="modal-body">
+          <form onSubmit={handleCreateUser} className="modal-body">
             <div className="form-grid">
               <div className="form-group">
                 <label>Jina Kamili *</label>
@@ -477,7 +1223,7 @@ const AdminDashboard = ({ onPageChange, onAuth, user, onToggleChat, onRefresh })
             <h3>Hariri {editingUser.name}</h3>
             <button className="close-btn" onClick={() => setShowEditModal(false)}><i className="fas fa-times"></i></button>
           </div>
-          <form onSubmit={handleEdit} className="modal-body">
+          <form onSubmit={handleEditUser} className="modal-body">
             <div className="form-grid">
               <div className="form-group">
                 <label>Jina Kamili</label>

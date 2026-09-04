@@ -14,7 +14,7 @@ const cropSchema = new mongoose.Schema({
   fallback: { type: String, default: '🌾' },
   rating: { type: Number, default: 4.0 },
   reviews: { type: Number, default: 0 },
-  status: { type: String, enum: ['available', 'sold', 'reserved'], default: 'available' },
+  status: { type: String, enum: ['available', 'sold', 'reserved', 'rejected'], default: 'available' },
   harvestDate: { type: String, default: '' },
 }, { timestamps: true });
 

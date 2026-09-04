@@ -1,10 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import Navigation from '../components/Navbar/Navbar';
-import Footer from '../components/Footer/Footer';
 import Loading from '../components/Loading/Loading';
 import './CSS/Weather.css';
 
-const Weather = ({ onPageChange, onAuth, user, onRefresh }) => {
+const Weather = ({ onRefresh }) => {
   const [selectedLocation, setSelectedLocation] = useState('Mpanda');
   const [forecastData, setForecastData] = useState(null);
   const [weatherData, setWeatherData] = useState(null);
@@ -150,12 +148,6 @@ const Weather = ({ onPageChange, onAuth, user, onRefresh }) => {
   if (!weatherData || !forecastData) {
     return (
       <div className="page weather-page">
-        <Navigation 
-          currentPage="weather"
-          onPageChange={onPageChange}
-          onAuth={onAuth}
-          user={user}
-        />
         <div className="weather-error">
           <i className="fas fa-exclamation-triangle"></i>
           <h3>Huduma ya Hali ya Hewa Haipatikani</h3>
@@ -164,7 +156,6 @@ const Weather = ({ onPageChange, onAuth, user, onRefresh }) => {
             <i className="fas fa-sync-alt"></i> Jaribu Tena
           </button>
         </div>
-        <Footer onPageChange={onPageChange} />
       </div>
     );
   }
@@ -175,12 +166,6 @@ const Weather = ({ onPageChange, onAuth, user, onRefresh }) => {
 
   return (
     <div className="page weather-page">
-      <Navigation 
-        currentPage="weather"
-        onPageChange={onPageChange}
-        onAuth={onAuth}
-        user={user}
-      />
       
       <div className="weather-container">
         <div className="container">
@@ -330,7 +315,6 @@ const Weather = ({ onPageChange, onAuth, user, onRefresh }) => {
         </div>
       </div>
 
-      <Footer onPageChange={onPageChange} />
     </div>
   );
 };

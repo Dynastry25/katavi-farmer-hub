@@ -1,11 +1,9 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import Navigation from '../Navbar/Navbar';
-import Footer from '../Footer/Footer';
 import { authAPI } from '../../api/client';
 import './Registration.css';
 
-const Registration = ({ onPageChange, onAuth, user, onRefresh }) => {
+const Registration = ({ onAuth }) => {
   const [step, setStep] = useState(1);
   const [userType, setUserType] = useState('');
   const [formData, setFormData] = useState({
@@ -770,12 +768,6 @@ const Registration = ({ onPageChange, onAuth, user, onRefresh }) => {
 
   return (
     <div className="page registration-page">
-      <Navigation 
-        currentPage="registration"
-        onPageChange={onPageChange}
-        onAuth={onAuth}
-        user={user}
-      />
       
       <div className="registration-container">
         <div className="container">
@@ -835,7 +827,6 @@ const Registration = ({ onPageChange, onAuth, user, onRefresh }) => {
         </div>
       </div>
 
-      <Footer onPageChange={onPageChange} />
     </div>
   );
 };

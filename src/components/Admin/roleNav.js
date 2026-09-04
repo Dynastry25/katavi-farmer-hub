@@ -1,7 +1,18 @@
 export const ROLE_TABS = {
   admin: [
-    { id: 'overview', label: 'Mapitio ya Mfumo', icon: 'fas fa-chart-pie' },
+    { id: 'overview', label: 'Dashibodi', icon: 'fas fa-chart-pie' },
     { id: 'users', label: 'Watumiaji', icon: 'fas fa-users-cog' },
+    { id: 'products', label: 'Mazao', icon: 'fas fa-leaf' },
+    { id: 'market-prices', label: 'Bei za Soko', icon: 'fas fa-chart-line' },
+    { id: 'loans', label: 'Mikopo', icon: 'fas fa-hand-holding-usd' },
+    { id: 'groups', label: 'Vikundi', icon: 'fas fa-users' },
+    { id: 'advisory', label: 'Ushauri', icon: 'fas fa-book-medical' },
+    { id: 'news', label: 'Habari', icon: 'fas fa-newspaper' },
+    { id: 'notifications', label: 'Arifa', icon: 'fas fa-bell' },
+    { id: 'ratings', label: 'Ukadiriaji', icon: 'fas fa-star' },
+    { id: 'disputes', label: 'Migogoro', icon: 'fas fa-exclamation-triangle' },
+    { id: 'audit-logs', label: 'Rodi za Ukaguzi', icon: 'fas fa-clipboard-list' },
+    { id: 'settings', label: 'Mipangilio', icon: 'fas fa-cog' },
   ],
   farmer: [
     { id: 'overview', label: 'Mapitio', icon: 'fas fa-chart-pie' },
@@ -33,11 +44,6 @@ export const REPORT_LABELS = {
   expert: { label: 'Ripoti', icon: 'fas fa-chart-bar' },
 };
 
-/**
- * Shared navSections zile zile kwa dashboard na reports.
- * activeTab inaweza kuwa tab id ('overview', ...), 'profile', au 'reports'.
- * onTab: optional. Kwa dashboard inapita setActiveTab; bila hiyo ina-navigate kwenda dashboard?tab=id.
- */
 export function getRoleNavSections({ role, navigate, activeTab, badges = {}, onTab }) {
   const base = `/${role}-dashboard`;
   const tabs = (ROLE_TABS[role] || ROLE_TABS.farmer).map((t) => ({

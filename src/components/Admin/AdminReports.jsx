@@ -6,6 +6,7 @@ import {
 } from 'recharts';
 import AdminLayout from './AdminLayout';
 import { adminAPI } from '../../api/client';
+import { useAuth } from '../../shared/context/AuthContext';
 import './AdminDashboard.css';
 
 const ROLE_LABELS = {
@@ -22,7 +23,8 @@ const ROLE_ICONS = {
   admin: 'fas fa-user-shield'
 };
 
-const AdminReports = ({ onPageChange, onAuth, user, onToggleChat, onRefresh }) => {
+const AdminReports = () => {
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('reports');
   const [stats, setStats] = useState(null);
@@ -92,7 +94,7 @@ const AdminReports = ({ onPageChange, onAuth, user, onToggleChat, onRefresh }) =
       pageTitle="Ripoti za Mfumo"
       subtitle="Takwimu na ripoti za shughuli zote katika mfumo"
       navSections={navSections}
-      onLogout={() => onAuth('logout')}
+      onLogout={logout}
     >
       {loading ? (
         <div className="admin-loading">Inapakia ripoti...</div>

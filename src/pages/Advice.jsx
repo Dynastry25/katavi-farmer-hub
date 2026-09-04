@@ -1,10 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import Navigation from '../components/Navbar/Navbar';
-import Footer from '../components/Footer/Footer';
 import { adviceAPI } from '../api/client';
 import './CSS/Advice.css';
 
-const Advice = ({ onPageChange, onAuth, user }) => {
+const Advice = () => {
   const [activeTab, setActiveTab] = useState('articles');
   const [apiArticles, setApiArticles] = useState([]);
   const [apiExperts, setApiExperts] = useState([]);
@@ -218,12 +216,6 @@ const Advice = ({ onPageChange, onAuth, user }) => {
 
   return (
     <div className="page advice-page">
-      <Navigation 
-        currentPage="advice"
-        onPageChange={onPageChange}
-        onAuth={onAuth}
-        user={user}
-      />
       
       <div className="advice-container">
         <div className="container">
@@ -310,7 +302,6 @@ const Advice = ({ onPageChange, onAuth, user }) => {
         </div>
       </div>
 
-      <Footer onPageChange={onPageChange} />
     </div>
   );
 };

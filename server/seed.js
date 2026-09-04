@@ -12,6 +12,9 @@ const Expert = require('./models/Expert');
 const Announcement = require('./models/Announcement');
 const Conversation = require('./models/Conversation');
 const Message = require('./models/Message');
+const MarketPrice = require('./models/MarketPrice');
+const Notification = require('./models/Notification');
+const Rating = require('./models/Rating');
 
 dotenv.config();
 
@@ -33,6 +36,9 @@ const seedDB = async () => {
     await Announcement.deleteMany({});
     await Conversation.deleteMany({});
     await Message.deleteMany({});
+    await MarketPrice.deleteMany({});
+    await Notification.deleteMany({});
+    await Rating.deleteMany({});
 
     // Create users
     const users = await User.create([
@@ -459,6 +465,33 @@ const seedDB = async () => {
     ]);
 
     console.log('Mazungumzo yameundwa');
+
+    // Create market prices
+    await MarketPrice.create([
+      { cropName: 'Mahindi', category: 'cereals', region: 'Katavi', district: 'Mpanda', pricePerUnit: 1200, unit: 'kg', dateRecorded: new Date(), recordedBy: users[3]._id },
+      { cropName: 'Mpunga', category: 'cereals', region: 'Katavi', district: 'Mpanda', pricePerUnit: 2500, unit: 'kg', dateRecorded: new Date(), recordedBy: users[3]._id },
+      { cropName: 'Maharage', category: 'legumes', region: 'Katavi', district: 'Mlele', pricePerUnit: 3000, unit: 'kg', dateRecorded: new Date(), recordedBy: users[3]._id },
+      { cropName: 'Viazi', category: 'tubers', region: 'Katavi', district: 'Mpanda', pricePerUnit: 800, unit: 'kg', dateRecorded: new Date(), recordedBy: users[3]._id },
+      { cropName: 'Alizeti', category: 'oilseeds', region: 'Katavi', district: 'Mlele', pricePerUnit: 1800, unit: 'kg', dateRecorded: new Date(), recordedBy: users[3]._id },
+    ]);
+
+    console.log('Bei za soko zimeundwa');
+
+    // Create notifications
+    await Notification.create([
+      { user: users[3]._id, title: 'Karibu Katavi E-Kilimo', message: 'Karibu kwenye jukwaa letu la wakulima. Kuanza sasa!', type: 'system', read: false },
+      { user: users[0]._id, title: 'Bei za Mahindi Zimepanda', message: 'Bei za mahindi zimepanda hadi TZS 1,500 kwa kilo kwenye soko la Mpanda.', type: 'price', read: false },
+    ]);
+
+    console.log('Arifa zimeundwa');
+
+    // Create ratings
+    await Rating.create([
+      { rater: users[1]._id, raterName: 'Asha Hassan', ratedUser: users[0]._id, rating: 5, comment: 'Mkulima mwaminifu, mazao mazuri!' },
+      { rater: users[0]._id, raterName: 'Juma Mwinyi', ratedUser: users[1]._id, rating: 4, comment: 'Mnunuzi mwema na wa haraka.' },
+    ]);
+
+    console.log('Ukadiriaji umeundwa');
 
     console.log('\n✅ Seed imekamilika! Database imejazwa na data ya mfano.');
     console.log('\nAkaunti za majaribio:');

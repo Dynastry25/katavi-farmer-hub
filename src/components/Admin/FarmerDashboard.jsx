@@ -1,12 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { cropsAPI, productsAPI, ordersAPI } from '../../api/client';
 import { useNavigate } from 'react-router-dom';
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend } from 'recharts';
 import AdminLayout from './AdminLayout';
 import { getRoleNavSections } from './roleNav';
+import { useAuth } from '../../shared/context/AuthContext';
 import './FarmerDashboard.css';
 
-const FarmerDashboard = ({ onPageChange, onAuth, user, crops, onToggleChat, onAddCrop, onUpdateCrop, onDeleteCrop, onRefresh }) => {
+const FarmerDashboard = () => {
+  const { user, logout } = useAuth();
   const [activeTab, setActiveTab] = useState('overview');
   const [showAddCropModal, setShowAddCropModal] = useState(false);
   const [showAddProductModal, setShowAddProductModal] = useState(false);
@@ -14,27 +16,31 @@ const FarmerDashboard = ({ onPageChange, onAuth, user, crops, onToggleChat, onAd
   const [selectedOrder, setSelectedOrder] = useState(null);
   const navigate = useNavigate();
 
+  const [apiCrops, setApiCrops] = useState([]);
   const [apiOrders, setApiOrders] = useState([]);
   const [apiProducts, setApiProducts] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [ordersRes, productsRes] = await Promise.all([
-          ordersAPI.getAll(),
-          productsAPI.getMy(),
-        ]);
-        setApiOrders(ordersRes.data || []);
-        setApiProducts(productsRes.data || []);
-      } catch (err) {
-        console.error('Error fetching dashboard data:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
+  const fetchData = useCallback(async () => {
+    try {
+      const [cropsRes, ordersRes, productsRes] = await Promise.all([
+        cropsAPI.getAll(),
+        ordersAPI.getAll(),
+        productsAPI.getMy(),
+      ]);
+      setApiCrops(cropsRes.data?.crops || cropsRes.data || []);
+      setApiOrders(ordersRes.data || []);
+      setApiProducts(productsRes.data || []);
+    } catch (err) {
+      console.error('Error fetching dashboard data:', err);
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   const [newCrop, setNewCrop] = useState({
     name: '',
@@ -57,8 +63,8 @@ const FarmerDashboard = ({ onPageChange, onAuth, user, crops, onToggleChat, onAd
     shelfLife: ''
   });
 
-  // Sample data for farmer
-  const myCrops = crops.filter(crop => crop.farmer === user?.name);
+  // Crops from API for farmer
+  const myCrops = apiCrops.filter(crop => crop.farmer === user?.name || String(crop.farmer) === String(user?._id));
   const myProducts = apiProducts.length > 0 ? apiProducts : [
     { id: 1, name: 'Unga wa Mahindi', category: 'Vyakula Vilivyotengenezwa', quantity: '50kg', price: 'TZS 2,500/kg', description: 'Unga wa mahindi safi uliotengenezwa kwa ustadi', status: 'available' },
   ];
@@ -115,7 +121,7 @@ const FarmerDashboard = ({ onPageChange, onAuth, user, crops, onToggleChat, onAd
       await cropsAPI.create(newCrop);
       alert('Zao jipya limeongezwa kikamilifu!');
       setShowAddCropModal(false);
-      if (onRefresh) onRefresh();
+      fetchData();
     } catch (error) {
       console.error('Error:', error);
       alert('Hitilafu imetokea');
@@ -138,7 +144,7 @@ const FarmerDashboard = ({ onPageChange, onAuth, user, crops, onToggleChat, onAd
     try {
       await ordersAPI.update(orderId, { status: action === 'accept' ? 'completed' : 'cancelled' });
       alert(`Umekubali agizo #${orderId}`);
-      if (onRefresh) onRefresh();
+      fetchData();
     } catch (error) {
       console.error('Error:', error);
     }
@@ -476,14 +482,11 @@ const FarmerDashboard = ({ onPageChange, onAuth, user, crops, onToggleChat, onAd
       subtitle="Dashibodi yako ya kusimamia shughuli zako za kilimo na biashara"
       headerBadge={<div className="admin-badge"><i className="fas fa-tractor"></i> Mkulima Waandaliwa</div>}
       navSections={navSections}
-      onLogout={() => onAuth('logout')}
+      onLogout={logout}
       headerActions={
         <>
           <button className="btn btn-primary" onClick={() => setShowAddCropModal(true)}>
             <i className="fas fa-plus"></i> Ongeza Zao
-          </button>
-          <button className="btn btn-outline" onClick={onToggleChat}>
-            <i className="fas fa-comments"></i> Mazungumzo
           </button>
           <button className="btn btn-success" onClick={() => navigate('/loans')}>
             <i className="fas fa-hand-holding-usd"></i> Mikopo

@@ -1,10 +1,8 @@
 import React, { useState } from 'react';
-import Navigation from '../components/Navbar/Navbar';
-import Footer from '../components/Footer/Footer';
 import './CSS/Inputs.css';
 import Dawa from '../components/assets/Dawa.jpeg';
 
-const Inputs = ({ onPageChange, onAuth, user }) => {
+const Inputs = () => {
   const [selectedCategory, setSelectedCategory] = useState('all');
 
   const categories = [
@@ -117,12 +115,6 @@ const Inputs = ({ onPageChange, onAuth, user }) => {
 
   return (
     <div className="page inputs-page">
-      <Navigation 
-        currentPage="inputs"
-        onPageChange={onPageChange}
-        onAuth={onAuth}
-        user={user}
-      />
       
       <div className="inputs-container">
         <div className="container">
@@ -277,7 +269,6 @@ const Inputs = ({ onPageChange, onAuth, user }) => {
         </div>
       </div>
 
-      <Footer onPageChange={onPageChange} />
     </div>
   );
 };

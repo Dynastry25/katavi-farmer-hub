@@ -1,7 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { cropsAPI } from '../api/client';
-import Navigation from '../components/Navbar/Navbar';
-import Footer from '../components/Footer/Footer';
 import Loading from '../components/Loading/Loading';
 import './CSS/Market.css';
 import Mpunga from '../components/assets/mpunga.jpeg';
@@ -27,7 +25,7 @@ const categoryMeta = {
 
 const getCat = (cat) => categoryMeta[cat] || { label: 'Zao', icon: 'fas fa-wheat-awn', photo: Mahindi };
 
-const Market = ({ crops, onPageChange, onAuth, user, onContactFarmer, onCropDetails }) => {
+const Market = ({ crops, onContactFarmer, onCropDetails }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedLocation, setSelectedLocation] = useState('all');
@@ -190,12 +188,6 @@ const Market = ({ crops, onPageChange, onAuth, user, onContactFarmer, onCropDeta
 
   return (
     <div className="page market-page">
-      <Navigation 
-        currentPage="market"
-        onPageChange={onPageChange}
-        onAuth={onAuth}
-        user={user}
-      />
       
       <div className="farmer-market-banner">
         <img className="banner-bg" src={MarketBanner} alt="Soko la wakulima" />
@@ -413,7 +405,6 @@ const Market = ({ crops, onPageChange, onAuth, user, onContactFarmer, onCropDeta
         </div>
       </div>
 
-      <Footer onPageChange={onPageChange} />
     </div>
   );
 };

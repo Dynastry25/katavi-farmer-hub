@@ -1,9 +1,7 @@
 import React, { useState } from 'react';
-import Navigation from './Navbar/Navbar';
-import Footer from './Footer/Footer';
 import './Reports.css';
 
-const Reports = ({ onPageChange, onAuth, user, crops }) => {
+const Reports = ({ crops }) => {
   const [reportType, setReportType] = useState('sales');
   const [dateRange, setDateRange] = useState('monthly');
 
@@ -22,12 +20,6 @@ const Reports = ({ onPageChange, onAuth, user, crops }) => {
 
   return (
     <div className="page reports-page">
-      <Navigation 
-        currentPage="reports"
-        onPageChange={onPageChange}
-        onAuth={onAuth}
-        user={user}
-      />
       
       <div className="reports-container">
         <div className="container">
@@ -142,7 +134,6 @@ const Reports = ({ onPageChange, onAuth, user, crops }) => {
         </div>
       </div>
 
-      <Footer onPageChange={onPageChange} />
     </div>
   );
 };

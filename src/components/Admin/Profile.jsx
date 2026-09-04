@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AdminLayout from './AdminLayout';
 import { getRoleNavSections } from './roleNav';
 import ProfilePanel from '../Profile/ProfilePanel';
+import { useAuth } from '../../shared/context/AuthContext';
 
 const ROLE_LABELS = {
   farmer: 'Mkulima',
@@ -18,24 +19,15 @@ const ROLE_ICONS = {
   admin: 'fas fa-user-shield'
 };
 
-const Profile = ({ user: propUser, onAuth }) => {
+const Profile = () => {
+  const { user, logout, updateUser } = useAuth();
   const navigate = useNavigate();
-  const [user, setUser] = useState(propUser);
 
   useEffect(() => {
-    let current = propUser;
-    if (!current) {
-      try {
-        const saved = localStorage.getItem('kataviUser');
-        if (saved) current = JSON.parse(saved);
-      } catch (e) {}
-    }
-    if (!current) {
+    if (!user) {
       navigate('/login');
-      return;
     }
-    setUser(current);
-  }, [propUser]);
+  }, [user, navigate]);
 
   const role = user?.role || 'farmer';
 
@@ -45,6 +37,12 @@ const Profile = ({ user: propUser, onAuth }) => {
     activeTab: 'profile',
   });
 
+  const handleProfileAction = (action, data) => {
+    if (action === 'login-success' && data) {
+      updateUser(data);
+    }
+  };
+
   return (
     <AdminLayout
       user={user}
@@ -53,9 +51,9 @@ const Profile = ({ user: propUser, onAuth }) => {
       pageTitle="Wasifu wangu"
       subtitle="Hariri na sasisha taarifa zako za akaunti"
       navSections={navSections}
-      onLogout={() => onAuth('logout')}
+      onLogout={logout}
     >
-      <ProfilePanel user={user} onAuth={onAuth} />
+      <ProfilePanel user={user} onAuth={handleProfileAction} />
     </AdminLayout>
   );
 };

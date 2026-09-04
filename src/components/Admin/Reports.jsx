@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import AdminLayout from './AdminLayout';
 import { getRoleNavSections } from './roleNav';
 import { cropsAPI, ordersAPI, productsAPI, adviceAPI, adminAPI } from '../../api/client';
+import { useAuth } from '../../shared/context/AuthContext';
 import './Reports.css';
 
 const ROLE_LABELS = {
@@ -19,9 +20,9 @@ const ROLE_ICONS = {
   admin: 'fas fa-user-shield'
 };
 
-const Reports = ({ user: propUser, onAuth }) => {
+const Reports = () => {
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const [user, setUser] = useState(propUser);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({});
   const [activities, setActivities] = useState([]);
@@ -29,21 +30,13 @@ const Reports = ({ user: propUser, onAuth }) => {
   const role = user?.role || 'farmer';
 
   useEffect(() => {
-    let current = propUser;
-    if (!current) {
-      try {
-        const saved = localStorage.getItem('kataviUser');
-        if (saved) current = JSON.parse(saved);
-      } catch (e) {}
-    }
-    if (!current) {
+    if (!user) {
       navigate('/login');
       return;
     }
-    setUser(current);
-    loadReport(current.role || 'farmer');
+    loadReport(user.role || 'farmer');
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [propUser]);
+  }, [user]);
 
   const timeAgo = (dateStr) => {
     if (!dateStr) return 'Hivi karibuni';
@@ -209,7 +202,7 @@ const Reports = ({ user: propUser, onAuth }) => {
       pageTitle="Ripoti yangu - Shughuli"
       subtitle="Activity na takwimu za shughuli zako"
       navSections={navSections}
-      onLogout={() => onAuth('logout')}
+      onLogout={logout}
     >
       {loading ? (
         <div className="report-loading">Inapakia ripoti yako...</div>

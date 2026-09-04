@@ -1,10 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import Navigation from '../components/Navbar/Navbar';
-import Footer from '../components/Footer/Footer';
 import { newsAPI } from '../api/client';
 import './CSS/News.css';
 
-const News = ({ onPageChange, onAuth, user }) => {
+const News = () => {
   const [activeCategory, setActiveCategory] = useState('all');
   const [apiNews, setApiNews] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -170,12 +168,6 @@ const News = ({ onPageChange, onAuth, user }) => {
 
   return (
     <div className="page news-page">
-      <Navigation 
-        currentPage="news"
-        onPageChange={onPageChange}
-        onAuth={onAuth}
-        user={user}
-      />
       
       <div className="news-container">
         <div className="container">
@@ -340,7 +332,6 @@ const News = ({ onPageChange, onAuth, user }) => {
         </div>
       </div>
 
-      <Footer onPageChange={onPageChange} />
     </div>
   );
 };

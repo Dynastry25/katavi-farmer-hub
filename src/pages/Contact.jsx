@@ -1,11 +1,9 @@
 // Contact.jsx
 import React, { useState } from 'react';
 import { contactAPI } from '../api/client';
-import Navigation from '../components/Navbar/Navbar';
-import Footer from '../components/Footer/Footer';
 import './CSS/Contact.css';
 
-const Contact = ({ onPageChange, onAuth, user }) => {
+const Contact = () => {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -104,12 +102,6 @@ const Contact = ({ onPageChange, onAuth, user }) => {
 
   return (
     <div className="contact-page-wrapper">
-      <Navigation 
-        currentPage="contact"
-        onPageChange={onPageChange}
-        onAuth={onAuth}
-        user={user}
-      />
       
       <div className="contact-main-container">
         <div className="contact-content-wrapper">
@@ -289,7 +281,6 @@ const Contact = ({ onPageChange, onAuth, user }) => {
         </div>
       </div>
 
-      <Footer onPageChange={onPageChange} />
     </div>
   );
 };

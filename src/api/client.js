@@ -215,4 +215,39 @@ export const chatbotAPI = {
   },
 };
 
+// Notifications API
+export const notificationsAPI = {
+  getAll: (params) => api.get('/notifications', { params }),
+  getUnreadCount: () => api.get('/notifications/unread-count'),
+  markRead: (id) => api.put(`/notifications/${id}/read`),
+  markAllRead: () => api.put('/notifications/read-all'),
+};
+
+// Market Prices API
+export const marketPricesAPI = {
+  getAll: (params) => api.get('/market-prices', { params }),
+  getAverage: (params) => api.get('/market-prices/average', { params }),
+  getTrend: (params) => api.get('/market-prices/trend', { params }),
+  getBaselines: (params) => api.get('/market-prices/baselines', { params }),
+};
+
+// Admin Extended API
+export const adminExtendedAPI = {
+  suspendUser: (id, suspend) => api.put(`/admin/users/${id}/suspend`, { suspend }),
+  getCrops: (params) => api.get('/admin/crops', { params }),
+  moderateCrop: (id, status) => api.put(`/admin/crops/${id}/moderate`, { status }),
+  getMarketPrices: (params) => api.get('/admin/market-prices', { params }),
+  createMarketPrice: (data) => api.post('/admin/market-prices', data),
+  updateMarketPrice: (id, data) => api.put(`/admin/market-prices/${id}`, data),
+  deleteMarketPrice: (id) => api.delete(`/admin/market-prices/${id}`),
+  getLoanApplications: (params) => api.get('/admin/loans', { params }),
+  moderateLoan: (id, status) => api.put(`/admin/loans/${id}/moderate`, { status }),
+  getGroups: (params) => api.get('/admin/groups', { params }),
+  getRatings: (params) => api.get('/admin/ratings', { params }),
+  getNotifications: (params) => api.get('/admin/notifications', { params }),
+  broadcastNotification: (data) => api.post('/admin/notifications/broadcast', data),
+  getDisputes: (params) => api.get('/admin/disputes', { params }),
+  getAuditLogs: (params) => api.get('/admin/audit-logs', { params }),
+};
+
 export default api;
