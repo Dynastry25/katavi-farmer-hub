@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { adviceAPI } from '../../api/client';
-import Navigation from '../Navbar/Navbar';
-import Footer from '../Footer/Footer';
+import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend } from 'recharts';
+import AdminLayout from './AdminLayout';
+import { getRoleNavSections } from './roleNav';
 import './ExpertDashboard.css';
 
 const ExpertDashboard = ({ onPageChange, onAuth, user, onToggleChat, onRefresh }) => {
@@ -227,6 +228,41 @@ const ExpertDashboard = ({ onPageChange, onAuth, user, onToggleChat, onRefresh }
           <div className="stat-content">
             <div className="stat-number">{expertStats.averageRating}</div>
             <div className="stat-label">Wastani wa Tathmini</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Charts */}
+      <div className="dash-charts-row">
+        <div className="dash-chart-card">
+          <h3>Maswali kwa Hali</h3>
+          <ResponsiveContainer width="100%" height={230}>
+            <PieChart>
+              <Pie data={[
+                { name: 'Yamejibiwa', value: expertStats.consultationsAnswered },
+                { name: 'Yanasubiri', value: expertStats.pendingConsultations },
+              ].filter(d => d.value > 0)} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={50} outerRadius={85} paddingAngle={4} label>
+                <Cell fill="#16a34a" />
+                <Cell fill="#f59e0b" />
+              </Pie>
+              <Tooltip />
+              <Legend verticalAlign="bottom" />
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
+        <div className="dash-chart-card">
+          <h3>Wastani wa Tathmini</h3>
+          <div className="rating-gauge">
+            <div className="rating-value">{expertStats.averageRating}<span>/5</span></div>
+            <div className="stars">
+              {[1, 2, 3, 4, 5].map(n => (
+                <i key={n} className={n <= Math.round(expertStats.averageRating) ? 'fas fa-star' : 'far fa-star'}></i>
+              ))}
+            </div>
+            <div className="rating-track">
+              <div className="rating-fill" style={{ width: (expertStats.averageRating / 5) * 100 + '%' }}></div>
+            </div>
+            <div className="rating-sub">Kiwango cha huduma</div>
           </div>
         </div>
       </div>
@@ -674,94 +710,45 @@ const ExpertDashboard = ({ onPageChange, onAuth, user, onToggleChat, onRefresh }
     </div>
   );
 
+  const navSections = getRoleNavSections({
+    role: 'expert',
+    navigate,
+    activeTab,
+    badges: { consultations: consultations.filter(c => c.status === 'pending').length },
+    onTab: setActiveTab,
+  });
+
   return (
-    <div className="page expert-dashboard-page">
-      <Navigation 
-        currentPage="expert-dashboard"
-        onPageChange={onPageChange}
-        onAuth={onAuth}
-        user={user}
-      />
-      
-      <div className="expert-dashboard-container">
-        <div className="container">
-          {/* Dashboard Header */}
-          <div className="dashboard-header">
-            <div className="welcome-section">
-              <h1>Karibu, Mtaalamu {user?.name}!</h1>
-              <p>Dashibodi yako ya kutoa ushauri na kuongoza wakulima wa Katavi</p>
-              <div className="expert-badge">
-                <i className="fas fa-graduation-cap"></i>
-                Mtaalamu wa Kilimo
-              </div>
-            </div>
-            <div className="header-actions">
-              <button className="btn btn-primary" onClick={() => setShowAddArticleModal(true)}>
-                <i className="fas fa-edit"></i> Andika Makala
-              </button>
-              <button className="btn btn-outline" onClick={onToggleChat}>
-                <i className="fas fa-comments"></i> Mazungumzo
-              </button>
-              <button className="btn btn-success" onClick={() => navigate('/advice')}>
-                <i className="fas fa-graduation-cap"></i> Kituo cha Ushauri
-              </button>
-            </div>
-          </div>
-
-          {/* Dashboard Tabs */}
-          <div className="dashboard-tabs">
-            <button 
-              className={`tab-btn ${activeTab === 'overview' ? 'active' : ''}`}
-              onClick={() => setActiveTab('overview')}
-            >
-              <i className="fas fa-chart-pie"></i>
-              Mapitio
-            </button>
-            <button 
-              className={`tab-btn ${activeTab === 'articles' ? 'active' : ''}`}
-              onClick={() => setActiveTab('articles')}
-            >
-              <i className="fas fa-newspaper"></i>
-              Makala Yangu
-            </button>
-            <button 
-              className={`tab-btn ${activeTab === 'consultations' ? 'active' : ''}`}
-              onClick={() => setActiveTab('consultations')}
-            >
-              <i className="fas fa-comments"></i>
-              Maswali
-              {consultations.filter(c => c.status === 'pending').length > 0 && (
-                <span className="notification-badge">
-                  {consultations.filter(c => c.status === 'pending').length}
-                </span>
-              )}
-            </button>
-            <button 
-              className={`tab-btn ${activeTab === 'earnings' ? 'active' : ''}`}
-              onClick={() => setActiveTab('earnings')}
-            >
-              <i className="fas fa-chart-line"></i>
-              Mapato
-            </button>
-            <button 
-              className={`tab-btn ${activeTab === 'schedule' ? 'active' : ''}`}
-              onClick={() => setActiveTab('schedule')}
-            >
-              <i className="fas fa-calendar"></i>
-              Ratiba
-            </button>
-          </div>
-
-          {/* Dashboard Content */}
-          <div className="dashboard-content">
-            {activeTab === 'overview' && renderOverview()}
-            {activeTab === 'articles' && renderArticles()}
-            {activeTab === 'consultations' && renderConsultations()}
-            {activeTab === 'earnings' && renderEarnings()}
-            {activeTab === 'schedule' && renderSchedule()}
-          </div>
-        </div>
-      </div>
+    <>
+    <AdminLayout
+      user={user}
+      roleLabel="Mtaalamu"
+      roleIcon="fas fa-graduation-cap"
+      pageTitle="Dashibodi ya Wataalamu"
+      subtitle="Dashibodi yako ya kutoa ushauri na kuongoza wakulima wa Katavi"
+      headerBadge={<div className="admin-badge"><i className="fas fa-graduation-cap"></i> Mtaalamu wa Kilimo</div>}
+      navSections={navSections}
+      onLogout={() => onAuth('logout')}
+      headerActions={
+        <>
+          <button className="btn btn-primary" onClick={() => setShowAddArticleModal(true)}>
+            <i className="fas fa-edit"></i> Andika Makala
+          </button>
+          <button className="btn btn-outline" onClick={onToggleChat}>
+            <i className="fas fa-comments"></i> Mazungumzo
+          </button>
+          <button className="btn btn-success" onClick={() => navigate('/advice')}>
+            <i className="fas fa-graduation-cap"></i> Kituo cha Ushauri
+          </button>
+        </>
+      }
+    >
+      {activeTab === 'overview' && renderOverview()}
+      {activeTab === 'articles' && renderArticles()}
+      {activeTab === 'consultations' && renderConsultations()}
+      {activeTab === 'earnings' && renderEarnings()}
+      {activeTab === 'schedule' && renderSchedule()}
+    </AdminLayout>
 
       {/* Add Article Modal */}
       {showAddArticleModal && (
@@ -881,8 +868,7 @@ const ExpertDashboard = ({ onPageChange, onAuth, user, onToggleChat, onRefresh }
         </div>
       )}
 
-      <Footer onPageChange={onPageChange} />
-    </div>
+    </>
   );
 };
 

@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ordersAPI } from '../../api/client';
-import Navigation from '../Navbar/Navbar';
-import Footer from '../Footer/Footer';
+import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Cell, PieChart, Pie, Legend } from 'recharts';
+import AdminLayout from './AdminLayout';
+import { getRoleNavSections } from './roleNav';
 import './BuyerDashboard.css';
 
 
@@ -251,6 +252,46 @@ const BuyerDashboard = ({ onPageChange, onAuth, user, crops, onToggleChat, onRef
             <div className="stat-number">{buyerStats.totalSpent}</div>
             <div className="stat-label">Jumla ya Matumizi</div>
           </div>
+        </div>
+      </div>
+
+      {/* Charts */}
+      <div className="dash-charts-row">
+        <div className="dash-chart-card">
+          <h3>Maagizo kwa Hali</h3>
+          <ResponsiveContainer width="100%" height={230}>
+            <PieChart>
+              <Pie data={[
+                { name: 'Yamekamilika', value: buyerStats.completedOrders },
+                { name: 'Yanasubiri', value: buyerStats.pendingOrders },
+              ].filter(d => d.value > 0)} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={50} outerRadius={85} paddingAngle={4} label>
+                <Cell fill="#16a34a" />
+                <Cell fill="#f59e0b" />
+              </Pie>
+              <Tooltip />
+              <Legend verticalAlign="bottom" />
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
+        <div className="dash-chart-card">
+          <h3>Muhtasari wa Maagizo</h3>
+          <ResponsiveContainer width="100%" height={230}>
+            <BarChart data={[
+              { name: 'Yote', value: buyerStats.totalOrders },
+              { name: 'Yakamilika', value: buyerStats.completedOrders },
+              { name: 'Yanasubiri', value: buyerStats.pendingOrders },
+            ]} margin={{ top: 10, right: 10, left: -15, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+              <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+              <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
+              <Tooltip />
+              <Bar dataKey="value" name="Idadi" radius={[6, 6, 0, 0]}>
+                <Cell fill="#1a7431" />
+                <Cell fill="#16a34a" />
+                <Cell fill="#f59e0b" />
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
         </div>
       </div>
 
@@ -759,89 +800,45 @@ const BuyerDashboard = ({ onPageChange, onAuth, user, crops, onToggleChat, onRef
     </div>
   );
 
+  const navSections = getRoleNavSections({
+    role: 'buyer',
+    navigate,
+    activeTab,
+    badges: { orders: buyerStats.pendingOrders },
+    onTab: setActiveTab,
+  });
+
   return (
-    <div className="page buyer-dashboard-page">
-      <Navigation 
-        currentPage="buyer-dashboard"
-        onPageChange={onPageChange}
-        onAuth={onAuth}
-        user={user}
-      />
-      
-      <div className="buyer-dashboard-container">
-        <div className="container">
-          {/* Dashboard Header */}
-          <div className="dashboard-header">
-            <div className="welcome-section">
-              <h1>Karibu, Mnunuzi {user?.name}!</h1>
-              <p>Dashibodi yako ya kununua mazao bora kutoka kwa wakulima wa Katavi</p>
-              <div className="buyer-badge">
-                <i className="fas fa-shopping-cart"></i>
-                Mnunuzi Waandaliwa
-              </div>
-            </div>
-            <div className="header-actions">
-              <button className="btn btn-primary" onClick={() => setActiveTab('marketplace')}>
-                <i className="fas fa-search"></i> Tafuta Mazao
-              </button>
-              <button className="btn btn-outline" onClick={onToggleChat}>
-                <i className="fas fa-comments"></i> Mazungumzo
-              </button>
-              <button className="btn btn-success" onClick={() => navigate('/reports')}>
-                <i className="fas fa-chart-line"></i> Ripoti za Bei
-              </button>
-            </div>
-          </div>
-
-          {/* Dashboard Tabs */}
-          <div className="dashboard-tabs">
-            <button 
-              className={`tab-btn ${activeTab === 'overview' ? 'active' : ''}`}
-              onClick={() => setActiveTab('overview')}
-            >
-              <i className="fas fa-chart-pie"></i>
-              Mapitio
-            </button>
-            <button 
-              className={`tab-btn ${activeTab === 'marketplace' ? 'active' : ''}`}
-              onClick={() => setActiveTab('marketplace')}
-            >
-              <i className="fas fa-store"></i>
-              Soko la Mazao
-            </button>
-            <button 
-              className={`tab-btn ${activeTab === 'orders' ? 'active' : ''}`}
-              onClick={() => setActiveTab('orders')}
-            >
-              <i className="fas fa-shopping-cart"></i>
-              Maagizo Yangu
-            </button>
-            <button 
-              className={`tab-btn ${activeTab === 'farmers' ? 'active' : ''}`}
-              onClick={() => setActiveTab('farmers')}
-            >
-              <i className="fas fa-users"></i>
-              Wakulima
-            </button>
-            <button 
-              className={`tab-btn ${activeTab === 'analytics' ? 'active' : ''}`}
-              onClick={() => setActiveTab('analytics')}
-            >
-              <i className="fas fa-chart-line"></i>
-              Takwimu
-            </button>
-          </div>
-
-          {/* Dashboard Content */}
-          <div className="dashboard-content">
-            {activeTab === 'overview' && renderOverview()}
-            {activeTab === 'marketplace' && renderMarketplace()}
-            {activeTab === 'orders' && renderOrders()}
-            {activeTab === 'farmers' && renderFarmers()}
-            {activeTab === 'analytics' && renderAnalytics()}
-          </div>
-        </div>
-      </div>
+    <>
+    <AdminLayout
+      user={user}
+      roleLabel="Mnunuzi"
+      roleIcon="fas fa-shopping-cart"
+      pageTitle="Dashibodi ya Mnunuzi / Muuzaji"
+      subtitle="Dashibodi yako ya kununua mazao bora kutoka kwa wakulima wa Katavi"
+      headerBadge={<div className="admin-badge"><i className="fas fa-shopping-cart"></i> Mnunuzi Waandaliwa</div>}
+      navSections={navSections}
+      onLogout={() => onAuth('logout')}
+      headerActions={
+        <>
+          <button className="btn btn-primary" onClick={() => setActiveTab('marketplace')}>
+            <i className="fas fa-search"></i> Tafuta Mazao
+          </button>
+          <button className="btn btn-outline" onClick={onToggleChat}>
+            <i className="fas fa-comments"></i> Mazungumzo
+          </button>
+          <button className="btn btn-success" onClick={() => navigate('/reports')}>
+            <i className="fas fa-chart-line"></i> Ripoti za Bei
+          </button>
+        </>
+      }
+    >
+      {activeTab === 'overview' && renderOverview()}
+      {activeTab === 'marketplace' && renderMarketplace()}
+      {activeTab === 'orders' && renderOrders()}
+      {activeTab === 'farmers' && renderFarmers()}
+      {activeTab === 'analytics' && renderAnalytics()}
+    </AdminLayout>
 
       {/* Order Modal */}
       {showOrderModal && selectedCrop && (
@@ -969,8 +966,7 @@ const BuyerDashboard = ({ onPageChange, onAuth, user, crops, onToggleChat, onRef
         </div>
       )}
 
-      <Footer onPageChange={onPageChange} />
-    </div>
+    </>
   );
 };
 

@@ -399,6 +399,11 @@
   font-family: monospace;
 }
 
+.demo-account.admin-account {
+  border-color: var(--primary);
+  background: rgba(26, 116, 49, 0.06);
+}
+
 /* Features Section */
 .features-section {
   text-align: center;

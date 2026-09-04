@@ -152,47 +152,36 @@ const MarketPreview = ({ crops, onPageChange, onContactFarmer }) => {
                 <div className="crop-content">
                   <div className="crop-topline">
                     <h3 className="crop-name">{crop.name}</h3>
-                    <span className="crop-fresh">
-                      <i className="fas fa-leaf"></i> Fresh
-                    </span>
+                    <span className="crop-fresh">{crop.location}</span>
                   </div>
 
-                  <div className="crop-details">
-                    <div className="crop-price">
-                      <span className="crop-price-currency">TZS</span>
-                      {crop.price}
-                      <span className="crop-price-unit">/{crop.unit}</span>
-                    </div>
-                    <div className="crop-location">
-                      <i className="fas fa-map-marker-alt"></i>
-                      {crop.location}
-                    </div>
+                  <div className="crop-price">
+                    <span className="currency">TZS</span>
+                    {crop.price}
+                    <span className="unit">/{crop.unit}</span>
+                    <span className="crop-qty">{crop.quantity} {crop.unit}</span>
                   </div>
 
-                  <div className="crop-meta">
-                    <div className="crop-farmer">
-                      <div className="farmer-avatar">
-                        <i className="fas fa-user"></i>
-                      </div>
-                      <div>
-                        <span className="farmer-label">Muuzaji</span>
-                        <span className="farmer-name">{crop.farmer}</span>
-                      </div>
+                  <div className="crop-farmer">
+                    <div className="farmer-avatar"></div>
+                    <div className="farmer-info">
+                      <span className="farmer-label">Muuzaji</span>
+                      <span className="farmer-name">{crop.farmer}</span>
                     </div>
                   </div>
 
                   <div className="crop-actions">
                     <button
                       className="btn-contact"
-                      onClick={() => onContactFarmer(crop)}
+                      onClick={() => onContactFarmer && onContactFarmer(crop)}
                     >
-                      <i className="fas fa-phone"></i> Wasiliana
+                      Wasiliana
                     </button>
                     <button
                       className="btn-buy"
                       onClick={() => onPageChange('market')}
                     >
-                      Nunua <i className="fas fa-arrow-right"></i>
+                      Nunua
                     </button>
                   </div>
                 </div>

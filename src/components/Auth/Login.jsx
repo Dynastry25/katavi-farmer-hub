@@ -20,7 +20,8 @@ const Login = ({ onPageChange, onAuth, user, onRefresh }) => {
   const dashboardPaths = {
     farmer: '/farmer-dashboard',
     buyer: '/buyer-dashboard',
-    expert: '/expert-dashboard'
+    expert: '/expert-dashboard',
+    admin: '/admin-dashboard'
   };
 
   const handleInputChange = (e) => {
@@ -350,6 +351,24 @@ const Login = ({ onPageChange, onAuth, user, onRefresh }) => {
                         setFormData({
                           email: 'mohamed@example.com',
                           password: 'password123',
+                          rememberMe: false
+                        });
+                      }}
+                      disabled={isLoading}
+                    >
+                      Tumia
+                    </button>
+                  </div>
+                  <div className="demo-account admin-account">
+                    <div className="demo-role"><i className="fas fa-user-shield"></i> Admin</div>
+                    <div className="demo-email">admin@katavi.co.tz</div>
+                    <div className="demo-password">Admin@1234</div>
+                    <button 
+                      className="btn btn-sm btn-outline"
+                      onClick={() => {
+                        setFormData({
+                          email: 'admin@katavi.co.tz',
+                          password: 'Admin@1234',
                           rememberMe: false
                         });
                       }}

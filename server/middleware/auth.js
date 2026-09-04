@@ -40,4 +40,32 @@ const optionalAuth = async (req, res, next) => {
   }
 };
 
-module.exports = { auth, optionalAuth };
+// Require an authenticated user with admin role
+const requireAdmin = async (req, res, next) => {
+  try {
+    const token = req.header('Authorization')?.replace('Bearer ', '');
+    
+    if (!token) {
+      return res.status(401).json({ message: 'Usajili unahitajika' });
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findById(decoded.id).select('-password');
+    
+    if (!user) {
+      return res.status(401).json({ message: 'Mtumiaji huyu haupatikani' });
+    }
+
+    if (user.role !== 'admin') {
+      return res.status(403).json({ message: 'Huna ruhusa ya kufanya kitendo hiki' });
+    }
+
+    req.user = user;
+    req.token = token;
+    next();
+  } catch (error) {
+    res.status(401).json({ message: 'Tokeni siyo sahihi' });
+  }
+};
+
+module.exports = { auth, optionalAuth, requireAdmin };

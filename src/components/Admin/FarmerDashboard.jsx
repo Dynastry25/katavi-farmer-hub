@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { cropsAPI, productsAPI, ordersAPI } from '../../api/client';
 import { useNavigate } from 'react-router-dom';
-import Navigation from '../Navbar/Navbar';
-import Footer from '../Footer/Footer';
+import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend } from 'recharts';
+import AdminLayout from './AdminLayout';
+import { getRoleNavSections } from './roleNav';
 import './FarmerDashboard.css';
 
 const FarmerDashboard = ({ onPageChange, onAuth, user, crops, onToggleChat, onAddCrop, onUpdateCrop, onDeleteCrop, onRefresh }) => {
@@ -90,7 +91,7 @@ const FarmerDashboard = ({ onPageChange, onAuth, user, crops, onToggleChat, onAd
       type: 'message',
       description: 'Ulipokea ujumbe kutoka kwa mnunuzi',
       time: '5 saa zilizopita',
-      icon: '💬'
+      icon: 'fas fa-comment'
     },
     {
       id: 3,
@@ -144,7 +145,17 @@ const FarmerDashboard = ({ onPageChange, onAuth, user, crops, onToggleChat, onAd
     setShowOrderModal(false);
   };
 
-  const renderOverview = () => (
+  const renderOverview = () => {
+    const orderChartData = [
+      { name: 'Yamekamilika', value: farmerStats.completedOrders },
+      { name: 'Yanasubiri', value: farmerStats.pendingOrders },
+    ].filter(d => d.value > 0);
+    const typeCounts = {};
+    myCrops.forEach(c => { const t = c.type || c.crop || 'Bila Aina'; typeCounts[t] = (typeCounts[t] || 0) + 1; });
+    const types = Object.keys(typeCounts);
+    const max = Math.max(1, ...Object.values(typeCounts));
+    const cropTypeData = types.map(name => ({ name, count: typeCounts[name], pct: Math.round((typeCounts[name] / max) * 100) }));
+    return (
     <div className="farmer-overview">
       {/* Stats Cards */}
       <div className="stats-grid">
@@ -170,10 +181,44 @@ const FarmerDashboard = ({ onPageChange, onAuth, user, crops, onToggleChat, onAd
           </div>
         </div>
         <div className="stat-card">
-          <div className="stat-icon">⏳</div>
+          <div className="stat-icon"><i className="fas fa-hourglass-half"></i></div>
           <div className="stat-content">
             <div className="stat-number">{farmerStats.pendingOrders}</div>
             <div className="stat-label">Maagizo Yanayosubiri</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Charts */}
+      <div className="dash-charts-row">
+        <div className="dash-chart-card">
+          <h3>Maagizo kwa Hali</h3>
+          <ResponsiveContainer width="100%" height={230}>
+            <PieChart>
+              <Pie data={orderChartData} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={50} outerRadius={85} paddingAngle={4} label>
+                <Cell fill="#16a34a" />
+                <Cell fill="#f59e0b" />
+                <Cell fill="#ef4444" />
+              </Pie>
+              <Tooltip />
+              <Legend verticalAlign="bottom" />
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
+        <div className="dash-chart-card">
+          <h3>Mazao kwa Aina</h3>
+          <div className="crop-type-list">
+            {cropTypeData.length === 0 ? (
+              <div className="no-data">Hakuna mazao bado</div>
+            ) : cropTypeData.map(c => (
+              <div className="crop-type-bar" key={c.name}>
+                <div className="ct-label">{c.name}</div>
+                <div className="ct-track">
+                  <div className="ct-fill" style={{ width: c.pct + '%' }}></div>
+                </div>
+                <div className="ct-count">{c.count}</div>
+              </div>
+            ))}
           </div>
         </div>
       </div>
@@ -216,94 +261,9 @@ const FarmerDashboard = ({ onPageChange, onAuth, user, crops, onToggleChat, onAd
           </button>
         </div>
       </div>
-
-      {/* Dashboard Links */}
-      <div className="dashboard-links-section">
-        <h3>🔗 Huduma za Wakulima</h3>
-        <div className="dashboard-links-grid">
-          <button className="dashboard-link-card" onClick={() => navigate('/market')}>
-            <div className="link-icon">
-              <i className="fas fa-store"></i>
-            </div>
-            <div className="link-content">
-              <h4>Soko la Mazao</h4>
-              <p>Weka na uuze mazao yako</p>
-            </div>
-          </button>
-          
-          <button className="dashboard-link-card" onClick={() => navigate('/suppliers')}>
-            <div className="link-icon">
-              <i className="fas fa-truck"></i>
-            </div>
-            <div className="link-content">
-              <h4>Wauzaji wa Pembejeo</h4>
-              <p>Pata mbolea na vifaa</p>
-            </div>
-          </button>
-          
-          <button className="dashboard-link-card" onClick={() => navigate('/loans')}>
-            <div className="link-icon">
-              <i className="fas fa-hand-holding-usd"></i>
-            </div>
-            <div className="link-content">
-              <h4>Mikopo</h4>
-              <p>Omba mkopo wa kilimo</p>
-            </div>
-          </button>
-          
-          <button className="dashboard-link-card" onClick={() => navigate('/farmer-groups')}>
-            <div className="link-icon">
-              <i className="fas fa-users"></i>
-            </div>
-            <div className="link-content">
-              <h4>Vikundi vya Wakulima</h4>
-              <p>Jiunge na wakulima wengine</p>
-            </div>
-          </button>
-          
-          <button className="dashboard-link-card" onClick={() => navigate('/reports')}>
-            <div className="link-icon">
-              <i className="fas fa-chart-bar"></i>
-            </div>
-            <div className="link-content">
-              <h4>Ripoti na Takwimu</h4>
-              <p>Angalia mienendo ya biashara</p>
-            </div>
-          </button>
-          
-          <button className="dashboard-link-card" onClick={() => navigate('/advice')}>
-            <div className="link-icon">
-              <i className="fas fa-graduation-cap"></i>
-            </div>
-            <div className="link-content">
-              <h4>Ushauri wa Kilimo</h4>
-              <p>Pata maelekezo ya wataalamu</p>
-            </div>
-          </button>
-
-          <button className="dashboard-link-card" onClick={() => navigate('/weather')}>
-            <div className="link-icon">
-              <i className="fas fa-cloud-sun"></i>
-            </div>
-            <div className="link-content">
-              <h4>Hali ya Hewa</h4>
-              <p>Angalia utabiri wa hali ya hewa</p>
-            </div>
-          </button>
-
-          <button className="dashboard-link-card" onClick={() => navigate('/inputs')}>
-            <div className="link-icon">
-              <i className="fas fa-tools"></i>
-            </div>
-            <div className="link-content">
-              <h4>Pembejeo</h4>
-              <p>Vifaa na vyombo vya kilimo</p>
-            </div>
-          </button>
-        </div>
-      </div>
     </div>
-  );
+    );
+  };
 
   const renderMyCrops = () => (
     <div className="farmer-section">
@@ -370,7 +330,9 @@ const FarmerDashboard = ({ onPageChange, onAuth, user, crops, onToggleChat, onAd
           {myProducts.map(product => (
             <div key={product.id} className="product-card">
               <div className="product-image">
-                {product.image || '🏭'}
+                {product.image && product.image.includes('fa-') ? 
+                  <i className={product.image.replace(/<\/?i[^>]*>/g, '').trim()}></i> : 
+                  (product.image || <i className="fas fa-industry"></i>)}
               </div>
               <div className="product-content">
                 <h4>{product.name}</h4>
@@ -493,121 +455,51 @@ const FarmerDashboard = ({ onPageChange, onAuth, user, crops, onToggleChat, onAd
           <div className="analytics-trend positive">+50% kutoka mwezi uliopita</div>
         </div>
       </div>
-
-      {/* Additional Links in Analytics Tab */}
-      <div className="dashboard-links-section">
-        <h3>🔗 Ripoti za kina</h3>
-        <div className="dashboard-links-grid">
-          <button className="dashboard-link-card" onClick={() => navigate('/reports')}>
-            <div className="link-icon">
-              <i className="fas fa-chart-line"></i>
-            </div>
-            <div className="link-content">
-              <h4>Ripoti Kamili</h4>
-              <p>Angalia ripoti zote za biashara</p>
-            </div>
-          </button>
-          
-          <button className="dashboard-link-card" onClick={() => navigate('/market')}>
-            <div className="link-icon">
-              <i className="fas fa-chart-bar"></i>
-            </div>
-            <div className="link-content">
-              <h4>Bei za Soko</h4>
-              <p>Angalia mienendo ya bei</p>
-            </div>
-          </button>
-        </div>
-      </div>
     </div>
   );
 
+  const navSections = getRoleNavSections({
+    role: 'farmer',
+    navigate,
+    activeTab,
+    badges: { orders: farmerStats.pendingOrders },
+    onTab: setActiveTab,
+  });
+
   return (
-    <div className="page farmer-dashboard-page">
-      <Navigation 
-        currentPage="farmer-dashboard"
-        onPageChange={onPageChange}
-        onAuth={onAuth}
-        user={user}
-      />
-      
-      <div className="farmer-dashboard-container">
-        <div className="container">
-          {/* Dashboard Header */}
-          <div className="dashboard-header">
-            <div className="welcome-section">
-              <h1>Karibu, Mkulima {user?.name}!</h1>
-              <p>Dashibodi yako ya kusimamia shughuli zako za kilimo na biashara</p>
-              <div className="farmer-badge">
-                <i className="fas fa-tractor"></i>
-                Mkulima Waandaliwa
-              </div>
-            </div>
-            <div className="header-actions">
-              <button className="btn btn-primary" onClick={() => setShowAddCropModal(true)}>
-                <i className="fas fa-plus"></i> Ongeza Zao
-              </button>
-              <button className="btn btn-outline" onClick={onToggleChat}>
-                <i className="fas fa-comments"></i> Mazungumzo
-              </button>
-              <button className="btn btn-success" onClick={() => navigate('/loans')}>
-                <i className="fas fa-hand-holding-usd"></i> Mikopo
-              </button>
-            </div>
-          </div>
+    <>
+    <AdminLayout
+      user={user}
+      roleLabel="Mkulima"
+      roleIcon="fas fa-tractor"
+      pageTitle="Dashibodi ya Mkulima"
+      subtitle="Dashibodi yako ya kusimamia shughuli zako za kilimo na biashara"
+      headerBadge={<div className="admin-badge"><i className="fas fa-tractor"></i> Mkulima Waandaliwa</div>}
+      navSections={navSections}
+      onLogout={() => onAuth('logout')}
+      headerActions={
+        <>
+          <button className="btn btn-primary" onClick={() => setShowAddCropModal(true)}>
+            <i className="fas fa-plus"></i> Ongeza Zao
+          </button>
+          <button className="btn btn-outline" onClick={onToggleChat}>
+            <i className="fas fa-comments"></i> Mazungumzo
+          </button>
+          <button className="btn btn-success" onClick={() => navigate('/loans')}>
+            <i className="fas fa-hand-holding-usd"></i> Mikopo
+          </button>
+      </>
+      }
+    >
+      {activeTab === 'overview' && renderOverview()}
+      {activeTab === 'mycrops' && renderMyCrops()}
+      {activeTab === 'products' && renderMyProducts()}
+      {activeTab === 'orders' && renderOrders()}
+      {activeTab === 'analytics' && renderAnalytics()}
+    </AdminLayout>
 
-          {/* Dashboard Tabs */}
-          <div className="dashboard-tabs">
-            <button 
-              className={`tab-btn ${activeTab === 'overview' ? 'active' : ''}`}
-              onClick={() => setActiveTab('overview')}
-            >
-              <i className="fas fa-chart-pie"></i>
-              Mapitio
-            </button>
-            <button 
-              className={`tab-btn ${activeTab === 'mycrops' ? 'active' : ''}`}
-              onClick={() => setActiveTab('mycrops')}
-            >
-              <i className="fas fa-seedling"></i>
-              Mazao Yangu
-            </button>
-            <button 
-              className={`tab-btn ${activeTab === 'products' ? 'active' : ''}`}
-              onClick={() => setActiveTab('products')}
-            >
-              <i className="fas fa-industry"></i>
-              Bidhaa Zangu
-            </button>
-            <button 
-              className={`tab-btn ${activeTab === 'orders' ? 'active' : ''}`}
-              onClick={() => setActiveTab('orders')}
-            >
-              <i className="fas fa-shopping-cart"></i>
-              Maagizo
-            </button>
-            <button 
-              className={`tab-btn ${activeTab === 'analytics' ? 'active' : ''}`}
-              onClick={() => setActiveTab('analytics')}
-            >
-              <i className="fas fa-chart-line"></i>
-              Takwimu
-            </button>
-          </div>
-
-          {/* Dashboard Content */}
-          <div className="dashboard-content">
-            {activeTab === 'overview' && renderOverview()}
-            {activeTab === 'mycrops' && renderMyCrops()}
-            {activeTab === 'products' && renderMyProducts()}
-            {activeTab === 'orders' && renderOrders()}
-            {activeTab === 'analytics' && renderAnalytics()}
-          </div>
-        </div>
-      </div>
-
-      {/* Add Crop Modal */}
-      {showAddCropModal && (
+    {/* Add Crop Modal */}
+    {showAddCropModal && (
         <div className="modal-overlay">
           <div className="modal">
             <div className="modal-header">
@@ -867,9 +759,7 @@ const FarmerDashboard = ({ onPageChange, onAuth, user, crops, onToggleChat, onAd
           </div>
         </div>
       )}
-
-      <Footer onPageChange={onPageChange} />
-    </div>
+    </>
   );
 };
 

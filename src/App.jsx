@@ -24,9 +24,13 @@ const Contact = lazy(() => import('./pages/Contact'));
 const Login = lazy(() => import('./components/Auth/Login'));
 const Registration = lazy(() => import('./components/Auth/Registration'));
 const Dashboard = lazy(() => import('./components/Dashboards/Dashboard'));
-const FarmerDashboard = lazy(() => import('./components/Dashboards/FarmerDashboard'));
-const BuyerDashboard = lazy(() => import('./components/Dashboards/BuyerDashboard'));
-const ExpertDashboard = lazy(() => import('./components/Dashboards/ExpertDashboard'));
+const FarmerDashboard = lazy(() => import('./components/Admin/FarmerDashboard'));
+const BuyerDashboard = lazy(() => import('./components/Admin/BuyerDashboard'));
+const ExpertDashboard = lazy(() => import('./components/Admin/ExpertDashboard'));
+const AdminDashboard = lazy(() => import('./components/Admin/AdminDashboard'));
+const AdminReports = lazy(() => import('./components/Admin/AdminReports'));
+const Profile = lazy(() => import('./components/Admin/Profile'));
+const MyReports = lazy(() => import('./components/Admin/Reports'));
 const ChatSystem = lazy(() => import('./components/ChatSystem/ChatSystem'));
 
 // Import additional pages
@@ -546,6 +550,64 @@ function App() {
                 />
               </PageTransitionHandler>
             } 
+          />
+
+          <Route 
+            key="admin-dashboard"
+            path="/admin-dashboard" 
+            element={
+              <PageTransitionHandler>
+                <AdminDashboard 
+                  onPageChange={handlePageChange}
+                  onAuth={handleAuth}
+                  user={currentUser}
+                  onToggleChat={handleToggleChat}
+                  onRefresh={handleRefresh}
+                />
+              </PageTransitionHandler>
+            } 
+          />
+
+          <Route
+            key="admin-reports"
+            path="/admin-reports"
+            element={
+              <PageTransitionHandler>
+                <AdminReports
+                  onPageChange={handlePageChange}
+                  onAuth={handleAuth}
+                  user={currentUser}
+                  onToggleChat={handleToggleChat}
+                  onRefresh={handleRefresh}
+                />
+              </PageTransitionHandler>
+            }
+          />
+
+          <Route
+            key="profile"
+            path="/profile"
+            element={
+              <PageTransitionHandler>
+                <Profile
+                  onAuth={handleAuth}
+                  user={currentUser}
+                />
+              </PageTransitionHandler>
+            }
+          />
+
+          <Route
+            key="my-reports"
+            path="/my-reports"
+            element={
+              <PageTransitionHandler>
+                <MyReports
+                  onAuth={handleAuth}
+                  user={currentUser}
+                />
+              </PageTransitionHandler>
+            }
           />
 
           {/* 404 Route */}

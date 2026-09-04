@@ -149,6 +149,17 @@ export const uploadAPI = {
   }),
 };
 
+// Admin API (role management)
+export const adminAPI = {
+  getStats: () => api.get('/admin/stats'),
+  getUsers: (params) => api.get('/admin/users', { params }),
+  getUser: (id) => api.get(`/admin/users/${id}`),
+  createUser: (data) => api.post('/admin/users', data),
+  updateUser: (id, data) => api.put(`/admin/users/${id}`, data),
+  updateRole: (id, role) => api.put(`/admin/users/${id}/role`, { role }),
+  deleteUser: (id) => api.delete(`/admin/users/${id}`),
+};
+
 // Chatbot API
 export const chatbotAPI = {
   sendMessage: async ({ message, history, language, location, onDelta, signal }) => {

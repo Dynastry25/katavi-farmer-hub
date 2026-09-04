@@ -131,8 +131,8 @@
 /* Grid */
 .crops-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 24px;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
   margin-bottom: 3.5rem;
 }
 
@@ -154,7 +154,7 @@
 
 /* Image */
 .crop-image-container {
-  height: 200px;
+  height: 150px;
   position: relative;
   overflow: hidden;
   background: linear-gradient(135deg, #f0fdf4, #dcfce7);
@@ -186,13 +186,13 @@
 
 .crop-badge {
   position: absolute;
-  top: 12px;
-  left: 12px;
+  top: 10px;
+  left: 10px;
   background: rgba(255, 255, 255, 0.92);
   color: #1a7431;
-  padding: 6px 12px;
+  padding: 5px 10px;
   border-radius: 999px;
-  font-size: 0.78rem;
+  font-size: 0.7rem;
   font-weight: 700;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   z-index: 2;
@@ -200,20 +200,20 @@
 
 .crop-sold {
   position: absolute;
-  top: 12px;
-  right: 12px;
+  top: 10px;
+  right: 10px;
   background: rgba(26, 116, 49, 0.92);
   color: white;
-  padding: 6px 12px;
+  padding: 5px 10px;
   border-radius: 999px;
-  font-size: 0.75rem;
+  font-size: 0.66rem;
   font-weight: 600;
   z-index: 2;
 }
 
 /* Content */
 .crop-content {
-  padding: 1.25rem 1.4rem 1.5rem;
+  padding: 0.95rem 1.1rem 1.1rem;
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -223,120 +223,112 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 0.6rem;
+  margin-bottom: 0.25rem;
 }
 
 .crop-name {
-  font-size: 1.3rem;
+  font-size: 1.02rem;
   font-weight: 700;
   color: #111827;
   margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .crop-fresh {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  color: #16a34a;
-  font-size: 0.78rem;
+  gap: 4px;
+  color: #6b7280;
+  font-size: 0.72rem;
   font-weight: 600;
-}
-
-.crop-fresh i {
-  color: #22c55e;
+  text-align: right;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 45%;
 }
 
 /* Pricing */
-.crop-details {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1rem;
-  padding: 0.9rem 0;
-  border-top: 1px solid #f3f4f6;
-  border-bottom: 1px solid #f3f4f6;
-}
-
 .crop-price {
-  font-size: 1.5rem;
+  font-size: 1.28rem;
   font-weight: 800;
   color: #1a7431;
   display: flex;
   align-items: baseline;
-  gap: 2px;
+  gap: 4px;
+  margin-bottom: 0.55rem;
 }
 
-.crop-price-currency {
-  font-size: 0.8rem;
+.crop-price .currency {
+  font-size: 0.7rem;
   font-weight: 600;
   color: #6b7280;
-  margin-right: 2px;
+  align-self: flex-start;
+  margin-top: 0.32rem;
 }
 
-.crop-price-unit {
-  font-size: 0.85rem;
+.crop-price .unit {
+  font-size: 0.74rem;
   font-weight: 500;
   color: #9ca3af;
 }
 
-.crop-location {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  color: #6b7280;
-  font-size: 0.88rem;
-  font-weight: 500;
+.crop-qty {
+  margin-left: auto;
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: #4b5563;
+  white-space: nowrap;
 }
 
-.crop-location i {
-  color: #1a7431;
-}
-
-/* Seller */
-.crop-meta {
-  margin-bottom: 1.1rem;
-}
-
+/* Farmer */
 .crop-farmer {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
+  margin-bottom: 0.7rem;
 }
 
 .farmer-avatar {
-  width: 36px;
-  height: 36px;
+  width: 26px;
+  height: 26px;
   display: flex;
   align-items: center;
   justify-content: center;
   background: linear-gradient(135deg, rgba(26, 116, 49, 0.1), rgba(74, 222, 128, 0.15));
   color: #1a7431;
   border-radius: 50%;
-  font-size: 0.9rem;
+  flex-shrink: 0;
 }
 
-.crop-farmer > div:last-child {
+.farmer-info {
   display: flex;
   flex-direction: column;
+  min-width: 0;
 }
 
 .farmer-label {
-  font-size: 0.7rem;
+  font-size: 0.6rem;
   color: #9ca3af;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
 .farmer-name {
-  font-size: 0.92rem;
+  font-size: 0.78rem;
   font-weight: 600;
   color: #374151;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* Actions */
 .crop-actions {
   display: flex;
-  gap: 10px;
+  gap: 8px;
   margin-top: auto;
 }
 
@@ -345,11 +337,11 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 7px;
-  padding: 11px 14px;
-  font-size: 0.88rem;
+  gap: 6px;
+  padding: 9px 10px;
+  font-size: 0.8rem;
   font-weight: 600;
-  border-radius: 11px;
+  border-radius: 10px;
   cursor: pointer;
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -427,6 +419,12 @@
 }
 
 /* Responsive */
+@media (max-width: 1024px) {
+  .crops-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
 @media (max-width: 768px) {
   .market-preview {
     padding: 3.5rem 0;
@@ -446,12 +444,19 @@
   }
 
   .crops-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, 1fr);
     gap: 16px;
   }
 
   .market-stats {
     grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+  }
+}
+
+@media (max-width: 560px) {
+  .crops-grid {
+    grid-template-columns: 1fr;
     gap: 14px;
   }
 }

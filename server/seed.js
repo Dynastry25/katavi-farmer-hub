@@ -79,6 +79,16 @@ const seedDB = async () => {
         experience: '10',
         rating: 4.7,
       },
+      {
+        name: 'Admin Katavi',
+        email: 'admin@katavi.co.tz',
+        phone: '+255 789 111 222',
+        password: 'Admin@1234',
+        role: 'admin',
+        location: 'Mpanda',
+        district: 'Mpanda',
+        ward: 'Mpanda Mjini',
+      },
     ]);
 
     console.log(`Watumiaji ${users.length} wameundwa`);
@@ -455,6 +465,7 @@ const seedDB = async () => {
     console.log('  Farmer: juma@example.com / password123');
     console.log('  Buyer:  asha@example.com / password123');
     console.log('  Expert: mohamed@example.com / password123');
+    console.log('  Admin:  admin@katavi.co.tz / Admin@1234');
     
     process.exit(0);
   } catch (error) {
