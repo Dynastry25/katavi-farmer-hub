@@ -338,7 +338,7 @@ const ChatSystem = ({ user, onClose, onPageChange }) => {
           <div className="sidebar-footer">
             <button 
               className="new-chat-btn"
-              onClick={() => onPageChange('farmer-groups')}
+              onClick={() => onPageChange && onPageChange('market')}
             >
               <i className="fas fa-plus"></i>
               Anza Mazungumzo Mpya

@@ -19,8 +19,6 @@ const Contact = lazy(() => import('./pages/Contact'));
 const Advice = lazy(() => import('./pages/Advice'));
 const Inputs = lazy(() => import('./pages/Inputs'));
 const Suppliers = lazy(() => import('./components/Suppliers'));
-const Loans = lazy(() => import('./components/Loans'));
-const FarmerGroups = lazy(() => import('./components/FarmerGroups'));
 const Login = lazy(() => import('./components/Auth/Login'));
 const Registration = lazy(() => import('./components/Auth/Registration'));
 
@@ -55,8 +53,6 @@ function App() {
                     <Route path="advice" element={<Advice />} />
                     <Route path="inputs" element={<Inputs />} />
                     <Route path="suppliers" element={<Suppliers />} />
-                    <Route path="loans" element={<Loans />} />
-                    <Route path="farmer-groups" element={<FarmerGroups />} />
                     <Route path="about" element={<About />} />
                     <Route path="contact" element={<Contact />} />
                   </Route>

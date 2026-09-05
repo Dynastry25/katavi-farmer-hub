@@ -331,6 +331,13 @@ exports.createMarketPrice = async (req, res) => {
       recordedBy: req.user._id,
     });
 
+    try {
+      const { checkPriceAlerts } = require('../services/priceAlert.service');
+      await checkPriceAlerts(price);
+    } catch (alertErr) {
+      console.error('[PriceAlert] trigger error:', alertErr.message);
+    }
+
     await AuditLog.create({
       user: req.user._id, userName: req.user.name, userRole: req.user.role,
       action: 'create_market_price', category: 'content',

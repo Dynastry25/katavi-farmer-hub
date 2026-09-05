@@ -1373,3 +1373,8 @@
     grid-template-columns: 1fr;
   }
 }
+
+.expert-rating-summary { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 20px 0; }
+.expert-rating-big { font-size: 3rem; font-weight: 700; color: var(--primary); }
+.expert-rating-stars { color: var(--border); font-size: 1.4rem; }
+.expert-rating-stars .star-gold { color: #ff9800; }

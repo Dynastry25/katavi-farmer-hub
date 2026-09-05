@@ -2,6 +2,22 @@ const express = require('express');
 const router = express.Router();
 const { requirePermission } = require('../middleware/roleCheck');
 const ctrl = require('../controllers/admin.controller');
+const s = require('../controllers/adminShamba.controller');
+
+// ---- Shamba Assistant reference dataset (admin-curated) ----
+router.get('/shamba/land', requirePermission('content.manage'), s.getLandGuidance);
+router.post('/shamba/land', requirePermission('content.manage'), s.createLandGuidance);
+router.put('/shamba/land/:id', requirePermission('content.manage'), s.updateLandGuidance);
+router.delete('/shamba/land/:id', requirePermission('content.manage'), s.deleteLandGuidance);
+
+router.get('/shamba/cycles', requirePermission('content.manage'), s.getCropCycles);
+router.post('/shamba/cycles', requirePermission('content.manage'), s.upsertCropCycle);
+router.delete('/shamba/cycles/:id', requirePermission('content.manage'), s.deleteCropCycle);
+
+router.get('/shamba/diseases', requirePermission('content.manage'), s.getDiseases);
+router.post('/shamba/diseases', requirePermission('content.manage'), s.createDisease);
+router.put('/shamba/diseases/:id', requirePermission('content.manage'), s.updateDisease);
+router.delete('/shamba/diseases/:id', requirePermission('content.manage'), s.deleteDisease);
 
 router.get('/stats', requirePermission('stats.view'), ctrl.getStats);
 

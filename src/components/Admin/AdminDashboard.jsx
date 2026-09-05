@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend,
@@ -6,7 +6,7 @@ import {
   AreaChart, Area, LineChart, Line
 } from 'recharts';
 import AdminLayout from './AdminLayout';
-import { adminAPI, adminExtendedAPI, weatherAPI, marketPricesAPI } from '../../api/client';
+import { adminAPI, adminExtendedAPI, weatherAPI, marketPricesAPI, analyticsAPI } from '../../api/client';
 import { useAuth } from '../../shared/context/AuthContext';
 import { getRoleNavSections } from './roleNav';
 import { CROP_CATEGORIES } from '../../constants/roleConfig';
@@ -67,6 +67,25 @@ const [trendCrop, setTrendCrop] = useState('');
   const [articles, setArticles] = useState([]);
   const [notifications, setNotifications] = useState([]);
   const [auditLogs, setAuditLogs] = useState([]);
+
+  const [forecastData, setForecastData] = useState(null);
+  const [loadingForecast, setLoadingForecast] = useState(false);
+
+  const loadForecast = useCallback(async () => {
+    setLoadingForecast(true);
+    try {
+      const res = await analyticsAPI.getAdmin();
+      setForecastData(res.data);
+    } catch (err) {
+      console.error('Forecast load error:', err);
+    } finally {
+      setLoadingForecast(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (activeTab === 'forecast') loadForecast();
+  }, [activeTab, loadForecast]);
   const [disputes, setDisputes] = useState([]);
   const [ratings, setRatings] = useState([]);
 
@@ -795,7 +814,7 @@ const [trendCrop, setTrendCrop] = useState('');
                     </div>
                   </td>
                   <td>{u.phone}</td>
-                  <td>{u.location || u.district || '—'}</td>
+                  <td>{u.location || u.district || '�'}</td>
                   <td>
                     <span className={`role-pill role-${u.role}`}>
                       <i className={ROLE_ICONS[u.role] || 'fas fa-user'}></i> {ROLE_LABELS[u.role] || u.role}
@@ -809,7 +828,7 @@ const [trendCrop, setTrendCrop] = useState('');
                   <td>
                     <div className="trust-score-cell">
                       <span className="score-stars">
-                        {'★'.repeat(Math.max(1, Math.min(5, Math.round(u.trustScore || u.creditScore || 0))))}
+                        {'?'.repeat(Math.max(1, Math.min(5, Math.round(u.trustScore || u.creditScore || 0))))}
                       </span>
                       <span className="score-value">
                         {(u.trustScore || u.creditScore || 0).toFixed(1)}
@@ -819,7 +838,7 @@ const [trendCrop, setTrendCrop] = useState('');
                       )}
                     </div>
                   </td>
-                  <td>{u.createdAt ? new Date(u.createdAt).toLocaleDateString('sw-TZ') : '—'}</td>
+                  <td>{u.createdAt ? new Date(u.createdAt).toLocaleDateString('sw-TZ') : '�'}</td>
                   <td>
                     <div className="user-actions">
                       <select
@@ -1032,7 +1051,7 @@ const [trendCrop, setTrendCrop] = useState('');
                 <td>{p.region}</td>
                 <td>{p.pricePerUnit}</td>
                 <td>{new Date(p.dateRecorded).toLocaleDateString('sw-TZ')}</td>
-                <td>{p.isBaseline ? <span className="role-pill role-admin">Msingi</span> : '—'}</td>
+                <td>{p.isBaseline ? <span className="role-pill role-admin">Msingi</span> : '�'}</td>
                 <td>
                   <button className="btn btn-sm btn-danger" onClick={() => handleDeletePrice(p._id)}>
                     <i className="fas fa-trash"></i>
@@ -1338,7 +1357,7 @@ const [trendCrop, setTrendCrop] = useState('');
                 <td>{d.farmerName}</td>
                 <td><span className="role-pill role-rejected">{d.status}</span></td>
                 <td>{new Date(d.createdAt).toLocaleDateString('sw-TZ')}</td>
-                <td>{d.resolution || '—'}</td>
+                <td>{d.resolution || '�'}</td>
                 <td>
                   <div className="user-actions">
                     <button
@@ -1384,7 +1403,7 @@ const [trendCrop, setTrendCrop] = useState('');
                 <td><strong>{l.userName}</strong> <span className="role-pill">{l.userRole}</span></td>
                 <td>{l.action}</td>
                 <td>{l.category}</td>
-                <td>{l.details ? JSON.stringify(l.details).slice(0, 50) : '—'}</td>
+                <td>{l.details ? JSON.stringify(l.details).slice(0, 50) : '�'}</td>
                 <td>{new Date(l.createdAt).toLocaleString('sw-TZ')}</td>
               </tr>
             ))}
@@ -1411,9 +1430,9 @@ const [trendCrop, setTrendCrop] = useState('');
             {ratings.map(r => (
               <tr key={r._id}>
                 <td><strong>{r.raterName}</strong></td>
-                <td>{r.ratedUser?.name || '—'}</td>
-                <td>{'⭐'.repeat(r.rating)} ({r.rating}/5)</td>
-                <td>{r.comment || '—'}</td>
+                <td>{r.ratedUser?.name || '�'}</td>
+                <td>{'?'.repeat(r.rating)} ({r.rating}/5)</td>
+                <td>{r.comment || '�'}</td>
                 <td>{new Date(r.createdAt).toLocaleDateString('sw-TZ')}</td>
               </tr>
             ))}
@@ -1493,25 +1512,25 @@ const [trendCrop, setTrendCrop] = useState('');
                   <th>Kata</th>
                   <th>Hali</th>
                   <th>Tahadhari ya Mvua (mm)</th>
-                  <th>Tahadhari ya Joto (°C)</th>
+                  <th>Tahadhari ya Joto (�C)</th>
                   <th>Vitendo</th>
                 </tr>
               </thead>
               <tbody>
                 {weatherZones.length === 0 ? (
-                  <tr><td colSpan="7" className="no-data">Hakuna maeneo — ongeza eneo la kwanza</td></tr>
+                  <tr><td colSpan="7" className="no-data">Hakuna maeneo � ongeza eneo la kwanza</td></tr>
                 ) : weatherZones.map(z => (
                   <tr key={z._id}>
                     <td><strong>{z.name}</strong><br /><span className="muted">({z.lat}, {z.lon})</span></td>
-                    <td>{z.district || '—'}</td>
-                    <td>{z.ward || '—'}</td>
+                    <td>{z.district || '�'}</td>
+                    <td>{z.ward || '�'}</td>
                     <td>
                       <span className={`status-pill ${z.active ? 'status-active' : 'status-banned'}`}>
                         {z.active ? 'Inatumika' : 'Imesimamishwa'}
                       </span>
                     </td>
                     <td>{z.alertEnabled ? `${z.alertRainMm} mm` : 'Off'}</td>
-                    <td>{z.alertEnabled ? `${z.alertTempC}°C` : 'Off'}</td>
+                    <td>{z.alertEnabled ? `${z.alertTempC}�C` : 'Off'}</td>
                     <td>
                       <div className="user-actions">
                         <button className="btn btn-sm btn-outline" onClick={() => { setEditingZone(z); setZoneForm({ name: z.name, district: z.district, ward: z.ward, lat: z.lat, lon: z.lon, active: z.active, alertEnabled: z.alertEnabled, alertRainMm: z.alertRainMm, alertTempC: z.alertTempC }); setShowZoneModal(true); }} title="Hariri">
@@ -1571,7 +1590,7 @@ const [trendCrop, setTrendCrop] = useState('');
                   <input type="number" min="0" value={zoneForm.alertRainMm} onChange={(e) => setZoneForm({ ...zoneForm, alertRainMm: e.target.value })} />
                 </div>
                 <div className="form-group">
-                  <label>Tahadhari ya Joto (°C)</label>
+                  <label>Tahadhari ya Joto (�C)</label>
                   <input type="number" min="0" value={zoneForm.alertTempC} onChange={(e) => setZoneForm({ ...zoneForm, alertTempC: e.target.value })} />
                 </div>
                 <div className="form-group checkbox-group">
@@ -1662,6 +1681,170 @@ const [trendCrop, setTrendCrop] = useState('');
     </div>
   );
 
+  const renderForecast = () => {
+    if (loadingForecast) {
+      return (
+        <div className="section-card">
+          <div className="admin-loading"><i className="fas fa-spinner fa-spin"></i> Inakokotoa matokeo yanayotarajiwa...</div>
+        </div>
+      );
+    }
+    if (!forecastData) {
+      return (
+        <div className="section-card">
+          <p className="empty-state" style={{ padding: '20px 0' }}>Hakuna data ya uchambuzi. URL: /analytics/admin.</p>
+        </div>
+      );
+    }
+    const f = forecastData;
+
+    return (
+      <div className="forecast-module">
+        <div className="section-card">
+          <h3><i className="fas fa-chart-line"></i> Matokeo Yanayotarajiwa (moving average)</h3>
+          <div className="pl-cards">
+            <div className="pl-card">
+              <span className="pl-label">Mahitaji Wiki Hii</span>
+              <span className="pl-value">{f.demandForecast || 0}</span>
+              <span className="pl-sub">Maagizo yaliyokamilika (wastani wa mwendo)</span>
+            </div>
+            <div className="pl-card">
+              <span className="pl-label">Mkopo wa Jukwaa (Mwisho)</span>
+              <span className="pl-value">TZS {((f.revenueTrend || []).slice(-1)[0]?.commission || 0).toLocaleString()}</span>
+              <span className="pl-sub">Commission {Math.round((f.commissionRate || 0) * 100)}% ya mauzo</span>
+            </div>
+            <div className="pl-card">
+              <span className="pl-label">Watumiaji Wapya (Mwisho)</span>
+              <span className="pl-value">{(f.userGrowth || []).slice(-1)[0]?.total || 0}</span>
+              <span className="pl-sub">Miezi 12 kwa jukumu</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="pl-cols">
+          <div className="section-card">
+            <h3><i className="fas fa-seedling"></i> Utabiri wa Bei (Wiki zijazo)</h3>
+            <div className="table-scroll">
+              <table className="admin-table">
+                <thead><tr><th>Zao</th><th style={{ textAlign: 'right' }}>Bei Sasa</th><th style={{ textAlign: 'right' }}>Utabiri</th><th style={{ textAlign: 'right' }}>Mwelekeo</th></tr></thead>
+                <tbody>
+                  {f.priceForecast.map(p => {
+                    const current = p.prices[p.prices.length - 1];
+                    const forecast = p.forecast;
+                    const delta = current && forecast ? ((forecast - current) / current) * 100 : null;
+                    return (
+                      <tr key={p.cropName}>
+                        <td>{p.cropName}</td>
+                        <td style={{ textAlign: 'right' }}>TZS {current ? current.toLocaleString() : '—'}</td>
+                        <td style={{ textAlign: 'right' }}>TZS {forecast ? forecast.toLocaleString() : '—'}</td>
+                        <td style={{ textAlign: 'right' }}>
+                          {delta === null ? '—' : delta >= 0
+                            ? <span className="price-positive">▲ +{delta.toFixed(1)}%</span>
+                            : <span className="price-negative">▼ {delta.toFixed(1)}%</span>}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                  {f.priceForecast.length === 0 && <tr><td colSpan={4}>Hakuna data ya bei.</td></tr>}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div className="section-card">
+            <h3><i className="fas fa-cart-arrow-down"></i> Mahitaji kwa Wiki + Utabiri</h3>
+            {f.demandTrend && f.demandTrend.length > 0 ? (
+              <ResponsiveContainer width="100%" height={220}>
+                <AreaChart data={f.demandTrend} margin={{ top: 8, right: 12, left: 4, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="demandGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#1a7431" stopOpacity={0.4} />
+                      <stop offset="95%" stopColor="#1a7431" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="week" tick={{ fontSize: 10 }} />
+                  <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
+                  <Tooltip />
+                  <Area type="monotone" dataKey="orders" name="Maagizo" stroke="#1a7431" fill="url(#demandGrad)" strokeWidth={2} />
+                </AreaChart>
+              </ResponsiveContainer>
+            ) : <p className="empty-state" style={{ padding: '20px' }}>Hakuna maagizo yaliyokamilika.</p>}
+          </div>
+        </div>
+
+        <div className="pl-cols">
+          <div className="section-card">
+            <h3><i className="fas fa-users"></i> Ukuaji wa Watumiaji kwa Jukumu</h3>
+            {f.userGrowth && f.userGrowth.length > 0 ? (
+              <ResponsiveContainer width="100%" height={220}>
+                <LineChart data={f.userGrowth} margin={{ top: 8, right: 12, left: -10, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="month" tick={{ fontSize: 10 }} />
+                  <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
+                  <Tooltip />
+                  <Legend />
+                  <Line type="monotone" dataKey="farmer" name="Wakulima" stroke="#1a7431" dot={{ r: 2 }} />
+                  <Line type="monotone" dataKey="buyer" name="Wanunuzi" stroke="#f59e0b" dot={{ r: 2 }} />
+                  <Line type="monotone" dataKey="expert" name="Wataalamu" stroke="#3b82f6" dot={{ r: 2 }} />
+                </LineChart>
+              </ResponsiveContainer>
+            ) : <p className="empty-state" style={{ padding: '20px' }}>Hakuna data.</p>}
+          </div>
+
+          <div className="section-card">
+            <h3><i className="fas fa-coins"></i> Mapato ya Jukwaa (Commission)</h3>
+            {f.revenueTrend && f.revenueTrend.length > 0 ? (
+              <ResponsiveContainer width="100%" height={220}>
+                <BarChart data={f.revenueTrend} margin={{ top: 8, right: 12, left: -10, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="month" tick={{ fontSize: 10 }} />
+                  <YAxis tick={{ fontSize: 11 }} />
+                  <Tooltip formatter={(v, name) => [`TZS ${Number(v).toLocaleString()}`, name === 'commission' ? 'Commission' : 'Jumla']} />
+                  <Legend />
+                  <Bar dataKey="commission" name="Commission" fill="#1a7431" radius={[6, 6, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : <p className="empty-state" style={{ padding: '20px' }}>Hakuna data.</p>}
+          </div>
+        </div>
+
+        <div className="pl-cols">
+          <div className="section-card">
+            <h3><i className="fas fa-map-marked-alt"></i> Ramani ya Joto: Mahitaji kwa Eneo</h3>
+            <div className="heatmap-grid">
+              {f.wardDemandHeatmap.map(h => {
+                const max = Math.max(1, ...f.wardDemandHeatmap.map(x => x.orders));
+                const pct = Math.round((h.orders / max) * 100);
+                return (
+                  <div key={h.area} className="heat-cell" style={{ background: `rgba(26,116,49,${0.15 + (pct / 100) * 0.8})` }}>
+                    <strong>{h.area}</strong>
+                    <span>{h.orders} maagizo</span>
+                    <small>TZS {h.value.toLocaleString()}</small>
+                  </div>
+                );
+              })}
+              {f.wardDemandHeatmap.length === 0 && <p className="empty-state">Hakuna data ya mahitaji kwa eneo.</p>}
+            </div>
+          </div>
+
+          <div className="section-card">
+            <h3><i className="fas fa-map-pin"></i> Utoaji Mazao Kwa Eneo</h3>
+            <div className="heatmap-grid">
+              {f.cropSupplyHeatmap.map(s => (
+                <div key={s.area} className="heat-cell" style={{ background: 'rgba(141,110,99,0.55)', color: '#fff' }}>
+                  <strong>{s.area}</strong>
+                  <span>{s.crops} mazao yanapatikana</span>
+                </div>
+              ))}
+              {f.cropSupplyHeatmap.length === 0 && <p className="empty-state">Hakuna data.</p>}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <>
     <AdminLayout
@@ -1695,6 +1878,7 @@ const [trendCrop, setTrendCrop] = useState('');
       {activeTab === 'weather' && renderWeather()}
       {activeTab === 'audit-logs' && renderAuditLogs()}
       {activeTab === 'settings' && renderSettings()}
+      {activeTab === 'forecast' && renderForecast()}
     </AdminLayout>
 
     {/* Create user modal */}

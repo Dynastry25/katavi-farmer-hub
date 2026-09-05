@@ -48,7 +48,6 @@ const Navbar = ({ currentPage, onPageChange, onAuth, user, canGoBack, onGoBack }
     { id: 'market', label: t('market'), icon: 'fas fa-store', path: '/market' },
     { id: 'advice', label: t('advice'), icon: 'fas fa-book-open', path: '/advice' },
     { id: 'news', label: t('news'), icon: 'fas fa-newspaper', path: '/news' },
-    { id: 'loans', label: t('loans'), icon: 'fas fa-coins', path: '/loans' },
     { id: 'contact', label: t('contact'), icon: 'fas fa-envelope', path: '/contact' },
   ];
 
@@ -264,11 +263,6 @@ const Navbar = ({ currentPage, onPageChange, onAuth, user, canGoBack, onGoBack }
             <Link className="mobile-link" to="/suppliers" onClick={() => setIsMobileOpen(false)}>
               <i className="fas fa-truck"></i>
               <span>Wauzaji</span>
-              <i className="fas fa-chevron-right mobile-link-arrow"></i>
-            </Link>
-            <Link className="mobile-link" to="/farmer-groups" onClick={() => setIsMobileOpen(false)}>
-              <i className="fas fa-users"></i>
-              <span>Vikundi</span>
               <i className="fas fa-chevron-right mobile-link-arrow"></i>
             </Link>
             <Link className="mobile-link" to="/weather" onClick={() => setIsMobileOpen(false)}>

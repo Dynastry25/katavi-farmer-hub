@@ -446,6 +446,219 @@
   gap: 2rem;
 }
 
+.farmer-module, .farmer-price-module {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.price-intel-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 1rem;
+  margin-top: 0.5rem;
+}
+
+.price-intel-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  box-shadow: var(--shadow);
+}
+
+.price-intel-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.price-intel-today {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--primary);
+  margin: 6px 0 2px;
+}
+
+.price-intel-avg {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.price-intel-diff {
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin-top: 6px;
+}
+
+.price-intel-diff.positive { color: var(--success); }
+.price-intel-diff.negative { color: var(--danger); }
+
+.alert-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.alert-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.pl-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.pl-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--primary);
+  border-radius: var(--radius-sm);
+  padding: 14px 16px;
+  box-shadow: var(--shadow);
+}
+
+.pl-card.positive { border-left-color: var(--success); }
+.pl-card.negative { border-left-color: var(--danger); }
+.pl-card.neutral { border-left-color: var(--accent); }
+
+.pl-label { display: block; font-size: 0.82rem; color: var(--text-secondary); }
+.pl-value { display: block; font-size: 1.45rem; font-weight: 700; color: var(--text-default); margin: 4px 0; }
+.pl-card.positive .pl-value { color: var(--success); }
+.pl-card.negative .pl-value { color: var(--danger); }
+.pl-sub { font-size: 0.78rem; color: var(--text-secondary); }
+
+.pl-cols {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
+
+@media (max-width: 900px) {
+  .pl-cols { grid-template-columns: 1fr; }
+}
+
+.expense-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin-top: 0.6rem;
+}
+
+.expense-form input, .expense-form select {
+  padding: 9px 12px;
+}
+
+.expense-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin: 0.6rem 0 0;
+  padding: 0;
+}
+
+.expense-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 0.9rem;
+}
+
+.expense-amount { display: flex; align-items: center; gap: 8px; white-space: nowrap; }
+
+.rec-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding: 0;
+  margin: 0.6rem 0 0;
+}
+
+.rec-list li {
+  padding: 10px 12px;
+  background: #f8f9fa;
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius-sm);
+  font-size: 0.9rem;
+  color: var(--text-default);
+}
+
+.rec-list i { color: var(--accent); margin-right: 6px; }
+
+.assistant-hero {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  padding: 18px 20px;
+  background: linear-gradient(135deg, #1a7431, #2e8b47);
+  color: #fff;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.assistant-hero > i { font-size: 2rem; color: #ff9800; }
+.assistant-hero h3 { color: #fff; margin: 0 0 4px; }
+.assistant-hero p { margin: 0; opacity: 0.9; font-size: 0.9rem; }
+
+.form-row { display: flex; gap: 10px; }
+.form-row input { flex: 1; }
+@media (max-width: 640px) { .form-row { flex-direction: column; } }
+
+.planting-recommendation {
+  padding: 12px 14px;
+  border-radius: var(--radius-sm);
+  border-left: 4px solid var(--border);
+}
+.planting-recommendation.rating-good { background: #e8f5e9; border-left-color: var(--success); }
+.planting-recommendation.rating-caution { background: #fff8e1; border-left-color: var(--accent); }
+.planting-recommendation.rating-wait { background: #f5f5f5; border-left-color: var(--text-secondary); }
+.planting-recommendation p { margin: 4px 0; font-size: 0.9rem; }
+.planting-head { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.planting-head i { color: var(--primary); }
+.planting-tip { font-size: 0.85rem; color: var(--text-secondary); }
+
+.cycle-current { display: flex; gap: 14px; align-items: flex-start; }
+.cycle-badge {
+  width: 52px; height: 52px; flex: 0 0 52px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--primary); color: #fff; border-radius: 12px; font-size: 1.4rem;
+}
+.cycle-info h4 { margin: 0 0 4px; color: var(--primary); }
+.cycle-days { color: var(--text-secondary); font-size: 0.85rem; }
+.cycle-info > p { font-size: 0.9rem; margin: 4px 0; }
+.cycle-alert {
+  padding: 8px; background: #fff8e1; border-radius: var(--radius-sm);
+  border-left: 3px solid var(--accent); font-size: 0.85rem;
+}
+
+.disease-list { display: flex; flex-direction: column; gap: 10px; }
+.disease-item {
+  padding: 10px 12px; background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); font-size: 0.88rem;
+}
+.disease-item p { margin: 4px 0; }
+.disease-severity {
+  font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px;
+  color: var(--danger); margin-left: 8px;
+}
+
 .section-header {
   display: flex;
   justify-content: space-between;

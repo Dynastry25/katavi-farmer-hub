@@ -32,7 +32,7 @@
   align-items: center;
   gap: 1.25rem;
   padding: 1.5rem;
-  background: linear-gradient(135deg, var(--primary-dark, #0d2b1a), var(--primary, #1a7431));
+  background: linear-gradient(135deg, var(--primary-dark, #145a25), var(--primary, #1a7431));
   border-radius: 16px;
   color: #ffffff;
 }

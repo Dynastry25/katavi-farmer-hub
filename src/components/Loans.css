@@ -1087,7 +1087,7 @@
   .loans-section,
   .loan-calculator,
   .stat-card {
-    background: linear-gradient(135deg, #0d2b1a, #1a7431);
+    background: linear-gradient(135deg, #145a25, #1a7431);
     border-color: var(--primary-light);
   }
   
@@ -1107,13 +1107,13 @@
   }
   
   .eligibility {
-    background: linear-gradient(135deg, #0d2b1a, #1a7431);
+    background: linear-gradient(135deg, #145a25, #1a7431);
     border-color: var(--primary-light);
     color: #a7f3d0;
   }
   
   .required-docs {
-    background: #0d2b1a;
+    background: #145a25;
     border-color: var(--primary-light);
   }
   

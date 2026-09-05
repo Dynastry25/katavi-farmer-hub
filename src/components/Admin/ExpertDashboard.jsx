@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { adviceAPI } from '../../api/client';
-import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend } from 'recharts';
+import { adviceAPI, chatAPI, ratingsAPI } from '../../api/client';
+import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend, LineChart, Line, XAxis, YAxis, CartesianGrid } from 'recharts';
 import AdminLayout from './AdminLayout';
 import { getRoleNavSections } from './roleNav';
 import { useAuth } from '../../shared/context/AuthContext';
@@ -341,7 +341,7 @@ const ExpertDashboard = () => {
             </div>
           </button>
           
-          <button className="dashboard-link-card" onClick={() => navigate('/farmer-groups')}>
+          <button className="dashboard-link-card" onClick={() => navigate('/market')}>
             <div className="link-icon">
               <i className="fas fa-users"></i>
             </div>
@@ -536,7 +536,7 @@ const ExpertDashboard = () => {
       <div className="dashboard-links-section">
         <h3>🔗 Viungo vya Usaidizi</h3>
         <div className="dashboard-links-grid">
-          <button className="dashboard-link-card" onClick={() => navigate('/farmer-groups')}>
+          <button className="dashboard-link-card" onClick={() => navigate('/market')}>
             <div className="link-icon">
               <i className="fas fa-users"></i>
             </div>
@@ -610,7 +610,7 @@ const ExpertDashboard = () => {
             </div>
           </button>
           
-          <button className="dashboard-link-card" onClick={() => navigate('/loans')}>
+          <button className="dashboard-link-card" onClick={() => navigate('/market')}>
             <div className="link-icon">
               <i className="fas fa-hand-holding-usd"></i>
             </div>
@@ -623,6 +623,119 @@ const ExpertDashboard = () => {
       </div>
     </div>
   );
+
+  const renderStatistics = () => {
+    const published = myArticles.filter(a => a.status === 'published' || a.status === 'approved');
+    const pending = myArticles.filter(a => a.status !== 'published' && a.status !== 'approved');
+    const consultedCount = consultations.length;
+    const answered = consultations.filter(c => c.status === 'answered' || c.status === 'completed').length;
+    const pendingQ = consultations.filter(c => c.status === 'pending').length;
+
+    return (
+      <div className="expert-section">
+        <div className="stats-grid">
+          <div className="stat-card">
+            <div className="stat-icon">📝</div>
+            <div className="stat-content">
+              <div className="stat-number">{published.length}</div>
+              <div className="stat-label">Makala Zilizochapishwa</div>
+            </div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-icon">💬</div>
+            <div className="stat-content">
+              <div className="stat-number">{answered}</div>
+              <div className="stat-label">Maswali Yaliyojibiwa</div>
+            </div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-icon">⏳</div>
+            <div className="stat-content">
+              <div className="stat-number">{pendingQ}</div>
+              <div className="stat-label">Maswali Yanayosubiri</div>
+            </div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-icon"><i className="fas fa-star"></i></div>
+            <div className="stat-content">
+              <div className="stat-number">{expertStats.averageRating}</div>
+              <div className="stat-label">Wastani wa Tathmini</div>
+            </div>
+          </div>
+        </div>
+
+        <div className="dash-charts-row">
+          <div className="dash-chart-card">
+            <h3>Utendaji wa Makala (maoni/kura)</h3>
+            {published.length > 0 ? (
+              <ResponsiveContainer width="100%" height={230}>
+                <LineChart data={published.slice(0, 8).map(a => ({ name: String(a.title || 'Makala').slice(0, 18), views: a.views || 0, likes: a.likes || 0 }))} margin={{ top: 10, right: 10, left: -15, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                  <XAxis dataKey="name" tick={{ fontSize: 10 }} />
+                  <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
+                  <Tooltip />
+                  <Legend />
+                  <Line type="monotone" dataKey="views" name="Mionekano" stroke="#1a7431" strokeWidth={2} dot={{ r: 3 }} />
+                  <Line type="monotone" dataKey="likes" name="Ilisaidia" stroke="#ff9800" strokeWidth={2} dot={{ r: 3 }} />
+                </LineChart>
+              </ResponsiveContainer>
+            ) : <p className="empty-state" style={{ padding: '20px' }}>Hakuna makala zilizochapishwa bado.</p>}
+          </div>
+          <div className="dash-chart-card">
+            <h3>Maswali kwa Hali</h3>
+            <ResponsiveContainer width="100%" height={230}>
+              <PieChart>
+                <Pie data={[
+                  { name: 'Yamejibiwa', value: answered },
+                  { name: 'Yanasubiri', value: pendingQ },
+                ].filter(d => d.value > 0)} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={50} outerRadius={85} paddingAngle={4} label>
+                  <Cell fill="#16a34a" />
+                  <Cell fill="#f59e0b" />
+                </Pie>
+                <Tooltip />
+                <Legend verticalAlign="bottom" />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        <div className="dash-charts-row">
+          <div className="dash-chart-card">
+            <h3><i className="fas fa-newspaper"></i> Orodha ya Makala Yako</h3>
+            <div className="table-scroll">
+              <table className="admin-table">
+                <thead><tr><th>Kichwa</th><th>Kategoria</th><th>Mionekano</th><th>Ilisaidia</th><th>Hali</th></tr></thead>
+                <tbody>
+                  {myArticles.map(a => (
+                    <tr key={a.id}>
+                      <td>{a.title}</td>
+                      <td>{a.category}</td>
+                      <td>{a.views || 0}</td>
+                      <td>{a.likes || 0}</td>
+                      <td>{Array.isArray(a.status) ? a.status.join(', ') : (a.status || 'published')}</td>
+                    </tr>
+                  ))}
+                  {myArticles.length === 0 && <tr><td colSpan={5}>Hakuna makala.</td></tr>}
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div className="dash-chart-card">
+            <h3><i className="fas fa-star"></i> Tathmini Yako</h3>
+            <div className="expert-rating-summary">
+              <div className="expert-rating-big">{expertStats.averageRating}</div>
+              <div className="expert-rating-stars">
+                {[1, 2, 3, 4, 5].map(s => (
+                  <i key={s} className={`fas fa-star ${s <= Math.round(expertStats.averageRating) ? 'star-gold' : ''}`}></i>
+                ))}
+              </div>
+              <p>Kwa wastani jumla ya {consultedCount} mashauriano</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   const renderSchedule = () => (
     <div className="expert-section">
@@ -674,7 +787,7 @@ const ExpertDashboard = () => {
       <div className="dashboard-links-section">
         <h3>🔗 Viungo vya Mikakati</h3>
         <div className="dashboard-links-grid">
-          <button className="dashboard-link-card" onClick={() => navigate('/farmer-groups')}>
+          <button className="dashboard-link-card" onClick={() => navigate('/market')}>
             <div className="link-icon">
               <i className="fas fa-users"></i>
             </div>
@@ -733,6 +846,7 @@ const ExpertDashboard = () => {
       {activeTab === 'consultations' && renderConsultations()}
       {activeTab === 'earnings' && renderEarnings()}
       {activeTab === 'schedule' && renderSchedule()}
+      {activeTab === 'statistics' && renderStatistics()}
     </AdminLayout>
 
       {/* Add Article Modal */}

@@ -13,7 +13,7 @@ const Home = () => {
   const { user, logout } = useAuth();
 
   const handlePageChange = (page) => {
-    const routes = { home: '/', market: '/market', news: '/news', weather: '/weather', advice: '/advice', inputs: '/inputs', suppliers: '/suppliers', loans: '/loans', 'farmer-groups': '/farmer-groups', about: '/about', contact: '/contact', login: '/login', register: '/register', dashboard: '/dashboard' };
+    const routes = { home: '/', market: '/market', news: '/news', weather: '/weather', advice: '/advice', inputs: '/inputs', suppliers: '/suppliers', about: '/about', contact: '/contact', login: '/login', register: '/register', dashboard: '/dashboard' };
     navigate(routes[page] || '/');
   };
 

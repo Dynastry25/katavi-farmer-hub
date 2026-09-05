@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { cropsAPI, ordersAPI } from '../../api/client';
-import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Cell, PieChart, Pie, Legend } from 'recharts';
+import { cropsAPI, ordersAPI, priceAlertsAPI, marketPricesAPI } from '../../api/client';
+import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Cell, PieChart, Pie, Legend, LineChart, Line } from 'recharts';
 import AdminLayout from './AdminLayout';
 import { getRoleNavSections } from './roleNav';
 import RatingModal from './RatingModal';
@@ -30,6 +30,185 @@ const BuyerDashboard = () => {
   const [apiCrops, setApiCrops] = useState([]);
   const [apiOrders, setApiOrders] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  const [buyerAlerts, setBuyerAlerts] = useState([]);
+  const [buyerPriceCrops, setBuyerPriceCrops] = useState([]);
+  const [loadingPriceStats, setLoadingPriceStats] = useState(false);
+
+  const loadBuyerPriceStats = async () => {
+    setLoadingPriceStats(true);
+    try {
+      const names = [...new Set(myOrders.map(o => (o.crop || o.cropName || '').trim()).filter(Boolean))].slice(0, 5);
+      const [alertsRes, ...rows] = await Promise.all([
+        priceAlertsAPI.getMy(),
+        ...names.map(async (name) => {
+          try {
+            const [latestRes, avgRes] = await Promise.all([
+              marketPricesAPI.getAll({ cropName: name }),
+              marketPricesAPI.getAverage({ cropName: name, days: 30 }),
+            ]);
+            const latest = Array.isArray(latestRes.data) ? latestRes.data[0] : null;
+            const avg = avgRes.data?.avgPrice || 0;
+            const today = latest?.pricePerUnit || 0;
+            const diffPct = avg > 0 && today > 0 ? ((today - avg) / avg) * 100 : null;
+            return { name, today, avg, diffPct };
+          } catch (e) { return { name, today: 0, avg: 0, diffPct: null }; }
+        }),
+      ]);
+      setBuyerAlerts(Array.isArray(alertsRes.data) ? alertsRes.data : []);
+      setBuyerPriceCrops(rows);
+    } catch (err) { console.error('Buyer price stats error:', err); }
+    finally { setLoadingPriceStats(false); }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'statistics') loadBuyerPriceStats();
+  }, [activeTab]);
+
+  const toggleBuyerAlert = async (crop) => {
+    try {
+      const existing = buyerAlerts.find(a => (a.crop || '').toLowerCase() === String(crop).toLowerCase());
+      if (existing) {
+        await priceAlertsAPI.remove(existing._id);
+        setBuyerAlerts(prev => prev.filter(a => a._id !== existing._id));
+      } else {
+        const res = await priceAlertsAPI.create({ crop, thresholdPct: 10 });
+        setBuyerAlerts(prev => [res.data, ...prev]);
+        alert(`Utaarifiwa bei ya ${crop} ikishuka/zikipanda zaidi ya 10% kwa SMS/Push`);
+      }
+    } catch (err) { console.error('Toggle buyer alert error:', err); }
+  };
+
+  const renderStatistics = () => {
+    const trendMap = {};
+    myOrders.forEach(o => {
+      const d = o.orderDate || o.createdAt || '';
+      const key = String(d).slice(0, 7);
+      if (!key || key.startsWith('--')) return;
+      trendMap[key] = trendMap[key] || { month: key, orders: 0 };
+      trendMap[key].orders += 1;
+    });
+    const trend = Object.values(trendMap).sort((a, b) => a.month.localeCompare(b.month)).slice(-12);
+
+    const favCrops = {};
+    const favFarmers = {};
+    myOrders.forEach(o => {
+      const crop = (o.crop || o.cropName || 'Hakuna').trim();
+      favCrops[crop] = (favCrops[crop] || 0) + 1;
+      const f = (o.farmer || o.farmerName || 'Hakuna').trim();
+      favFarmers[f] = (favFarmers[f] || 0) + 1;
+    });
+    const topCrops = Object.entries(favCrops).sort((a, b) => b[1] - a[1]).slice(0, 5);
+    const topFarmers = Object.entries(favFarmers).sort((a, b) => b[1] - a[1]).slice(0, 5);
+
+    return (
+      <div className="buyer-overview">
+        <div className="stats-grid">
+          <div className="stat-card">
+            <div className="stat-icon"><i className="fas fa-chart-line"></i></div>
+            <div className="stat-content">
+              <div className="stat-number">{myOrders.length}</div>
+              <div className="stat-label">Jumla ya Maagizo Yako</div>
+            </div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-icon"><i className="fas fa-heart"></i></div>
+            <div className="stat-content">
+              <div className="stat-number">{(myOrders[0] ? topCrops[0]?.[0] : '—') || '—'}</div>
+              <div className="stat-label">Zao Unalopenda Zaidi</div>
+            </div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-icon"><i className="fas fa-user-tie"></i></div>
+            <div className="stat-content">
+              <div className="stat-number">{(myOrders[0] ? topFarmers[0]?.[0] : '—') || '—'}</div>
+              <div className="stat-label">Muuzaji Anayependwa</div>
+            </div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-icon"><i className="fas fa-bell"></i></div>
+            <div className="stat-content">
+              <div className="stat-number">{buyerAlerts.length}</div>
+              <div className="stat-label">Mazao Unayofuatilia</div>
+            </div>
+          </div>
+        </div>
+
+        <div className="dash-charts-row">
+          <div className="dash-chart-card">
+            <h3>Mwenendo wa Manunuzi (miezi)</h3>
+            {trend.length > 0 ? (
+              <ResponsiveContainer width="100%" height={240}>
+                <LineChart data={trend} margin={{ top: 10, right: 10, left: -15, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                  <XAxis dataKey="month" tick={{ fontSize: 11 }} />
+                  <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
+                  <Tooltip />
+                  <Line type="monotone" dataKey="orders" name="Maagizo" stroke="#1a7431" strokeWidth={2} dot={{ r: 3 }} />
+                </LineChart>
+              </ResponsiveContainer>
+            ) : <p className="empty-state" style={{ padding: '20px' }}>Hakuna rekodi za maagizo.</p>}
+          </div>
+          <div className="dash-chart-card">
+            <h3>Tahadhari ya Bei (SMS/Push)</h3>
+            {loadingPriceStats ? (
+              <div className="admin-loading"><i className="fas fa-spinner fa-spin"></i></div>
+            ) : buyerPriceCrops.length > 0 ? (
+              <div className="buyer-price-list">
+                {buyerPriceCrops.map(c => {
+                  const followed = buyerAlerts.some(a => (a.crop || '').toLowerCase() === c.name.toLowerCase());
+                  return (
+                    <div key={c.name} className="buyer-price-row">
+                      <div className="buyer-price-info">
+                        <strong>{c.name}</strong>
+                        <span className={c.diffPct === null ? '' : c.diffPct >= 0 ? 'price-positive' : 'price-negative'}>
+                          Leo: TZS {c.today.toLocaleString()} {c.diffPct !== null ? `(${c.diffPct >= 0 ? '▲' : '▼'} ${Math.abs(c.diffPct).toFixed(1)}%)` : ''}
+                        </span>
+                      </div>
+                      <button className={`btn btn-sm ${followed ? 'btn-outline' : 'btn-primary'}`} onClick={() => toggleBuyerAlert(c.name)}>
+                        {followed ? 'Ondoa' : 'Fuatilia'}
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : <p className="empty-state" style={{ padding: '20px' }}>Weka maagizo ili kupata tahadhari za bei.</p>}
+          </div>
+        </div>
+
+        <div className="dash-charts-row">
+          <div className="dash-chart-card">
+            <h3><i className="fas fa-heart"></i> Mazao Unayopenda</h3>
+            <div className="table-scroll">
+              <table className="admin-table">
+                <thead><tr><th>Zao</th><th style={{ textAlign: 'right' }}>Idadi ya Maagizo</th></tr></thead>
+                <tbody>
+                  {topCrops.map(([crop, count]) => (
+                    <tr key={crop}><td>{crop}</td><td style={{ textAlign: 'right' }}>{count}</td></tr>
+                  ))}
+                  {topCrops.length === 0 && <tr><td colSpan={2}>Hakuna data</td></tr>}
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div className="dash-chart-card">
+            <h3><i className="fas fa-user-tie"></i> Wauzaji Wako Bora</h3>
+            <div className="table-scroll">
+              <table className="admin-table">
+                <thead><tr><th>Mkulima</th><th style={{ textAlign: 'right' }}>Idadi ya Maagizo</th></tr></thead>
+                <tbody>
+                  {topFarmers.map(([farmer, count]) => (
+                    <tr key={farmer}><td>{farmer}</td><td style={{ textAlign: 'right' }}>{count}</td></tr>
+                  ))}
+                  {topFarmers.length === 0 && <tr><td colSpan={2}>Hakuna data</td></tr>}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   const fetchOrders = async () => {
     try {
@@ -377,7 +556,7 @@ const BuyerDashboard = () => {
             </div>
           </button>
           
-          <button className="dashboard-link-card" onClick={() => navigate('/farmer-groups')}>
+          <button className="dashboard-link-card" onClick={() => navigate('/market')}>
             <div className="link-icon">
               <i className="fas fa-users"></i>
             </div>
@@ -427,7 +606,7 @@ const BuyerDashboard = () => {
             </div>
           </button>
 
-          <button className="dashboard-link-card" onClick={() => navigate('/loans')}>
+          <button className="dashboard-link-card" onClick={() => navigate('/market')}>
             <div className="link-icon">
               <i className="fas fa-hand-holding-usd"></i>
             </div>
@@ -709,7 +888,7 @@ const BuyerDashboard = () => {
       <div className="dashboard-links-section">
         <h3>🔗 Pata Wakulima Wengine</h3>
         <div className="dashboard-links-grid">
-          <button className="dashboard-link-card" onClick={() => navigate('/farmer-groups')}>
+          <button className="dashboard-link-card" onClick={() => navigate('/market')}>
             <div className="link-icon">
               <i className="fas fa-users"></i>
             </div>
@@ -842,6 +1021,7 @@ const BuyerDashboard = () => {
     >
       {activeTab === 'overview' && renderOverview()}
       {activeTab === 'marketplace' && renderMarketplace()}
+      {activeTab === 'statistics' && renderStatistics()}
       {activeTab === 'orders' && renderOrders()}
       {activeTab === 'farmers' && renderFarmers()}
       {activeTab === 'analytics' && renderAnalytics()}

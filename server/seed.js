@@ -20,6 +20,9 @@ const Rating = require('./models/Rating');
 const WeatherConfig = require('./models/WeatherConfig');
 const WeatherZone = require('./models/WeatherZone');
 const PlatformSetting = require('./models/PlatformSetting');
+const LandGuidance = require('./models/LandGuidance');
+const CropCycle = require('./models/CropCycle');
+const CropDisease = require('./models/CropDisease');
 
 dotenv.config();
 
@@ -49,6 +52,9 @@ const seedDB = async () => {
     await WeatherConfig.deleteMany({});
     await WeatherZone.deleteMany({});
     await PlatformSetting.deleteMany({});
+    await LandGuidance.deleteMany({});
+    await CropCycle.deleteMany({});
+    await CropDisease.deleteMany({});
 
     // Create users
     const users = await User.create([
@@ -602,6 +608,60 @@ const seedDB = async () => {
     });
 
     console.log('Mipangilio ya mfumo yameundwa');
+
+    // Shamba Assistant: land/soil suitability for Katavi wards
+    await LandGuidance.create([
+      { district: 'Mpanda', ward: 'Mpanda Mjini', soilType: 'Sandy Loam', suitableCrops: ['Mahindi', 'Maharage', 'Kunde'], notes: 'Ufikikaji mzuri wa maji; ninchi inayofaa mazao ya msimu.' },
+      { district: 'Mpanda', ward: 'Kasokola', soilType: 'Clay Loam', suitableCrops: ['Mpunga', 'Mahindi'], notes: 'Ina uwezo mkubwa wa kuhifadhi maji; inafaa kwa mpunga.' },
+      { district: 'Mpanda', ward: 'Senga', soilType: 'Loamy Sand', suitableCrops: ['Mahindi', 'Alizeti', 'Maharage'], notes: 'Udongo wa wastani, ufikikaji mzuri wa hewa.' },
+      { district: 'Mlele', ward: 'Mlele', soilType: 'Clay', suitableCrops: ['Mpunga', 'Mahindi', 'Muhogo'], notes: 'Udongo mzito unaohifadhi maji; fanya kazi ya umwagiliaji.' },
+      { district: 'Mlele', ward: 'Sumbawanga', soilType: 'Red Loam', suitableCrops: ['Mahindi', 'Maharage', 'Kunde', 'Kitunguu'], notes: 'Udongo mzuri kwa mboga na mazao ya mmea.' },
+      { district: 'Tanganyika', ward: 'Katae', soilType: 'Sandy', suitableCrops: ['Mahindi', 'Mtama', 'Alizeti'], notes: 'Udongo mwepesi, inahitaji umwagiliaji wa ziada.' },
+      { district: 'Tanganyika', ward: 'Nsimbo', soilType: 'Silty Loam', suitableCrops: ['Mahindi', 'Maharage', 'Mihogo', 'Kunde'], notes: 'Udongo wenye virutubisho vingi kwa mazao mbalimbali.' },
+      { district: 'Mpanda', ward: 'Usevya', soilType: 'Sandy Loam', suitableCrops: ['Mahindi', 'Alizeti', 'Maharage'], notes: 'Udongo wa ufikikaji mzuri, fanya mzunguko wa mazao.' },
+    ]);
+    console.log('Data ya LandGuidance imeundwa');
+
+    // Shamba Assistant: crop cycle trackers for common Katavi crops
+    await CropCycle.create([
+      { cropName: 'Mahindi', stages: [
+        { key: 'prep', label: 'Utayarishaji wa shamba', icon: 'fas fa-shovel', dayStart: 0, dayEnd: 14, tips: 'Ondoa magugu, piga shamba kwa kina cm 15-20, chandarua udongo.', alert: '' },
+        { key: 'planting', label: 'Upandaji', icon: 'fas fa-seedling', dayStart: 15, dayEnd: 21, tips: 'Panda mbegu kwa kina cm 5-7, umbali wa mstari cm 75-90.', alert: '' },
+        { key: 'weeding', label: 'Palizi & Kumwagilia', icon: 'fas fa-hand-holding-droplet', dayStart: 22, dayEnd: 49, tips: 'Fanya palizi ya kwanza siku 21 baada ya kupanda, pili siku 42.', alert: 'Angalia ukame kati ya wiki 3-6; ni hatari kubwa.' },
+        { key: 'disease_watch', label: 'Ufuatiliaji wa magonjwa', icon: 'fas fa-bug', dayStart: 50, dayEnd: 89, tips: 'Angalia dalili za magonjwa kama shina la kuvunjika na kunyauka. Tumia dawa endapo inahitajika.', alert: 'Tumia AI Crop Detection ikiwa unaona dalili za kushangaza.' },
+        { key: 'harvest', label: 'Uvunaji', icon: 'fas fa-tractor', dayStart: 90, dayEnd: 115, tips: 'Vuna pale majani yanapokuwa manjano na mizeeri ngumu. Kausha vizuri kabla ya kuhifadhi.', alert: '' },
+        { key: 'post_harvest', label: 'Uhifadhi', icon: 'fas fa-warehouse', dayStart: 116, dayEnd: 145, tips: 'Weka kwenye migu/chumba kavu. Dhibiti wadudu wa kuhifadhi.', alert: '' },
+        { key: 'marketing', label: 'Uuzaji', icon: 'fas fa-store', dayStart: 146, dayEnd: 200, tips: 'Angalia bei ya soko; fikiria kuuza pale bei inapofika juu.', alert: '' },
+      ]},
+      { cropName: 'Mpunga', stages: [
+        { key: 'prep', label: 'Kutayarisha shamba la mpunga', icon: 'fas fa-shovel', dayStart: 0, dayEnd: 21, tips: 'Tayarisha udongo ulio na maji ya kutosha; panga mifereji.', alert: '' },
+        { key: 'planting', label: 'Kupanda', icon: 'fas fa-seedling', dayStart: 22, dayEnd: 30, tips: 'Tumia miche iliyokomaa; pandisha kwa kina kidogo.', alert: '' },
+        { key: 'vegetative', label: 'Ukuaji wa Majani', icon: 'fas fa-leaf', dayStart: 31, dayEnd: 60, tips: 'Hakikisha kuna maji ya kutosha; ongeza mbolea kidogo.', alert: '' },
+        { key: 'flowering', label: 'Kuchanua', icon: 'fas fa-utensils', dayStart: 61, dayEnd: 75, tips: 'Epuka kuongeza mbolea ya nitrojeni; dhibiti wadudu.', alert: 'Angalia uhaba wa maji; unaweza kuhatarisha mavuno.' },
+        { key: 'grain_fill', label: 'Kujaa Kwa Mchele', icon: 'fas fa-seedling', dayStart: 76, dayEnd: 90, tips: 'Endelea na maji ya kutosha; ukame wa siku chache unaweza kuua.', alert: '' },
+        { key: 'harvest', label: 'Kuvuna', icon: 'fas fa-tractor', dayStart: 91, dayEnd: 120, tips: 'Vuna pale 80% ya mchele umekauka. Kausha kabla ya kusaga.', alert: '' },
+      ]},
+      { cropName: 'Maharage', stages: [
+        { key: 'prep', label: 'Utayarishaji', icon: 'fas fa-shovel', dayStart: 0, dayEnd: 10, tips: 'Piga shamba vizuri; ongeza mbolea ya asili.', alert: '' },
+        { key: 'planting', label: 'Upandaji', icon: 'fas fa-seedling', dayStart: 11, dayEnd: 17, tips: 'Panda mbegu kwa kina cm 3-5; umbali wa mstari cm 45-60.', alert: '' },
+        { key: 'weeding', label: 'Palizi', icon: 'fas fa-hand-holding-droplet', dayStart: 18, dayEnd: 38, tips: 'Fanya palizi kabla ya magugu kushika; mara 2 ni ya kutosha.', alert: '' },
+        { key: 'flowering', label: 'Kuchanua', icon: 'fas fa-utensils', dayStart: 39, dayEnd: 55, tips: 'Ongeza mbolea kidogo; epuka dawa wakati wa kuchanua.', alert: '' },
+        { key: 'harvest', label: 'Uvunaji', icon: 'fas fa-tractor', dayStart: 56, dayEnd: 90, tips: 'Vuna pale majani yanapokuwa manjano na zuli zinapoanza kukauka.', alert: '' },
+      ]},
+    ]);
+    console.log('Data ya CropCycle imeundwa');
+
+    // Shamba Assistant: disease library
+    await CropDisease.create([
+      { cropName: 'Mahindi', name: 'Northern Leaf Blight', symptoms: 'Mashaka ya mstatili kwenye majani, rangi ya kahawia', prevention: 'Tumia mbegu zilizostahimili; mzunguko wa mazao.', treatment: 'Ondoa majani yaliyoathirika; tumia dawa ya kuvu iliyoidhinishwa.' },
+      { cropName: 'Mahindi', name: 'Gray Leaf Spot', symptoms: 'Mashaka ya mviringo kwenye majani, mwisho wa majani kukauka', prevention: 'Epuka kupanda mahindi kwenye udongo wenye maji mengi jioni.', treatment: 'Tumia dawa ya kuvu; fanya mzunguko wa mazao.' },
+      { cropName: 'Mahindi', name: 'Maize Streak Virus', symptoms: 'Mistari ya manjano kwenye majani, ukuaji hafifishwa', prevention: 'Tumia mbegu zilizostahimili; dhibiti virobalti.', treatment: 'Hakuna tiba; ondoa mimea iliyoambukizwa.' },
+      { cropName: 'Mpunga', name: 'Rice Blast', symptoms: 'Mashaka ya kahawia yenye kitambaa cheupe kwenye majani na shina', prevention: 'Dhibiti uwiano wa maji; punguza mbolea ya nitrojeni.', treatment: 'Tumia dawa ya kuvu; chagua aina zinazostahimili.' },
+      { cropName: 'Mpunga', name: 'Brown Spot', symptoms: 'Mashaka madogo ya kahawia kwenye majani', prevention: 'Hakikisha mbolea ya kutosha; epuka ukame.', treatment: 'Ondoa majani yaliyoathirika; tumia dawa.' },
+      { cropName: 'Maharage', name: 'Bean Rust', symptoms: 'Vito vya kahawia kwenye majani, kuanguka kwa majani', prevention: 'Tumia aina zinazostahimili; panga mzunguko wa mazao.', treatment: 'Tumia dawa ya kuvu; ondoa mimea iliyoathirika sana.' },
+      { cropName: 'Maharage', name: 'Angular Leaf Spot', symptoms: 'Mashaka ya pembe yenye kuta nzito kwenye majani', prevention: 'Tumia mbegu safi; epuka kunyunyizia jioni.', treatment: 'Ondoa majani yaliyoathirika; tumia dawa.' },
+    ]);
+    console.log('Data ya CropDisease imeundwa');
 
     console.log('\n✅ Seed imekamilika! Database imejazwa na data ya mfano.');
     console.log('\nAkaunti za majaribio:');

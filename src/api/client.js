@@ -303,4 +303,32 @@ export const paymentsAPI = {
   status: (transactionId) => api.get(`/payments/${transactionId}`),
 };
 
+// Price alerts
+export const priceAlertsAPI = {
+  getMy: () => api.get('/price-alerts/my'),
+  create: (data) => api.post('/price-alerts', data),
+  remove: (id) => api.delete(`/price-alerts/${id}`),
+};
+
+// Farmer finance (P&L)
+export const farmerFinanceAPI = {
+  summary: (months) => api.get(`/farmer-finance/summary?months=${months}`),
+  getExpenses: () => api.get('/farmer-finance/expenses'),
+  addExpense: (data) => api.post('/farmer-finance/expenses', data),
+  removeExpense: (id) => api.delete(`/farmer-finance/expenses/${id}`),
+};
+
+// Shamba Assistant
+export const shambaAPI = {
+  getLandGuidance: (params) => api.get('/shamba/land', { params }),
+  getPlanting: (params) => api.get('/shamba/planting', { params }),
+  getCycleStage: (params) => api.get('/shamba/stage', { params }),
+  getDiseases: (cropName) => api.get('/shamba/diseases', { params: { cropName } }),
+};
+
+// Admin analytics / forecasting
+export const analyticsAPI = {
+  getAdmin: () => api.get('/analytics/admin'),
+};
+
 export default api;

@@ -131,6 +131,10 @@ app.use('/api/v1/ratings', require('./routes/ratings'));
 app.use('/api/v1/weather', require('./routes/weather'));
 app.use('/api/v1/push', require('./routes/push'));
 app.use('/api/v1/payments', require('./routes/payments'));
+app.use('/api/v1/price-alerts', require('./routes/priceAlerts'));
+app.use('/api/v1/farmer-finance', require('./routes/farmerFinance'));
+app.use('/api/v1/shamba', require('./routes/shamba'));
+app.use('/api/v1/analytics', require('./routes/analytics'));
 app.use('/api/v1/settings', require('./routes/settings'));
 
 // Health check

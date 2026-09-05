@@ -8,7 +8,7 @@
   min-height: 100vh;
   background: var(--background, #f1f5f4);
   --primary: #1a7431;
-  --primary-dark: #0d2b1a;
+  --primary-dark: #145a25;
 }
 
 /* ===== Fixed Sidebar ===== */
@@ -18,7 +18,7 @@
   left: 0;
   bottom: 0;
   width: var(--admin-sidebar-w);
-  background: linear-gradient(180deg, var(--primary-dark, #0d2b1a) 0%, var(--primary, #1a7431) 100%);
+  background: linear-gradient(180deg, var(--primary-dark, #145a25) 0%, var(--primary, #1a7431) 100%);
   color: #ffffff;
   display: flex;
   flex-direction: column;
@@ -113,7 +113,7 @@
   color: #ffffff;
 }
 
-.role-badge.role-admin { background: #f59e0b; color: #0d2b1a; }
+.role-badge.role-admin { background: #f59e0b; color: #145a25; }
 .role-badge.role-farmer { background: rgba(255, 255, 255, 0.2); }
 .role-badge.role-buyer { background: rgba(255, 255, 255, 0.2); }
 .role-badge.role-expert { background: rgba(255, 255, 255, 0.2); }
@@ -313,7 +313,7 @@
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--primary, #1a7431), var(--primary-dark, #0d2b1a));
+  background: linear-gradient(135deg, var(--primary, #1a7431), var(--primary-dark, #145a25));
   color: #ffffff;
   display: flex;
   align-items: center;
