@@ -515,3 +515,8 @@
     padding: 1.25rem;
   }
 }
+
+/* Topbar language toggle */
+.topbar-lang{display:inline-flex;align-items:center;gap:6px;background:none;border:1px solid #d1d5db;border-radius:20px;padding:6px 12px;font-size:13px;font-weight:600;color:#374151;cursor:pointer;transition:all .2s;margin-right:8px}
+.topbar-lang:hover{border-color:#1a7431;color:#1a7431}
+

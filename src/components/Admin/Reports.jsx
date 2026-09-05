@@ -4,6 +4,7 @@ import AdminLayout from './AdminLayout';
 import { getRoleNavSections } from './roleNav';
 import { cropsAPI, ordersAPI, productsAPI, adviceAPI, adminAPI } from '../../api/client';
 import { useAuth } from '../../shared/context/AuthContext';
+import { downloadCSV, printView } from '../../shared/utils/export';
 import './Reports.css';
 
 const ROLE_LABELS = {
@@ -194,6 +195,36 @@ const Reports = () => {
 
   const cards = statCards();
 
+  const exportCsv = () => {
+    const labelMap = {
+      admin: 'Ripoti za Mfumo',
+      farmer: 'Ripoti Yangu - Mkulima',
+      buyer: 'Ripoti Yangu - Mnunuzi',
+      expert: 'Ripoti Yangu - Mtaalamu',
+    };
+    const rows = [
+      ...cards.map((c) => [c.label, c.value, new Date().toLocaleDateString('sw-TZ')]),
+      ...activities.map((a) => ['Shughuli', a.text.replace(/<[^>]+>/g, ''), a.time]),
+    ];
+    downloadCSV(`${labelMap[role] || 'ripoti'}-${new Date().toISOString().slice(0, 10)}.csv`, ['Kipengele', 'Maelezo', 'Muda'], rows);
+  };
+
+  const exportPdf = () => {
+    const titles = {
+      admin: 'Ripoti za Mfumo - Katavi E-Kilimo',
+      farmer: 'Ripoti yangu - Mkulima',
+      buyer: 'Ripoti yangu - Mnunuzi',
+      expert: 'Ripoti yangu - Mtaalamu',
+    };
+    printView({
+      title: titles[role] || 'Ripoti',
+      subtitle: `Ripoti ya ${ROLE_LABELS[role] || role} - ${user?.name || ''}`.trim(),
+      headers: ['Shughuli', 'Maelezo', 'Muda'],
+      rows: activities.map((a) => ['Shughuli', a.text.replace(/<[^>]+>/g, ''), a.time]),
+      statGroups: cards,
+    });
+  };
+
   return (
     <AdminLayout
       user={user}
@@ -213,6 +244,14 @@ const Reports = () => {
             <div>
               <h2>{user?.name}</h2>
               <p className="report-role">{ROLE_LABELS[role]} - Muhtasari wa Shughuli</p>
+            </div>
+            <div className="report-export-toolbar">
+              <button className="btn btn-sm btn-outline" onClick={exportCsv}>
+                <i className="fas fa-file-csv"></i> Hamisha CSV
+              </button>
+              <button className="btn btn-sm btn-primary" onClick={exportPdf}>
+                <i className="fas fa-print"></i> Chapa / PDF
+              </button>
             </div>
           </div>
 

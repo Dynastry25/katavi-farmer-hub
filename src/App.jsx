@@ -6,6 +6,7 @@ import { LangProvider } from './shared/context/LangContext';
 import Loading from './components/Loading/Loading';
 import ErrorBoundary from './components/ErrorBoundary/ErrorBoundary';
 import ChatWidget from './components/ChatWidget/ChatWidget';
+import ProtectedRoute from './components/ProtectedRoute';
 import './App.css';
 
 const PublicLayout = lazy(() => import('./shared/layouts/PublicLayout'));
@@ -23,10 +24,10 @@ const FarmerGroups = lazy(() => import('./components/FarmerGroups'));
 const Login = lazy(() => import('./components/Auth/Login'));
 const Registration = lazy(() => import('./components/Auth/Registration'));
 
+const AdminDashboard = lazy(() => import('./components/Admin/AdminDashboard'));
 const FarmerDashboard = lazy(() => import('./components/Admin/FarmerDashboard'));
 const BuyerDashboard = lazy(() => import('./components/Admin/BuyerDashboard'));
 const ExpertDashboard = lazy(() => import('./components/Admin/ExpertDashboard'));
-const AdminDashboard = lazy(() => import('./components/Admin/AdminDashboard'));
 const AdminReports = lazy(() => import('./components/Admin/AdminReports'));
 const Profile = lazy(() => import('./components/Admin/Profile'));
 const Reports = lazy(() => import('./components/Admin/Reports'));
@@ -60,19 +61,18 @@ function App() {
                     <Route path="contact" element={<Contact />} />
                   </Route>
 
-                  <Route path="/login" element={<Login onAuth={(action) => {
-                    if (action === 'logout') localStorage.clear();
-                  }} />} />
+                  <Route path="/login" element={<Login />} />
                   <Route path="/register" element={<Registration />} />
 
-                  <Route path="/dashboard" element={<FarmerDashboard />} />
-                  <Route path="/farmer-dashboard" element={<FarmerDashboard />} />
-                  <Route path="/buyer-dashboard" element={<BuyerDashboard />} />
-                  <Route path="/expert-dashboard" element={<ExpertDashboard />} />
-                  <Route path="/admin-dashboard" element={<AdminDashboard />} />
-                  <Route path="/admin-reports" element={<AdminReports />} />
-                  <Route path="/profile" element={<Profile />} />
-                  <Route path="/my-reports" element={<Reports />} />
+                  <Route path="/dashboard" element={<ProtectedRoute roles={['farmer']}><FarmerDashboard /></ProtectedRoute>} />
+                  <Route path="/farmer-dashboard" element={<ProtectedRoute roles={['farmer']}><FarmerDashboard /></ProtectedRoute>} />
+                  <Route path="/buyer-dashboard" element={<ProtectedRoute roles={['buyer']}><BuyerDashboard /></ProtectedRoute>} />
+                  <Route path="/expert-dashboard" element={<ProtectedRoute roles={['expert']}><ExpertDashboard /></ProtectedRoute>} />
+                  <Route path="/admin-dashboard" element={<ProtectedRoute roles={['admin', 'support', 'content_moderator', 'finance_officer']}><AdminDashboard /></ProtectedRoute>} />
+                  <Route path="/admin-reports" element={<ProtectedRoute roles={['admin']}><AdminReports /></ProtectedRoute>} />
+                  <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+                  <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
+                  <Route path="/my-reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
 
                   <Route path="*" element={
                     <div className="not-found-page">

@@ -7,7 +7,7 @@ const { auth } = require('../middleware/auth');
 router.get('/', async (req, res) => {
   try {
     const { category } = req.query;
-    let query = {};
+    let query = { $or: [{ status: 'approved' }, { status: { $exists: false } }] };
     if (category && category !== 'all') query.category = category;
     const articles = await NewsArticle.find(query).sort({ createdAt: -1 });
     res.json(articles);

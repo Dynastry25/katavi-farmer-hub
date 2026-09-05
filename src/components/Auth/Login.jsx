@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { authAPI } from '../../api/client';
+import { useAuth } from '../../shared/context/AuthContext';
 import './Login.css';
 
-const Login = ({ onAuth, user }) => {
+const Login = () => {
+  const { login: loginUser, loginWithUser, user } = useAuth();
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -12,6 +14,8 @@ const Login = ({ onAuth, user }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
+  const [twoFactorStep, setTwoFactorStep] = useState(null);
+  const [twoFactorCode, setTwoFactorCode] = useState('');
   const navigate = useNavigate();
 
   // Dashboard paths based on user role
@@ -75,23 +79,59 @@ const Login = ({ onAuth, user }) => {
     setIsLoading(true);
 
     try {
-      const response = await authAPI.login({ email: formData.email, password: formData.password });
-      const user = response.data;
+      const loggedInUser = await loginUser(formData.email, formData.password);
 
-      localStorage.setItem('kataviToken', user.token);
-      localStorage.setItem('kataviUser', JSON.stringify(user));
+      if (loggedInUser.requiresTwoFactor) {
+        setTwoFactorStep({ email: formData.email });
+        setErrors({});
+        return;
+      }
 
-      const { token, ...userWithoutToken } = user;
-      onAuth('login-success', userWithoutToken);
+      alert(`Karibu tena, ${loggedInUser.name}!`);
 
-      alert(`Karibu tena, ${user.name}!`);
-
-      const dashboardPath = dashboardPaths[user.role] || '/dashboard';
+      const dashboardPath = dashboardPaths[loggedInUser.role] || '/dashboard';
       navigate(dashboardPath);
     } catch (error) {
       setErrors({
         general: error.response?.data?.message || 'Hitilafu imetokea. Tafadhali jaribu tena baadae.'
       });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleVerifyTwoFactor = async (e) => {
+    e.preventDefault();
+    if (!twoFactorCode.trim()) {
+      setErrors({ general: 'Weka namba ya 2FA' });
+      return;
+    }
+    setIsLoading(true);
+    try {
+      const res = await authAPI.verifyTwoFactor({
+        email: twoFactorStep.email,
+        code: twoFactorCode.trim(),
+      });
+      loginWithUser(res.data);
+      alert(`Karibu tena, ${res.data.name}!`);
+      const dashboardPath = dashboardPaths[res.data.role] || '/dashboard';
+      navigate(dashboardPath);
+    } catch (error) {
+      setErrors({
+        general: error.response?.data?.message || 'Namba ya 2FA siyo sahihi.'
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleResendTwoFactor = async () => {
+    setIsLoading(true);
+    try {
+      await authAPI.resendTwoFactor(twoFactorStep.email);
+      setErrors({ general: 'Namba mpya imetumwa.' });
+    } catch (error) {
+      setErrors({ general: error.response?.data?.message || 'Hitilafu imetokea' });
     } finally {
       setIsLoading(false);
     }
@@ -147,6 +187,56 @@ const Login = ({ onAuth, user }) => {
                 </div>
               )}
 
+              {twoFactorStep ? (
+                <form onSubmit={handleVerifyTwoFactor} className="login-form">
+                  <div className="form-group">
+                    <label htmlFor="2fa" className="form-label">
+                      Namba ya Uhakiki (2FA) *
+                    </label>
+                    <div className="input-group">
+                      <i className="fas fa-shield-halved input-icon"></i>
+                      <input
+                        type="text"
+                        id="2fa"
+                        name="2fa"
+                        value={twoFactorCode}
+                        onChange={(e) => setTwoFactorCode(e.target.value)}
+                        className="form-control"
+                        placeholder="Namba ya tarakimu 6"
+                        maxLength="6"
+                        autoComplete="one-time-code"
+                        disabled={isLoading}
+                      />
+                    </div>
+                  </div>
+                  <button
+                    type="submit"
+                    className={`btn btn-primary login-btn ${isLoading ? 'loading' : ''}`}
+                    disabled={isLoading}
+                  >
+                    {isLoading ? (
+                      <>
+                        <i className="fas fa-spinner fa-spin"></i>
+                        Inathibitisha...
+                      </>
+                    ) : (
+                      <>
+                        <i className="fas fa-check-circle"></i>
+                        Thibitisha
+                      </>
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-sm btn-outline"
+                    onClick={handleResendTwoFactor}
+                    disabled={isLoading}
+                    style={{ width: '100%', marginTop: '8px' }}
+                  >
+                    Tuma namba mpya
+                  </button>
+                </form>
+              ) : (
               <form onSubmit={handleSubmit} className="login-form">
                 {/* Email Field */}
                 <div className="form-group">
@@ -281,6 +371,7 @@ const Login = ({ onAuth, user }) => {
                   </button>
                 </div>
               </form>
+              )}
 
               {/* Registration Prompt */}
               <div className="registration-prompt">

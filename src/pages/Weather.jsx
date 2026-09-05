@@ -1,158 +1,137 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Loading from '../components/Loading/Loading';
+import { weatherAPI } from '../api/client';
 import './CSS/Weather.css';
 
+const DEFAULT_ZONES = [
+  { name: 'Mpanda', district: 'Mpanda', ward: 'Mpanda Mjini', lat: -6.346, lon: 31.072 },
+  { name: 'Mlele', district: 'Mlele', ward: 'Mlele Mjini', lat: -6.9, lon: 31.6 },
+  { name: 'Nsimbo', district: 'Nsimbo', ward: 'Sitalike', lat: -6.5, lon: 31.1 },
+  { name: 'Karema', district: 'Mpanda', ward: 'Karema', lat: -6.817, lon: 30.44 },
+];
+
+const SW_DAYS = ['Jumapili', 'Jumatatu', 'Jumanne', 'Jumatano', 'Alhamisi', 'Ijumaa', 'Jumamosi'];
+
+const dayLabel = (index, dateStr) => {
+  if (index === 0) return 'Leo';
+  if (index === 1) return 'Kesho';
+  if (index === 2) return 'Kesho Kutwa';
+  try {
+    const d = new Date(`${dateStr}T00:00:00`);
+    return SW_DAYS[d.getDay()] || dateStr;
+  } catch {
+    return dateStr;
+  }
+};
+
 const Weather = ({ onRefresh }) => {
+  const [zones, setZones] = useState(DEFAULT_ZONES);
   const [selectedLocation, setSelectedLocation] = useState('Mpanda');
-  const [forecastData, setForecastData] = useState(null);
-  const [weatherData, setWeatherData] = useState(null);
+  const [current, setCurrent] = useState(null);
+  const [daily, setDaily] = useState([]);
+  const [advisories, setAdvisories] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
-  const locations = [
-    { value: 'Mpanda', label: 'Mpanda' },
-    { value: 'Mlele', label: 'Mlele' },
-    { value: 'Nsimbo', label: 'Nsimbo' },
-    { value: 'Karema', label: 'Karema' }
-  ];
+  // Load zones from backend, fall back to defaults if the API is unavailable
+  useEffect(() => {
+    let mounted = true;
+    weatherAPI.getZones()
+      .then(res => {
+        if (!mounted) return;
+        const list = res.data?.zones?.filter(z => z.active) || [];
+        if (list.length) {
+          const zoneNames = list.map(z => z.name);
+          setZones(list);
+          if (!zoneNames.includes(selectedLocation)) setSelectedLocation(list[0].name);
+        }
+      })
+      .catch(() => { /* use defaults */ });
+    return () => { mounted = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  // Sample weather data
-  const sampleWeatherData = {
-    Mpanda: {
-      temperature: 28,
-      condition: 'Mawingu',
-      humidity: '65%',
-      rainfall: '30%',
-      wind: '12 km/h'
-    },
-    Mlele: {
-      temperature: 30,
-      condition: 'Jua',
-      humidity: '55%',
-      rainfall: '10%',
-      wind: '8 km/h'
-    },
-    Nsimbo: {
-      temperature: 26,
-      condition: 'Mvua Nyeupe',
-      humidity: '75%',
-      rainfall: '60%',
-      wind: '15 km/h'
-    },
-    Karema: {
-      temperature: 29,
-      condition: 'Mawingu',
-      humidity: '60%',
-      rainfall: '20%',
-      wind: '10 km/h'
+  const fetchForecast = useCallback(async (zone) => {
+    setLoading(true);
+    setError(false);
+    try {
+      const res = await weatherAPI.getForecast({ lat: zone.lat, lon: zone.lon, days: 7 });
+      setCurrent(res.data.current);
+      setDaily(res.data.daily || []);
+      setAdvisories(res.data.advisories || []);
+    } catch (err) {
+      console.error('Weather fetch error:', err);
+      setError(true);
+    } finally {
+      setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    // Simulate API call to fetch weather data
-    const fetchWeatherData = async () => {
-      setLoading(true);
-      try {
-        // Simulate API delay
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        // Set sample weather data
-        setWeatherData(sampleWeatherData);
-        
-        // Simulate forecast data
-        const mockForecast = {
-          Mpanda: [
-            { day: 'Leo', condition: 'Mawingu', temp: 25, rain: '30%' },
-            { day: 'Kesho', condition: 'Mvua Nyeupe', temp: 24, rain: '60%' },
-            { day: 'Kesho Kutwa', condition: 'Mawingu', temp: 26, rain: '20%' },
-            { day: 'Jumatano', condition: 'Jua', temp: 27, rain: '10%' },
-            { day: 'Alhamisi', condition: 'Jua', temp: 28, rain: '0%' }
-          ],
-          Mlele: [
-            { day: 'Leo', condition: 'Jua', temp: 27, rain: '10%' },
-            { day: 'Kesho', condition: 'Mawingu', temp: 26, rain: '30%' },
-            { day: 'Kesho Kutwa', condition: 'Mvua Nyeupe', temp: 25, rain: '70%' },
-            { day: 'Jumatano', condition: 'Mawingu', temp: 26, rain: '40%' },
-            { day: 'Alhamisi', condition: 'Jua', temp: 28, rain: '5%' }
-          ],
-          Nsimbo: [
-            { day: 'Leo', condition: 'Mvua Nyeupe', temp: 26, rain: '80%' },
-            { day: 'Kesho', condition: 'Mvua', temp: 24, rain: '90%' },
-            { day: 'Kesho Kutwa', condition: 'Mawingu', temp: 25, rain: '50%' },
-            { day: 'Jumatano', condition: 'Mawingu', temp: 26, rain: '30%' },
-            { day: 'Alhamisi', condition: 'Jua', temp: 27, rain: '10%' }
-          ],
-          Karema: [
-            { day: 'Leo', condition: 'Mawingu', temp: 26, rain: '40%' },
-            { day: 'Kesho', condition: 'Jua', temp: 28, rain: '5%' },
-            { day: 'Kesho Kutwa', condition: 'Jua', temp: 29, rain: '0%' },
-            { day: 'Jumatano', condition: 'Mawingu', temp: 27, rain: '20%' },
-            { day: 'Alhamisi', condition: 'Mawingu', temp: 26, rain: '30%' }
-          ]
-        };
+    const zone = zones.find(z => z.name === selectedLocation) || zones[0];
+    if (!zone) return;
+    fetchForecast(zone);
+  }, [selectedLocation, zones, fetchForecast]);
 
-        setForecastData(mockForecast);
-      } catch (error) {
-        console.error('Error fetching weather data:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchWeatherData();
-  }, [selectedLocation]);
-
-  const getWeatherIcon = (condition) => {
-    switch (condition) {
-      case 'Jua': return 'fas fa-sun';
-      case 'Mawingu': return 'fas fa-cloud';
-      case 'Mvua Nyeupe': return 'fas fa-cloud-rain';
-      case 'Mvua': return 'fas fa-cloud-showers-heavy';
-      default: return 'fas fa-cloud';
-    }
+  const getWeatherIcon = (desc = '') => {
+    const d = String(desc).toLowerCase();
+    if (d.includes('mvua') || d.includes('umande') || d.includes('mkunju') || d.includes('drizzle')) return 'fas fa-cloud-rain';
+    if (d.includes('dondoko') || d.includes('umeme') || d.includes('thunder')) return 'fas fa-bolt';
+    if (d.includes('ukungu') || d.includes('fog')) return 'fas fa-smog';
+    if (d.includes('jua') || d.includes('wazi') || d.includes('clear')) return 'fas fa-sun';
+    if (d.includes('mawingu') || d.includes('cloud')) return 'fas fa-cloud';
+    return 'fas fa-cloud-sun';
   };
 
-  const getAdvisory = (weather) => {
-    if (!weather) return {
-      type: 'normal',
-      title: 'Hali ya Kawaida',
-      message: 'Endelea na shughuli za kawaida za kilimo. Fuata ratiba yako ya kilimo.'
-    };
-
-    if (weather.condition.includes('Mvua')) {
+  const getAdvisory = (cur, advisories) => {
+    if (advisories.length) {
+      const top = advisories[0];
       return {
-        type: 'good',
-        title: 'Hali Nzuri ya Kupanda',
-        message: 'Mvua inafaa kwa kupanda mimea mpya na kutia mbolea. Tumia fursa hii.'
+        type: top.type === 'danger' ? 'warning' : (top.type === 'warning' ? 'warning' : 'good'),
+        title: top.type === 'danger' ? 'Tahadhari Kubwa' : top.type === 'warning' ? 'Tahadhari' : 'Ushauri',
+        message: top.message,
       };
-    } else if (weather.condition === 'Jua') {
-      return {
-        type: 'warning',
-        title: 'Umwagiliaji Unahitajika',
-        message: 'Jua kali linahitaji umwagiliaji wa mara kwa mara. Epuka kupalilia wakati wa jua kali.'
-      };
-    } else {
+    }
+    if (!cur) {
       return {
         type: 'normal',
         title: 'Hali ya Kawaida',
         message: 'Endelea na shughuli za kawaida za kilimo. Fuata ratiba yako ya kilimo.'
       };
     }
+    if (String(cur.description).toLowerCase().includes('mvua')) {
+      return {
+        type: 'good',
+        title: 'Hali Nzuri ya Kupanda',
+        message: 'Mvua inafaa kwa kupanda mimea mpya na kutia mbolea. Tumia fursa hii.'
+      };
+    }
+    if (String(cur.description).toLowerCase().includes('wazi')) {
+      return {
+        type: 'warning',
+        title: 'Umwagiliaji Unahitajika',
+        message: 'Jua kali linahitaji umwagiliaji wa mara kwa mara. Epuka kupalilia wakati wa jua kali.'
+      };
+    }
+    return {
+      type: 'normal',
+      title: 'Hali ya Kawaida',
+      message: 'Endelea na shughuli za kawaida za kilimo. Fuata ratiba yako ya kilimo.'
+    };
   };
 
   if (loading) {
-    return (
-      <Loading message="Inapakia taarifa za hali ya hewa..." />
-    );
+    return <Loading message="Inapakia taarifa za hali ya hewa..." />;
   }
 
-  if (!weatherData || !forecastData) {
+  if (error || !current) {
     return (
       <div className="page weather-page">
         <div className="weather-error">
           <i className="fas fa-exclamation-triangle"></i>
           <h3>Huduma ya Hali ya Hewa Haipatikani</h3>
           <p>Samahani, hatuwezi kupata taarifa za hali ya hewa kwa sasa.</p>
-          <button className="btn btn-primary" onClick={onRefresh}>
+          <button className="btn btn-primary" onClick={() => fetchForecast(zones.find(z => z.name === selectedLocation) || zones[0])}>
             <i className="fas fa-sync-alt"></i> Jaribu Tena
           </button>
         </div>
@@ -160,13 +139,12 @@ const Weather = ({ onRefresh }) => {
     );
   }
 
-  const currentWeather = weatherData[selectedLocation];
-  const forecast = forecastData[selectedLocation];
-  const advisory = getAdvisory(currentWeather);
+  const forecast = daily.slice(0, 5);
+  const advisory = getAdvisory(current, advisories);
+  const today = daily[0] || {};
 
   return (
     <div className="page weather-page">
-      
       <div className="weather-container">
         <div className="container">
           {/* Header */}
@@ -177,13 +155,13 @@ const Weather = ({ onRefresh }) => {
 
           {/* Location Selector */}
           <div className="location-selector">
-            {locations.map(location => (
+            {zones.map(location => (
               <button
-                key={location.value}
-                className={`location-btn ${selectedLocation === location.value ? 'active' : ''}`}
-                onClick={() => setSelectedLocation(location.value)}
+                key={location.name}
+                className={`location-btn ${selectedLocation === location.name ? 'active' : ''}`}
+                onClick={() => setSelectedLocation(location.name)}
               >
-                {location.label}
+                {location.name}
               </button>
             ))}
           </div>
@@ -193,11 +171,11 @@ const Weather = ({ onRefresh }) => {
             <div className="current-weather-card">
               <div className="weather-main">
                 <div className="weather-icon-large">
-                  <i className={getWeatherIcon(currentWeather.condition)}></i>
+                  <i className={getWeatherIcon(current.description)}></i>
                 </div>
                 <div className="weather-info">
-                  <div className="temperature-large">{currentWeather.temperature}°C</div>
-                  <div className="condition-large">{currentWeather.condition}</div>
+                  <div className="temperature-large">{Math.round(current.temperature)}°C</div>
+                  <div className="condition-large">{current.description}</div>
                   <div className="location-large">
                     <i className="fas fa-map-marker-alt"></i>
                     {selectedLocation}
@@ -209,28 +187,28 @@ const Weather = ({ onRefresh }) => {
                 <div className="detail-card">
                   <i className="fas fa-tint"></i>
                   <div className="detail-content">
-                    <div className="detail-value">{currentWeather.humidity}</div>
+                    <div className="detail-value">{current.humidity}%</div>
                     <div className="detail-label">Unyevu</div>
                   </div>
                 </div>
                 <div className="detail-card">
                   <i className="fas fa-cloud-rain"></i>
                   <div className="detail-content">
-                    <div className="detail-value">{currentWeather.rainfall}</div>
+                    <div className="detail-value">{today.precipitationProbability != null ? `${today.precipitationProbability}%` : '—'}</div>
                     <div className="detail-label">Uwezekano wa Mvua</div>
                   </div>
                 </div>
                 <div className="detail-card">
                   <i className="fas fa-wind"></i>
                   <div className="detail-content">
-                    <div className="detail-value">{currentWeather.wind}</div>
+                    <div className="detail-value">{current.windSpeed != null ? `${Math.round(current.windSpeed)} km/h` : '—'}</div>
                     <div className="detail-label">Upepo</div>
                   </div>
                 </div>
                 <div className="detail-card">
                   <i className="fas fa-temperature-high"></i>
                   <div className="detail-content">
-                    <div className="detail-value">28°C</div>
+                    <div className="detail-value">{(today.maxTemp != null ? `${Math.round(today.maxTemp)}` : current.temperature)}°C</div>
                     <div className="detail-label">Joto la Juu</div>
                   </div>
                 </div>
@@ -255,15 +233,15 @@ const Weather = ({ onRefresh }) => {
             <div className="forecast-grid">
               {forecast.map((day, index) => (
                 <div key={index} className="forecast-card">
-                  <div className="forecast-day">{day.day}</div>
+                  <div className="forecast-day">{dayLabel(index, day.date)}</div>
                   <div className="forecast-icon">
-                    <i className={getWeatherIcon(day.condition)}></i>
+                    <i className={getWeatherIcon(day.description)}></i>
                   </div>
-                  <div className="forecast-temp">{day.temp}°C</div>
-                  <div className="forecast-condition">{day.condition}</div>
+                  <div className="forecast-temp">{Math.round(day.maxTemp)}°C</div>
+                  <div className="forecast-condition">{day.description}</div>
                   <div className="forecast-rain">
                     <i className="fas fa-cloud-rain"></i>
-                    {day.rain}
+                    {day.precipitationProbability != null ? `${day.precipitationProbability}%` : '—'}
                   </div>
                 </div>
               ))}
@@ -301,8 +279,8 @@ const Weather = ({ onRefresh }) => {
               <h3>Pokea Arifa za Hali ya Hewa kwenye Simu</h3>
               <p>Jiandikishe kupokea arifa za hali ya hewa kwenye simu yako kupitia SMS</p>
               <div className="sms-form">
-                <input 
-                  type="tel" 
+                <input
+                  type="tel"
                   placeholder="Weka namba yako ya simu"
                   className="sms-input"
                 />
@@ -314,7 +292,6 @@ const Weather = ({ onRefresh }) => {
           </div>
         </div>
       </div>
-
     </div>
   );
 };

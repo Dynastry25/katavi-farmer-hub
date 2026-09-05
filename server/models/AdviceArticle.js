@@ -8,6 +8,7 @@ const adviceArticleSchema = new mongoose.Schema({
   readTime: { type: String, default: '5 min' },
   date: { type: String, default: () => new Date().toLocaleDateString('sw-TZ') },
   image: { type: String, default: '' },
+  status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'approved' },
 }, { timestamps: true });
 
 module.exports = mongoose.model('AdviceArticle', adviceArticleSchema);

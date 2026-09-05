@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useLang } from '../../shared/context/LangContext';
 import './Navbar.css';
 
 const Navbar = ({ currentPage, onPageChange, onAuth, user, canGoBack, onGoBack }) => {
+  const { t, lang, toggleLang } = useLang();
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
@@ -42,12 +44,12 @@ const Navbar = ({ currentPage, onPageChange, onAuth, user, canGoBack, onGoBack }
   }, [isProfileOpen, isSearchOpen]);
 
   const navLinks = [
-    { id: 'home', label: 'Nyumbani', icon: 'fas fa-home', path: '/' },
-    { id: 'market', label: 'Soko', icon: 'fas fa-store', path: '/market' },
-    { id: 'advice', label: 'Ushauri', icon: 'fas fa-book-open', path: '/advice' },
-    { id: 'news', label: 'Habari', icon: 'fas fa-newspaper', path: '/news' },
-    { id: 'loans', label: 'Mikopo', icon: 'fas fa-coins', path: '/loans' },
-    { id: 'contact', label: 'Wasiliana', icon: 'fas fa-envelope', path: '/contact' },
+    { id: 'home', label: t('home'), icon: 'fas fa-home', path: '/' },
+    { id: 'market', label: t('market'), icon: 'fas fa-store', path: '/market' },
+    { id: 'advice', label: t('advice'), icon: 'fas fa-book-open', path: '/advice' },
+    { id: 'news', label: t('news'), icon: 'fas fa-newspaper', path: '/news' },
+    { id: 'loans', label: t('loans'), icon: 'fas fa-coins', path: '/loans' },
+    { id: 'contact', label: t('contact'), icon: 'fas fa-envelope', path: '/contact' },
   ];
 
   const dashboardPaths = { farmer: '/farmer-dashboard', buyer: '/buyer-dashboard', expert: '/expert-dashboard' };
@@ -106,6 +108,17 @@ const Navbar = ({ currentPage, onPageChange, onAuth, user, canGoBack, onGoBack }
 
         {/* Right Section */}
         <div className="navbar-actions">
+          {/* Language Toggle */}
+          <button
+            className="lang-toggle"
+            onClick={toggleLang}
+            aria-label={lang === 'sw' ? 'Switch to English' : 'Badilisha hadi Kiswahili'}
+            title={lang === 'sw' ? 'English' : 'Kiswahili'}
+          >
+            <i className="fas fa-globe"></i>
+            <span className="lang-code">{t('toggleLang')}</span>
+          </button>
+
           {/* Search */}
           <div className="search-wrapper" ref={searchRef}>
             <button
@@ -121,7 +134,7 @@ const Navbar = ({ currentPage, onPageChange, onAuth, user, canGoBack, onGoBack }
                 <input
                   type="text"
                   className="search-input"
-                  placeholder="Tafuta mazao, wauzaji, ushauri..."
+                  placeholder={t('searchPlaceholder')}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   autoFocus
@@ -207,6 +220,18 @@ const Navbar = ({ currentPage, onPageChange, onAuth, user, canGoBack, onGoBack }
       {/* Mobile Menu */}
       <div className={`mobile-menu ${isMobileOpen ? 'open' : ''}`}>
         <div className="mobile-menu-inner">
+          {/* Mobile Header */}
+          <div className="mobile-top">
+            <button
+              className="lang-toggle mobile-lang-toggle"
+              onClick={toggleLang}
+              aria-label="Language"
+            >
+              <i className="fas fa-globe"></i>
+              <span className="lang-code">{t('toggleLang')}</span>
+            </button>
+          </div>
+
           {/* Mobile Search */}
           <form className="mobile-search" onSubmit={handleSearch}>
             <i className="fas fa-search"></i>

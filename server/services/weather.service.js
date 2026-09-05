@@ -1,4 +1,6 @@
-const CACHE_TTL = 60 * 60 * 1000; // 1 hour
+const WeatherConfig = require('../models/WeatherConfig');
+
+const DEFAULT_TTL = 60 * 60 * 1000; // 1 hour
 const cache = new Map();
 
 const WMO_CODES = {
@@ -29,12 +31,33 @@ const WEATHER_DESCRIPTIONS = {
 
 const getWeatherDescription = (code) => WEATHER_DESCRIPTIONS[code] || 'Hali ya hewa haijulikani';
 
-const fetchWeatherByCoords = async (lat, lon) => {
-  const cacheKey = `weather_${lat}_${lon}`;
-  const cached = cache.get(cacheKey);
-  if (cached && Date.now() - cached.time < CACHE_TTL) return cached.data;
+// Read weather source config (cached in memory for 5 minutes). Falls back to Open-Meteo defaults.
+let configCache = { data: null, time: 0 };
+const getConfig = async () => {
+  if (configCache.data && Date.now() - configCache.time < 5 * 60 * 1000) return configCache.data;
+  try {
+    let config = await WeatherConfig.findOne({ key: 'config' });
+    configCache = { data: config, time: Date.now() };
+    return config;
+  } catch (e) {
+    return null;
+  }
+};
 
-  const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,wind_speed_10m,weather_code,uv_index,precipitation&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,wind_speed_10m_max&timezone=Africa/Dar_es_Salaam&forecast_days=7`;
+const buildForecastUrl = (lat, lon, days, config) => {
+  const baseUrl = (config && config.baseUrl) || 'https://api.open-meteo.com/v1/forecast';
+  const key = config && config.apiKey ? `&apikey=${encodeURIComponent(config.apiKey)}` : '';
+  return `${baseUrl}?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,wind_speed_10m,weather_code,uv_index,precipitation&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,wind_speed_10m_max&timezone=Africa/Dar_es_Salaam&forecast_days=${days}${key}`;
+};
+
+const fetchWeatherByCoords = async (lat, lon, days = 7) => {
+  const cacheKey = `weather_${lat}_${lon}_${days}`;
+  const cached = cache.get(cacheKey);
+  const config = await getConfig();
+  const ttl = (config && config.cacheMinutes ? config.cacheMinutes : 60) * 60 * 1000;
+  if (cached && Date.now() - cached.time < ttl) return cached.data;
+
+  const url = buildForecastUrl(lat, lon, days, config);
 
   const response = await fetch(url);
   if (!response.ok) throw new Error(`Weather API error: ${response.status}`);

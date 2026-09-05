@@ -4,6 +4,7 @@ import { cropsAPI, ordersAPI } from '../../api/client';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Cell, PieChart, Pie, Legend } from 'recharts';
 import AdminLayout from './AdminLayout';
 import { getRoleNavSections } from './roleNav';
+import RatingModal from './RatingModal';
 import { useAuth } from '../../shared/context/AuthContext';
 import './BuyerDashboard.css';
 
@@ -14,6 +15,8 @@ const BuyerDashboard = () => {
   const [activeTab, setActiveTab] = useState('overview');
   const [showOrderModal, setShowOrderModal] = useState(false);
   const [showContactModal, setShowContactModal] = useState(false);
+  const [showRatingModal, setShowRatingModal] = useState(false);
+  const [ratingOrder, setRatingOrder] = useState(null);
   const [selectedCrop, setSelectedCrop] = useState(null);
   const [selectedFarmer, setSelectedFarmer] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -28,21 +31,22 @@ const BuyerDashboard = () => {
   const [apiOrders, setApiOrders] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  const fetchOrders = async () => {
+    try {
+      const [cropsRes, ordersRes] = await Promise.all([
+        cropsAPI.getAll(),
+        ordersAPI.getAll(),
+      ]);
+      setApiCrops(cropsRes.data?.crops || cropsRes.data || []);
+      if (ordersRes.data && ordersRes.data.length > 0) setApiOrders(ordersRes.data);
+    } catch (err) {
+      console.error('Error fetching orders:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchOrders = async () => {
-      try {
-        const [cropsRes, ordersRes] = await Promise.all([
-          cropsAPI.getAll(),
-          ordersAPI.getAll(),
-        ]);
-        setApiCrops(cropsRes.data?.crops || cropsRes.data || []);
-        if (ordersRes.data && ordersRes.data.length > 0) setApiOrders(ordersRes.data);
-      } catch (err) {
-        console.error('Error fetching orders:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchOrders();
   }, []);
 
@@ -592,6 +596,17 @@ const BuyerDashboard = () => {
                         <i className="fas fa-times"></i> Katiza
                       </button>
                     )}
+                    {(order.status === 'completed' || order.status === 'delivered') && (
+                      <button 
+                        className="btn btn-sm btn-primary"
+                        onClick={() => {
+                          setRatingOrder(order);
+                          setShowRatingModal(true);
+                        }}
+                      >
+                        <i className="fas fa-star"></i> Kadiria
+                      </button>
+                    )}
                     <button className="btn btn-sm btn-primary">
                       <i className="fas fa-phone"></i> Piga
                     </button>
@@ -958,6 +973,17 @@ const BuyerDashboard = () => {
         </div>
       )}
 
+      {showRatingModal && ratingOrder && (
+        <RatingModal
+          order={ratingOrder}
+          onClose={() => setShowRatingModal(false)}
+          onSubmitted={() => {
+            setShowRatingModal(false);
+            alert('Asante kwa ukadiriaji wako!');
+            fetchOrders();
+          }}
+        />
+      )}
     </>
   );
 };

@@ -645,3 +645,14 @@
     transition: none;
   }
 }
+
+/* Language toggle */
+.lang-toggle{display:inline-flex;align-items:center;gap:6px;background:none;border:1px solid rgba(255,255,255,.35);color:#fff;border-radius:20px;padding:6px 12px;font-size:13px;font-weight:600;cursor:pointer;transition:all .2s}
+.scrolled .lang-toggle{border-color:rgba(0,0,0,.2);color:#111827}
+.lang-toggle:hover{border-color:var(--green,#1a7431);color:var(--green,#1a7431)}
+.lang-code{font-size:12px;letter-spacing:.5px}
+
+/* Mobile */
+.mobile-top{display:flex;justify-content:flex-end;padding:8px 16px 0}
+.mobile-lang-toggle{color:#1a7431;border-color:rgba(26,116,49,.4)}
+

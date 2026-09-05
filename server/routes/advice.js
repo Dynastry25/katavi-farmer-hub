@@ -7,7 +7,7 @@ const { auth } = require('../middleware/auth');
 // GET /api/advice/articles
 router.get('/articles', async (req, res) => {
   try {
-    const articles = await AdviceArticle.find().sort({ createdAt: -1 });
+    const articles = await AdviceArticle.find({ $or: [{ status: 'approved' }, { status: { $exists: false } }] }).sort({ createdAt: -1 });
     res.json(articles);
   } catch (error) {
     res.status(500).json({ message: 'Hitilafu imetokea' });

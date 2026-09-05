@@ -5,6 +5,8 @@ const Crop = require('./models/Crop');
 const NewsArticle = require('./models/NewsArticle');
 const Supplier = require('./models/Supplier');
 const Loan = require('./models/Loan');
+const LoanApplication = require('./models/LoanApplication');
+const Order = require('./models/Order');
 const FarmerGroup = require('./models/FarmerGroup');
 const AdviceArticle = require('./models/AdviceArticle');
 const Video = require('./models/Video');
@@ -15,6 +17,9 @@ const Message = require('./models/Message');
 const MarketPrice = require('./models/MarketPrice');
 const Notification = require('./models/Notification');
 const Rating = require('./models/Rating');
+const WeatherConfig = require('./models/WeatherConfig');
+const WeatherZone = require('./models/WeatherZone');
+const PlatformSetting = require('./models/PlatformSetting');
 
 dotenv.config();
 
@@ -29,6 +34,8 @@ const seedDB = async () => {
     await NewsArticle.deleteMany({});
     await Supplier.deleteMany({});
     await Loan.deleteMany({});
+    await LoanApplication.deleteMany({});
+    await Order.deleteMany({});
     await FarmerGroup.deleteMany({});
     await AdviceArticle.deleteMany({});
     await Video.deleteMany({});
@@ -39,6 +46,9 @@ const seedDB = async () => {
     await MarketPrice.deleteMany({});
     await Notification.deleteMany({});
     await Rating.deleteMany({});
+    await WeatherConfig.deleteMany({});
+    await WeatherZone.deleteMany({});
+    await PlatformSetting.deleteMany({});
 
     // Create users
     const users = await User.create([
@@ -280,7 +290,7 @@ const seedDB = async () => {
     console.log('Wauzaji wameundwa');
 
     // Create loans
-    await Loan.create([
+    const loans = await Loan.create([
       {
         name: 'Mkopo wa Kilimo',
         provider: 'NMB Bank',
@@ -314,6 +324,82 @@ const seedDB = async () => {
     ]);
 
     console.log('Mikopo imeundwa');
+
+    // Create loan applications
+    await LoanApplication.create([
+      {
+        user: users[0]._id,
+        loan: loans[0]._id,
+        loanName: loans[0].name,
+        amount: 'TZS 2,000,000',
+        status: 'approved',
+        repaymentStatus: 'partial',
+        remaining: 'TZS 800,000',
+        nextPayment: '2026-10-01',
+        repayments: [
+          { amount: 'TZS 600,000', date: '2026-06-05', method: 'Tigo Pesa', note: 'Malipo ya kwanza' },
+          { amount: 'TZS 600,000', date: '2026-08-01', method: 'M-Pesa', note: 'Malipo ya pili' },
+        ],
+      },
+      {
+        user: users[0]._id,
+        loan: loans[1]._id,
+        loanName: loans[1].name,
+        amount: 'TZS 5,000,000',
+        status: 'pending',
+        repaymentStatus: 'none',
+        remaining: '',
+        nextPayment: '',
+        repayments: [],
+      },
+      {
+        user: users[0]._id,
+        loan: loans[2]._id,
+        loanName: loans[2].name,
+        amount: 'TZS 1,200,000',
+        status: 'approved',
+        repaymentStatus: 'paid',
+        remaining: 'TZS 0',
+        nextPayment: '',
+        repayments: [
+          { amount: 'TZS 400,000', date: '2026-03-10', method: 'Bank', note: 'Malipo ya kwanza' },
+          { amount: 'TZS 400,000', date: '2026-04-10', method: 'M-Pesa', note: 'Malipo ya pili' },
+          { amount: 'TZS 400,000', date: '2026-05-10', method: 'M-Pesa', note: 'Malipo ya mwisho' },
+        ],
+      },
+    ]);
+
+    console.log('Maombi ya mikopo yameundwa');
+
+    // Create orders (including disputes)
+    await Order.create([
+      {
+        crop: crops[0]._id,
+        cropName: 'Mahindi',
+        buyer: users[1]._id,
+        buyerName: 'Asha Hassan',
+        farmer: users[0]._id,
+        farmerName: 'Juma Mwinyi',
+        quantity: '500',
+        price: '1200',
+        status: 'disputed',
+        resolution: '',
+      },
+      {
+        crop: crops[1]._id,
+        cropName: 'Mchele',
+        buyer: users[1]._id,
+        buyerName: 'Asha Hassan',
+        farmer: users[0]._id,
+        farmerName: 'Juma Mwinyi',
+        quantity: '300',
+        price: '2500',
+        status: 'cancelled',
+        resolution: 'Mnunuzi alikatisha agizo baada ya mgogoro wa uwasilishaji',
+      },
+    ]);
+
+    console.log('Agizo/migogoro yameundwa');
 
     // Create farmer groups
     await FarmerGroup.create([
@@ -492,6 +578,30 @@ const seedDB = async () => {
     ]);
 
     console.log('Ukadiriaji umeundwa');
+
+    // Create weather config + zones
+    await WeatherConfig.create({ key: 'config', source: 'open-meteo', baseUrl: '', apiKey: '', cacheMinutes: 60, updatedBy: users[3]._id });
+
+    await WeatherZone.create([
+      { name: 'Mpanda', district: 'Mpanda', ward: 'Mpanda Mjini', lat: -6.346, lon: 31.072, active: true, alertEnabled: true, alertRainMm: 30, alertTempC: 35, createdBy: users[3]._id },
+      { name: 'Mlele', district: 'Mlele', ward: 'Mlele Mjini', lat: -6.9, lon: 31.6, active: true, alertEnabled: true, alertRainMm: 30, alertTempC: 35, createdBy: users[3]._id },
+      { name: 'Nsimbo', district: 'Nsimbo', ward: 'Sitalike', lat: -6.5, lon: 31.1, active: true, alertEnabled: true, alertRainMm: 40, alertTempC: 33, createdBy: users[3]._id },
+      { name: 'Karema', district: 'Mpanda', ward: 'Karema', lat: -6.817, lon: 30.44, active: true, alertEnabled: true, alertRainMm: 25, alertTempC: 32, createdBy: users[3]._id },
+    ]);
+
+    console.log('Mipangilio na maeneo ya hali ya hewa yameundwa');
+
+    // Create platform settings
+    await PlatformSetting.create({
+      key: 'platform',
+      commissionRate: 5,
+      featuredListingsEnabled: true,
+      bannerMessage: 'Karibu Katavi E-Kilimo! Nunua na uuze mazao kwa bei bora na upate bei za soko za wakati halisi.',
+      bannerActive: true,
+      updatedBy: users[3]._id,
+    });
+
+    console.log('Mipangilio ya mfumo yameundwa');
 
     console.log('\n✅ Seed imekamilika! Database imejazwa na data ya mfano.');
     console.log('\nAkaunti za majaribio:');

@@ -11,6 +11,7 @@ const newsArticleSchema = new mongoose.Schema({
   image: { type: String, default: '' },
   featured: { type: Boolean, default: false },
   views: { type: Number, default: 0 },
+  status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'approved' },
 }, { timestamps: true });
 
 module.exports = mongoose.model('NewsArticle', newsArticleSchema);

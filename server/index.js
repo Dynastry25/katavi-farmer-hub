@@ -109,26 +109,32 @@ io.on('connection', (socket) => {
 app.set('io', io);
 
 // Routes
-app.use('/api/auth', apiLimiter, require('./routes/auth'));
-app.use('/api/chatbot', chatbotLimiter, require('./routes/chatbot'));
-app.use('/api/crops', require('./routes/crops'));
-app.use('/api/products', require('./routes/products'));
-app.use('/api/orders', require('./routes/orders'));
-app.use('/api/news', require('./routes/news'));
-app.use('/api/videos', require('./routes/videos'));
-app.use('/api/suppliers', require('./routes/suppliers'));
-app.use('/api/loans', require('./routes/loans'));
-app.use('/api/farmer-groups', require('./routes/farmerGroups'));
-app.use('/api/chat', require('./routes/chat'));
-app.use('/api/contact', require('./routes/contact'));
-app.use('/api/advice', require('./routes/advice'));
-app.use('/api/upload', require('./routes/upload'));
-app.use('/api/admin', require('./routes/admin'));
-app.use('/api/market-prices', require('./routes/marketPrices'));
-app.use('/api/notifications', require('./routes/notifications'));
+app.use('/api/v1/auth', apiLimiter, require('./routes/auth'));
+app.use('/api/v1/chatbot', chatbotLimiter, require('./routes/chatbot'));
+app.use('/api/v1/ai', require('./routes/ai'));
+app.use('/api/v1/crops', require('./routes/crops'));
+app.use('/api/v1/products', require('./routes/products'));
+app.use('/api/v1/orders', require('./routes/orders'));
+app.use('/api/v1/news', require('./routes/news'));
+app.use('/api/v1/videos', require('./routes/videos'));
+app.use('/api/v1/suppliers', require('./routes/suppliers'));
+app.use('/api/v1/loans', require('./routes/loans'));
+app.use('/api/v1/farmer-groups', require('./routes/farmerGroups'));
+app.use('/api/v1/chat', require('./routes/chat'));
+app.use('/api/v1/contact', require('./routes/contact'));
+app.use('/api/v1/advice', require('./routes/advice'));
+app.use('/api/v1/upload', require('./routes/upload'));
+app.use('/api/v1/admin', require('./routes/admin'));
+app.use('/api/v1/market-prices', require('./routes/marketPrices'));
+app.use('/api/v1/notifications', require('./routes/notifications'));
+app.use('/api/v1/ratings', require('./routes/ratings'));
+app.use('/api/v1/weather', require('./routes/weather'));
+app.use('/api/v1/push', require('./routes/push'));
+app.use('/api/v1/payments', require('./routes/payments'));
+app.use('/api/v1/settings', require('./routes/settings'));
 
 // Health check
-app.get('/api/health', (req, res) => {
+app.get('/api/v1/health', (req, res) => {
   res.json({ status: 'ok', message: 'Katavi E-Kilimo API inafanya kazi', timestamp: new Date().toISOString() });
 });
 

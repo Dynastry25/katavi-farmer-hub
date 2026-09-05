@@ -7,6 +7,7 @@ import {
 import AdminLayout from './AdminLayout';
 import { adminAPI } from '../../api/client';
 import { useAuth } from '../../shared/context/AuthContext';
+import { downloadCSV, printView } from '../../shared/utils/export';
 import './AdminDashboard.css';
 
 const ROLE_LABELS = {
@@ -86,6 +87,37 @@ const AdminReports = () => {
 
   const recentUsers = stats?.recentUsers || [];
 
+  const exportCsv = () => {
+    const headers = ['Kipengele', 'Idadi', 'Tarehe'];
+    const rows = [
+      ...reportCards.map((c) => [
+        c.label,
+        c.value,
+        new Date().toLocaleDateString('sw-TZ'),
+      ]),
+      ...roleData.map((d) => [
+        d.name,
+        d.value,
+        new Date().toLocaleDateString('sw-TZ'),
+      ]),
+    ];
+    downloadCSV(`ripoti-mfumo-${new Date().toISOString().slice(0, 10)}.csv`, headers, rows);
+  };
+
+  const exportPdf = () => {
+    printView({
+      title: 'Ripoti za Mfumo - Katavi E-Kilimo',
+      subtitle: 'Muhtasari wa takwimu za mfumo mzima',
+      headers: ['Kipengele', 'Idadi'],
+      rows: [
+        ...reportCards.map((c) => [c.label, c.value]),
+        ...roleData.map((d) => [d.name, d.value]),
+        ...growthData.map((g) => [`Watumiaji ${g.month}`, g.users]),
+      ],
+      statGroups: reportCards,
+    });
+  };
+
   return (
     <AdminLayout
       user={user}
@@ -100,6 +132,14 @@ const AdminReports = () => {
         <div className="admin-loading">Inapakia ripoti...</div>
       ) : (
         <div className="admin-reports">
+          <div className="report-export-toolbar">
+            <button className="btn btn-sm btn-outline" onClick={exportCsv}>
+              <i className="fas fa-file-csv"></i> Hamisha CSV
+            </button>
+            <button className="btn btn-sm btn-primary" onClick={exportPdf}>
+              <i className="fas fa-print"></i> Chapa / PDF
+            </button>
+          </div>
           <div className="admin-stat-grid">
             {reportCards.map((c, i) => (
               <div className="admin-stat-card" key={i}>

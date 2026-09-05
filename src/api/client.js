@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || '/api/v1';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -42,6 +42,9 @@ export const authAPI = {
   login: (data) => api.post('/auth/login', data),
   getMe: () => api.get('/auth/me'),
   updateProfile: (data) => api.put('/auth/profile', data),
+  verifyTwoFactor: (data) => api.post('/auth/2fa/verify', data),
+  resendTwoFactor: (email) => api.post('/auth/2fa/resend', { email }),
+  setupTwoFactor: (data) => api.post('/auth/2fa/setup', data),
 };
 
 // Crops API
@@ -149,6 +152,13 @@ export const uploadAPI = {
   }),
 };
 
+// Ratings API
+export const ratingsAPI = {
+  create: (data) => api.post('/ratings', data),
+  getMy: () => api.get('/ratings/my'),
+  getByUser: (id) => api.get(`/ratings/user/${id}`),
+};
+
 // Admin API (role management)
 export const adminAPI = {
   getStats: () => api.get('/admin/stats'),
@@ -231,23 +241,66 @@ export const marketPricesAPI = {
   getBaselines: (params) => api.get('/market-prices/baselines', { params }),
 };
 
+// Weather API
+export const weatherAPI = {
+  getForecast: (params) => api.get('/weather/forecast', { params }),
+  getConfig: () => api.get('/weather/config'),
+  getConfigAdmin: () => api.get('/weather/config/admin'),
+  updateConfig: (data) => api.put('/weather/config', data),
+  getZones: () => api.get('/weather/zones'),
+  createZone: (data) => api.post('/weather/zones', data),
+  updateZone: (id, data) => api.put(`/weather/zones/${id}`, data),
+  deleteZone: (id) => api.delete(`/weather/zones/${id}`),
+};
+
 // Admin Extended API
 export const adminExtendedAPI = {
   suspendUser: (id, suspend) => api.put(`/admin/users/${id}/suspend`, { suspend }),
+  verifyUser: (id, verify) => api.put(`/admin/users/${id}/verify`, { verify }),
   getCrops: (params) => api.get('/admin/crops', { params }),
   moderateCrop: (id, status) => api.put(`/admin/crops/${id}/moderate`, { status }),
+  getAdvisory: (params) => api.get('/admin/advice', { params }),
+  moderateAdvisory: (id, status) => api.put(`/admin/advice/${id}/moderate`, { status }),
+  getNewsAdmin: (params) => api.get('/admin/news', { params }),
+  moderateNews: (id, status) => api.put(`/admin/news/${id}/moderate`, { status }),
   getMarketPrices: (params) => api.get('/admin/market-prices', { params }),
   createMarketPrice: (data) => api.post('/admin/market-prices', data),
   updateMarketPrice: (id, data) => api.put(`/admin/market-prices/${id}`, data),
   deleteMarketPrice: (id) => api.delete(`/admin/market-prices/${id}`),
   getLoanApplications: (params) => api.get('/admin/loans', { params }),
   moderateLoan: (id, status) => api.put(`/admin/loans/${id}/moderate`, { status }),
+  updateLoanRepayment: (id, data) => api.put(`/admin/loans/${id}/repayment`, data),
   getGroups: (params) => api.get('/admin/groups', { params }),
   getRatings: (params) => api.get('/admin/ratings', { params }),
   getNotifications: (params) => api.get('/admin/notifications', { params }),
   broadcastNotification: (data) => api.post('/admin/notifications/broadcast', data),
   getDisputes: (params) => api.get('/admin/disputes', { params }),
+  resolveDispute: (id, data) => api.put(`/admin/disputes/${id}/resolve`, data),
   getAuditLogs: (params) => api.get('/admin/audit-logs', { params }),
+  getSettings: () => api.get('/admin/settings'),
+  updateSettings: (data) => api.put('/admin/settings', data),
+};
+
+// Platform settings (public)
+export const settingsAPI = {
+  getPlatform: () => api.get('/settings/platform'),
+};
+
+// AI features
+export const aiAPI = {
+  detectCropDisease: (data) => api.post('/ai/crop-detect', data),
+};
+
+// Push notifications
+export const pushAPI = {
+  subscribe: (data) => api.post('/push/subscribe', data),
+  unsubscribe: (data) => api.delete('/push/unsubscribe', { data }),
+};
+
+// Mobile money
+export const paymentsAPI = {
+  initiate: (data) => api.post('/payments/initiate', data),
+  status: (transactionId) => api.get(`/payments/${transactionId}`),
 };
 
 export default api;

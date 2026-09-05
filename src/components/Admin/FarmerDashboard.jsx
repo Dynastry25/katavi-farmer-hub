@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend } from 'recharts';
 import AdminLayout from './AdminLayout';
 import { getRoleNavSections } from './roleNav';
+import RatingModal from './RatingModal';
 import { useAuth } from '../../shared/context/AuthContext';
 import './FarmerDashboard.css';
 
@@ -14,6 +15,8 @@ const FarmerDashboard = () => {
   const [showAddProductModal, setShowAddProductModal] = useState(false);
   const [showOrderModal, setShowOrderModal] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
+  const [showRatingModal, setShowRatingModal] = useState(false);
+  const [ratingOrder, setRatingOrder] = useState(null);
   const navigate = useNavigate();
 
   const [apiCrops, setApiCrops] = useState([]);
@@ -426,6 +429,17 @@ const FarmerDashboard = () => {
                         </button>
                       </>
                     )}
+                    {order.status === 'completed' && (
+                      <button 
+                        className="btn btn-sm btn-primary"
+                        onClick={() => {
+                          setRatingOrder(order);
+                          setShowRatingModal(true);
+                        }}
+                      >
+                        <i className="fas fa-star"></i> Kadiria
+                      </button>
+                    )}
                   </div>
                 </td>
               </tr>
@@ -761,6 +775,18 @@ const FarmerDashboard = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {showRatingModal && ratingOrder && (
+        <RatingModal
+          order={ratingOrder}
+          onClose={() => setShowRatingModal(false)}
+          onSubmitted={() => {
+            setShowRatingModal(false);
+            alert('Asante kwa ukadiriaji wako!');
+            fetchData();
+          }}
+        />
       )}
     </>
   );

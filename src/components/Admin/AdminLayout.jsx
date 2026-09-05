@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useLang } from '../../shared/context/LangContext';
 import './AdminLayout.css';
 
 const AdminLayout = ({
@@ -16,6 +17,7 @@ const AdminLayout = ({
   children
 }) => {
   const navigate = useNavigate();
+  const { t, lang, toggleLang } = useLang();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const userMenuRef = useRef(null);
@@ -104,6 +106,16 @@ const AdminLayout = ({
           </div>
 
           <div className="topbar-right">
+            <button
+              className="topbar-lang"
+              onClick={toggleLang}
+              aria-label="Language"
+              title={lang === 'sw' ? 'English' : 'Kiswahili'}
+            >
+              <i className="fas fa-globe"></i>
+              <span className="lang-code">{t('toggleLang')}</span>
+            </button>
+
             {headerActions && <div className="topbar-actions">{headerActions}</div>}
 
             <div className="topbar-user" ref={userMenuRef}>

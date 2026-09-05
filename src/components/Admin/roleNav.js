@@ -8,6 +8,7 @@ export const ROLE_TABS = {
     { id: 'groups', label: 'Vikundi', icon: 'fas fa-users' },
     { id: 'advisory', label: 'Ushauri', icon: 'fas fa-book-medical' },
     { id: 'news', label: 'Habari', icon: 'fas fa-newspaper' },
+    { id: 'weather', label: 'Hali ya Hewa', icon: 'fas fa-cloud-sun' },
     { id: 'notifications', label: 'Arifa', icon: 'fas fa-bell' },
     { id: 'ratings', label: 'Ukadiriaji', icon: 'fas fa-star' },
     { id: 'disputes', label: 'Migogoro', icon: 'fas fa-exclamation-triangle' },
@@ -35,6 +36,23 @@ export const ROLE_TABS = {
     { id: 'earnings', label: 'Mapato', icon: 'fas fa-chart-line' },
     { id: 'schedule', label: 'Ratiba', icon: 'fas fa-calendar' },
   ],
+  support: [
+    { id: 'overview', label: 'Dashibodi', icon: 'fas fa-chart-pie' },
+    { id: 'users', label: 'Watumiaji', icon: 'fas fa-users-cog' },
+    { id: 'disputes', label: 'Migogoro', icon: 'fas fa-exclamation-triangle' },
+  ],
+  content_moderator: [
+    { id: 'overview', label: 'Dashibodi', icon: 'fas fa-chart-pie' },
+    { id: 'products', label: 'Mazao', icon: 'fas fa-leaf' },
+    { id: 'market-prices', label: 'Bei za Soko', icon: 'fas fa-chart-line' },
+    { id: 'advisory', label: 'Ushauri', icon: 'fas fa-book-medical' },
+    { id: 'news', label: 'Habari', icon: 'fas fa-newspaper' },
+  ],
+  finance_officer: [
+    { id: 'overview', label: 'Dashibodi', icon: 'fas fa-chart-pie' },
+    { id: 'market-prices', label: 'Bei za Soko', icon: 'fas fa-chart-line' },
+    { id: 'loans', label: 'Mikopo', icon: 'fas fa-hand-holding-usd' },
+  ],
 };
 
 export const REPORT_LABELS = {
@@ -42,10 +60,15 @@ export const REPORT_LABELS = {
   farmer: { label: 'Ripoti', icon: 'fas fa-file-alt' },
   buyer: { label: 'Ripoti', icon: 'fas fa-file-alt' },
   expert: { label: 'Ripoti', icon: 'fas fa-chart-bar' },
+  support: { label: 'Ripoti', icon: 'fas fa-file-alt' },
+  content_moderator: { label: 'Ripoti', icon: 'fas fa-file-alt' },
+  finance_officer: { label: 'Ripoti', icon: 'fas fa-chart-line' },
 };
 
+const ADMIN_DASHBOARD_ROLES = ['admin', 'support', 'content_moderator', 'finance_officer'];
+
 export function getRoleNavSections({ role, navigate, activeTab, badges = {}, onTab }) {
-  const base = `/${role}-dashboard`;
+  const base = ADMIN_DASHBOARD_ROLES.includes(role) ? '/admin-dashboard' : `/${role}-dashboard`;
   const tabs = (ROLE_TABS[role] || ROLE_TABS.farmer).map((t) => ({
     id: t.id,
     label: t.label,

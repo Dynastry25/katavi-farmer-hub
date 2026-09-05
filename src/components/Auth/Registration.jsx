@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { authAPI } from '../../api/client';
+import { useAuth } from '../../shared/context/AuthContext';
 import './Registration.css';
 
-const Registration = ({ onAuth }) => {
+const Registration = () => {
+  const { loginWithUser } = useAuth();
   const [step, setStep] = useState(1);
   const [userType, setUserType] = useState('');
   const [formData, setFormData] = useState({
@@ -208,9 +210,7 @@ const Registration = ({ onAuth }) => {
       });
       const user = response.data;
 
-      localStorage.setItem('kataviToken', user.token);
-      const { token, ...userWithoutToken } = user;
-      onAuth('register-success', userWithoutToken);
+      loginWithUser(user);
 
       alert(`Hongera ${formData.fullName}! Akaunti yako ya ${userTypes.find(t => t.value === userType)?.label} imeundwa kikamilifu.`);
 

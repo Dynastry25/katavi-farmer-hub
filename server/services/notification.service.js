@@ -1,6 +1,6 @@
 const Notification = require('../models/Notification');
 
-const sendNotification = async (userId, { title, message, type = 'system', link = '', metadata = {} }) => {
+const sendNotification = async (userId, { title, message, type = 'system', link = '', metadata = {}, sentVia = ['in_app'] }) => {
   try {
     const notification = await Notification.create({
       user: userId,
@@ -9,6 +9,7 @@ const sendNotification = async (userId, { title, message, type = 'system', link 
       type,
       link,
       metadata,
+      sentVia,
     });
     return notification;
   } catch (error) {
@@ -17,7 +18,7 @@ const sendNotification = async (userId, { title, message, type = 'system', link 
   }
 };
 
-const sendBulkNotifications = async (userIds, { title, message, type = 'system', link = '', metadata = {} }) => {
+const sendBulkNotifications = async (userIds, { title, message, type = 'system', link = '', metadata = {}, sentVia = ['in_app'] }) => {
   try {
     const notifications = userIds.map(userId => ({
       user: userId,
@@ -26,6 +27,7 @@ const sendBulkNotifications = async (userIds, { title, message, type = 'system',
       type,
       link,
       metadata,
+      sentVia,
     }));
     return await Notification.insertMany(notifications);
   } catch (error) {

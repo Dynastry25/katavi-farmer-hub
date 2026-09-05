@@ -445,3 +445,5 @@ html {
   overflow-y: auto;
   margin: auto;
 }
+/* Export toolbar */
+.report-export-toolbar{display:flex;gap:8px;justify-content:flex-end}@media print{.report-export-toolbar{display:none}}

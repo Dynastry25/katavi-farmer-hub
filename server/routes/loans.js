@@ -28,6 +28,15 @@ router.get('/my', auth, async (req, res) => {
 router.post('/apply', auth, async (req, res) => {
   try {
     const application = await LoanApplication.create({ ...req.body, user: req.user._id });
+
+    // Refresh credit/trust data so the score reflects this new activity.
+    try {
+      const { refreshCreditData } = require('../services/creditScore.service');
+      await refreshCreditData(req.user._id);
+    } catch (e) {
+      console.error('Credit refresh error:', e.message);
+    }
+
     res.status(201).json(application);
   } catch (error) {
     res.status(500).json({ message: 'Hitilafu imetokea' });

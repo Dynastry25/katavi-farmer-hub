@@ -6,7 +6,8 @@ import {
   AreaChart, Area, LineChart, Line
 } from 'recharts';
 import AdminLayout from './AdminLayout';
-import { adminAPI, adminExtendedAPI, newsAPI, adviceAPI, marketPricesAPI } from '../../api/client';
+import { adminAPI, adminExtendedAPI, weatherAPI, marketPricesAPI } from '../../api/client';
+import { useAuth } from '../../shared/context/AuthContext';
 import { getRoleNavSections } from './roleNav';
 import { CROP_CATEGORIES } from '../../constants/roleConfig';
 import './AdminDashboard.css';
@@ -17,17 +18,25 @@ const ROLE_LABELS = {
   farmer: 'Mkulima',
   buyer: 'Mnunuzi / Muuzaji',
   expert: 'Mtaalamu / Extension',
-  admin: 'Admin'
+  admin: 'Admin',
+  support: 'Support',
+  content_moderator: 'Msimamizi wa Maudhui',
+  finance_officer: 'Afisa Fedha'
 };
 
 const ROLE_ICONS = {
   farmer: 'fas fa-tractor',
   buyer: 'fas fa-shopping-cart',
   expert: 'fas fa-graduation-cap',
-  admin: 'fas fa-user-shield'
+  admin: 'fas fa-user-shield',
+  support: 'fas fa-headset',
+  content_moderator: 'fas fa-edit',
+  finance_officer: 'fas fa-coins'
 };
 
-const AdminDashboard = ({ user, onAuth, onToggleChat, onRefresh }) => {
+const AdminDashboard = ({ user: propUser, onAuth, onToggleChat, onRefresh }) => {
+  const { user: authUser } = useAuth();
+  const user = propUser || authUser;
   const [activeTab, setActiveTab] = useState('overview');
   const [stats, setStats] = useState(null);
   const [users, setUsers] = useState([]);
@@ -46,6 +55,8 @@ const AdminDashboard = ({ user, onAuth, onToggleChat, onRefresh }) => {
   const [cropFilter, setCropFilter] = useState('all');
 
   const [marketPrices, setMarketPrices] = useState([]);
+const [priceTrend, setPriceTrend] = useState([]);
+const [trendCrop, setTrendCrop] = useState('');
   const [priceForm, setPriceForm] = useState({ cropName: '', category: 'cereals', region: 'Mpanda', pricePerUnit: '', unit: 'kg', isBaseline: false });
 
   const [loans, setLoans] = useState([]);
@@ -59,6 +70,12 @@ const AdminDashboard = ({ user, onAuth, onToggleChat, onRefresh }) => {
   const [disputes, setDisputes] = useState([]);
   const [ratings, setRatings] = useState([]);
 
+  const [weatherZones, setWeatherZones] = useState([]);
+  const [weatherConfig, setWeatherConfig] = useState({ source: 'open-meteo', baseUrl: '', apiKey: '', cacheMinutes: 60 });
+  const [zoneForm, setZoneForm] = useState({ name: '', district: '', ward: '', lat: '', lon: '', active: true, alertEnabled: true, alertRainMm: 30, alertTempC: 35 });
+  const [showZoneModal, setShowZoneModal] = useState(false);
+  const [editingZone, setEditingZone] = useState(null);
+
   const [broadcastForm, setBroadcastForm] = useState({ title: '', message: '', type: 'system', targetRole: '' });
 
   const [toast, setToast] = useState(null);
@@ -66,6 +83,7 @@ const AdminDashboard = ({ user, onAuth, onToggleChat, onRefresh }) => {
     commissionRate: 5,
     featuredListingsEnabled: true,
     bannerMessage: '',
+    bannerActive: true,
   });
 
   const navigate = useNavigate();
@@ -108,11 +126,25 @@ const AdminDashboard = ({ user, onAuth, onToggleChat, onRefresh }) => {
   const loadMarketPrices = useCallback(async () => {
     try {
       const res = await adminExtendedAPI.getMarketPrices();
-      setMarketPrices(Array.isArray(res.data) ? res.data : res.data.prices || []);
+      const loaded = Array.isArray(res.data) ? res.data : res.data.prices || [];
+      setMarketPrices(loaded);
+      if (loaded.length) {
+        setTrendCrop(prev => prev || loaded[0].cropName);
+      }
     } catch (err) {
       console.error('Error loading market prices:', err);
     }
   }, []);
+
+  const loadPriceTrend = useCallback(async () => {
+    if (!trendCrop) return;
+    try {
+      const res = await marketPricesAPI.getTrend({ cropName: trendCrop });
+      setPriceTrend(Array.isArray(res.data) ? res.data : []);
+    } catch (err) {
+      console.error('Error loading price trend:', err);
+    }
+  }, [trendCrop]);
 
   const loadLoans = useCallback(async () => {
     try {
@@ -134,8 +166,8 @@ const AdminDashboard = ({ user, onAuth, onToggleChat, onRefresh }) => {
 
   const loadNews = useCallback(async () => {
     try {
-      const res = await newsAPI.getAll();
-      setNews(Array.isArray(res.data) ? res.data : []);
+      const res = await adminExtendedAPI.getNewsAdmin();
+      setNews(Array.isArray(res.data) ? res.data : res.data.news || []);
     } catch (err) {
       console.error('Error loading news:', err);
     }
@@ -143,8 +175,8 @@ const AdminDashboard = ({ user, onAuth, onToggleChat, onRefresh }) => {
 
   const loadArticles = useCallback(async () => {
     try {
-      const res = await adviceAPI.getArticles();
-      setArticles(Array.isArray(res.data) ? res.data : []);
+      const res = await adminExtendedAPI.getAdvisory();
+      setArticles(Array.isArray(res.data) ? res.data : res.data.articles || []);
     } catch (err) {
       console.error('Error loading articles:', err);
     }
@@ -186,6 +218,80 @@ const AdminDashboard = ({ user, onAuth, onToggleChat, onRefresh }) => {
     }
   }, []);
 
+  const loadWeather = useCallback(async () => {
+    try {
+      const [zonesRes, configRes] = await Promise.all([
+        weatherAPI.getZones(),
+        weatherAPI.getConfigAdmin(),
+      ]);
+      setWeatherZones(Array.isArray(zonesRes.data) ? zonesRes.data : zonesRes.data?.zones || []);
+      setWeatherConfig({
+        source: configRes.data?.source || 'open-meteo',
+        baseUrl: configRes.data?.baseUrl || '',
+        apiKey: configRes.data?.apiKey || '',
+        cacheMinutes: configRes.data?.cacheMinutes || 60,
+      });
+    } catch (err) {
+      console.error('Error loading weather settings:', err);
+    }
+  }, []);
+
+  const loadSettings = useCallback(async () => {
+    try {
+      const res = await adminExtendedAPI.getSettings();
+      setSettings({
+        commissionRate: res.data?.commissionRate ?? 5,
+        featuredListingsEnabled: res.data?.featuredListingsEnabled ?? true,
+        bannerMessage: res.data?.bannerMessage ?? '',
+        bannerActive: res.data?.bannerActive ?? true,
+      });
+    } catch (err) {
+      showToast(err.response?.data?.message || 'Habari ya mipangilio haikupatikana', 'error');
+    }
+  }, []);
+
+  const handleSaveWeatherConfig = async () => {
+    try {
+      await weatherAPI.updateConfig(weatherConfig);
+      showToast('Mipangilio ya hali ya hewa imehifadhiwa');
+    } catch (err) {
+      showToast(err.response?.data?.message || 'Hitilafu imetokea', 'error');
+    }
+  };
+
+  const handleZoneSave = async () => {
+    if (!zoneForm.name || !zoneForm.lat || !zoneForm.lon) {
+      showToast('Jina, latitude na longitude zinahitajika', 'error');
+      return;
+    }
+    try {
+      if (editingZone) {
+        await weatherAPI.updateZone(editingZone._id, { ...zoneForm, lat: Number(zoneForm.lat), lon: Number(zoneForm.lon) });
+        showToast('Eneo limerekebishwa');
+      } else {
+        await weatherAPI.createZone({ ...zoneForm, lat: Number(zoneForm.lat), lon: Number(zoneForm.lon) });
+        showToast('Eneo limeongezwa');
+      }
+      setShowZoneModal(false);
+      setEditingZone(null);
+      setZoneForm({ name: '', district: '', ward: '', lat: '', lon: '', active: true, alertEnabled: true, alertRainMm: 30, alertTempC: 35 });
+      loadWeather();
+    } catch (err) {
+      showToast(err.response?.data?.message || 'Hitilafu imetokea', 'error');
+    }
+  };
+
+  const handleZoneDelete = async (id) => {
+    if (!window.confirm('Una uhakika unataka kufuta eneo hili?')) return;
+    try {
+      await weatherAPI.deleteZone(id);
+      showToast('Eneo limefutwa');
+      loadWeather();
+    } catch (err) {
+      showToast(err.response?.data?.message || 'Hitilafu imetokea', 'error');
+    }
+  };
+
   useEffect(() => {
     loadStats();
   }, [loadStats]);
@@ -200,7 +306,9 @@ const AdminDashboard = ({ user, onAuth, onToggleChat, onRefresh }) => {
 
   useEffect(() => {
     if (activeTab === 'market-prices') loadMarketPrices();
-  }, [activeTab, loadMarketPrices]);
+
+    if (activeTab === 'market-prices') loadPriceTrend();
+  }, [activeTab, loadMarketPrices, loadPriceTrend]);
 
   useEffect(() => {
     if (activeTab === 'loans') loadLoans();
@@ -233,6 +341,14 @@ const AdminDashboard = ({ user, onAuth, onToggleChat, onRefresh }) => {
   useEffect(() => {
     if (activeTab === 'disputes') loadDisputes();
   }, [activeTab, loadDisputes]);
+
+  useEffect(() => {
+    if (activeTab === 'weather' && user.role === 'admin') loadWeather();
+  }, [activeTab, loadWeather, user.role]);
+
+  useEffect(() => {
+    if (activeTab === 'settings') loadSettings();
+  }, [activeTab, loadSettings]);
 
   // Debounce search
   useEffect(() => {
@@ -362,6 +478,56 @@ const AdminDashboard = ({ user, onAuth, onToggleChat, onRefresh }) => {
     }
   };
 
+  const handleUpdateRepayment = async (id, repaymentStatus) => {
+    try {
+      await adminExtendedAPI.updateLoanRepayment(id, { repaymentStatus });
+      showToast('Malipo ya mkopo yamerekebishwa');
+      loadLoans();
+    } catch (err) {
+      showToast(err.response?.data?.message || 'Hitilafu imetokea', 'error');
+    }
+  };
+
+  const handleVerifyUser = async (id, verify) => {
+    try {
+      await adminExtendedAPI.verifyUser(id, verify);
+      showToast(verify ? 'Mtumiaji amethibitishwa' : 'Uthibitisho umeondolewa');
+      loadUsers();
+    } catch (err) {
+      showToast(err.response?.data?.message || 'Hitilafu imetokea', 'error');
+    }
+  };
+
+  const handleModerateAdvice = async (id, status) => {
+    try {
+      await adminExtendedAPI.moderateAdvisory(id, status);
+      showToast('Makala imerekebishwa');
+      loadArticles();
+    } catch (err) {
+      showToast(err.response?.data?.message || 'Hitilafu imetokea', 'error');
+    }
+  };
+
+  const handleModerateNews = async (id, status) => {
+    try {
+      await adminExtendedAPI.moderateNews(id, status);
+      showToast('Habari imerekebishwa');
+      loadNews();
+    } catch (err) {
+      showToast(err.response?.data?.message || 'Hitilafu imetokea', 'error');
+    }
+  };
+
+  const handleResolveDispute = async (id, status, resolution) => {
+    try {
+      await adminExtendedAPI.resolveDispute(id, { status, resolution });
+      showToast('Mgogoro umetatuliwa');
+      loadDisputes();
+    } catch (err) {
+      showToast(err.response?.data?.message || 'Hitilafu imetokea', 'error');
+    }
+  };
+
   // ---- Broadcast ----
   const handleBroadcast = async (e) => {
     e.preventDefault();
@@ -375,13 +541,23 @@ const AdminDashboard = ({ user, onAuth, onToggleChat, onRefresh }) => {
   };
 
   // ---- Settings ----
-  const handleSaveSettings = () => {
-    localStorage.setItem('kataviSettings', JSON.stringify(settings));
-    showToast('Mipangilio imehifadhiwa');
+  const handleSaveSettings = async () => {
+    try {
+      await adminExtendedAPI.updateSettings({
+        commissionRate: Number(settings.commissionRate),
+        featuredListingsEnabled: settings.featuredListingsEnabled,
+        bannerMessage: settings.bannerMessage,
+        bannerActive: settings.bannerActive,
+      });
+      loadSettings();
+      showToast('Mipangilio imehifadhiwa');
+    } catch (err) {
+      showToast(err.response?.data?.message || 'Hitilafu imetokea', 'error');
+    }
   };
 
   const navSections = getRoleNavSections({
-    role: 'admin',
+    role: user.role,
     navigate,
     activeTab,
     onTab: setActiveTab,
@@ -568,10 +744,15 @@ const AdminDashboard = ({ user, onAuth, onToggleChat, onRefresh }) => {
           <option value="buyer">Wanunuzi</option>
           <option value="expert">Wataalamu</option>
           <option value="admin">Admin</option>
+          <option value="support">Support</option>
+          <option value="content_moderator">Msimamizi wa Maudhui</option>
+          <option value="finance_officer">Afisa Fedha</option>
         </select>
-        <button className="btn btn-primary" onClick={() => setShowCreateModal(true)}>
-          <i className="fas fa-user-plus"></i> Ongeza Mtumiaji
-        </button>
+        {user.role === 'admin' && (
+          <button className="btn btn-primary" onClick={() => setShowCreateModal(true)}>
+            <i className="fas fa-user-plus"></i> Ongeza Mtumiaji
+          </button>
+        )}
       </div>
 
       {loading ? (
@@ -590,6 +771,7 @@ const AdminDashboard = ({ user, onAuth, onToggleChat, onRefresh }) => {
                 <th>Simu</th>
                 <th>Eneo</th>
                 <th>Jukumu</th>
+                <th>Thamani</th>
                 <th>Hali</th>
                 <th>Amejiunga</th>
                 <th>Vitendo</th>
@@ -604,6 +786,11 @@ const AdminDashboard = ({ user, onAuth, onToggleChat, onRefresh }) => {
                       <div className="user-meta">
                         <strong>{u.name} {u._id === user?._id && <span className="you-tag">Wewe</span>}</strong>
                         <span>{u.email}</span>
+                        {u.isVerified && (
+                          <span className="verified-badge" title="Mtumiaji aliyethibitishwa">
+                            <i className="fas fa-check-circle"></i> Imethibitishwa
+                          </span>
+                        )}
                       </div>
                     </div>
                   </td>
@@ -619,6 +806,19 @@ const AdminDashboard = ({ user, onAuth, onToggleChat, onRefresh }) => {
                       {u.isActive === false ? 'Imesimamishwa' : 'Hai'}
                     </span>
                   </td>
+                  <td>
+                    <div className="trust-score-cell">
+                      <span className="score-stars">
+                        {'★'.repeat(Math.max(1, Math.min(5, Math.round(u.trustScore || u.creditScore || 0))))}
+                      </span>
+                      <span className="score-value">
+                        {(u.trustScore || u.creditScore || 0).toFixed(1)}
+                      </span>
+                      {u.creditScore > 0 && (
+                        <small className="score-sub">Mikopo: {u.creditScore.toFixed(1)}</small>
+                      )}
+                    </div>
+                  </td>
                   <td>{u.createdAt ? new Date(u.createdAt).toLocaleDateString('sw-TZ') : '—'}</td>
                   <td>
                     <div className="user-actions">
@@ -631,6 +831,13 @@ const AdminDashboard = ({ user, onAuth, onToggleChat, onRefresh }) => {
                         <option value="buyer">Mnunuzi</option>
                         <option value="expert">Mtaalamu</option>
                         <option value="admin">Admin</option>
+                        {user.role === 'admin' && (
+                          <>
+                            <option value="support">Support</option>
+                            <option value="content_moderator">Msimamizi wa Maudhui</option>
+                            <option value="finance_officer">Afisa Fedha</option>
+                          </>
+                        )}
                       </select>
                       <button className="btn btn-sm btn-outline" onClick={() => openEdit(u)} title="Hariri">
                         <i className="fas fa-edit"></i>
@@ -643,9 +850,19 @@ const AdminDashboard = ({ user, onAuth, onToggleChat, onRefresh }) => {
                       >
                         <i className={`fas ${u.isActive === false ? 'fa-play' : 'fa-pause'}`}></i>
                       </button>
-                      <button className="btn btn-sm btn-danger" onClick={() => handleDeleteUser(u._id)} disabled={u._id === user?._id} title="Futa">
-                        <i className="fas fa-trash"></i>
+                      <button
+                        className={`btn btn-sm ${u.isVerified ? 'btn-outline' : 'btn-success'}`}
+                        onClick={() => handleVerifyUser(u._id, !u.isVerified)}
+                        disabled={u._id === user?._id}
+                        title={u.isVerified ? 'Ondoa uthibitisho' : 'Thibitisha (KYC)'}
+                      >
+                        <i className="fas fa-check-double"></i>
                       </button>
+                      {user.role === 'admin' && (
+                        <button className="btn btn-sm btn-danger" onClick={() => handleDeleteUser(u._id)} disabled={u._id === user?._id} title="Futa">
+                          <i className="fas fa-trash"></i>
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -719,6 +936,37 @@ const AdminDashboard = ({ user, onAuth, onToggleChat, onRefresh }) => {
 
   const renderMarketPrices = () => (
     <div className="admin-market-prices">
+      <div className="section-card">
+        <h3>Mwelekeo wa Bei (Trend)</h3>
+        {marketPrices.length > 0 && (
+          <select
+            className="role-filter"
+            style={{ marginBottom: '14px' }}
+            value={trendCrop}
+            onChange={(e) => setTrendCrop(e.target.value)}
+          >
+            {[...new Set(marketPrices.map(p => p.cropName))].map(crop => (
+              <option key={crop} value={crop}>{crop}</option>
+            ))}
+          </select>
+        )}
+        {priceTrend.length > 0 ? (
+          <ResponsiveContainer width="100%" height={260}>
+            <AreaChart data={priceTrend} margin={{ top: 8, right: 12, left: 4, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="month" tick={{ fontSize: 11 }} />
+              <YAxis tick={{ fontSize: 11 }} />
+              <Tooltip formatter={(v) => [`${Number(v).toLocaleString()} TZS`, 'Bei']} />
+              <Area type="monotone" dataKey="price" stroke="#1a7431" fill="#22c55e" fillOpacity={0.25} strokeWidth={2} />
+            </AreaChart>
+          </ResponsiveContainer>
+        ) : (
+          <p className="empty-state" style={{ padding: '20px 0' }}>
+            <i className="fas fa-chart-line"></i> Hakuna data ya mwelekeo kwa zao hili bado.
+          </p>
+        )}
+      </div>
+
       <div className="section-card">
         <h3>Ongeza Bei Mpya</h3>
         <form onSubmit={handleCreatePrice} className="price-form">
@@ -818,6 +1066,7 @@ const AdminDashboard = ({ user, onAuth, onToggleChat, onRefresh }) => {
               <th>Kiasi</th>
               <th>Tarehe</th>
               <th>Hali</th>
+              <th>Malipo</th>
               <th>Vitendo</th>
             </tr>
           </thead>
@@ -829,6 +1078,21 @@ const AdminDashboard = ({ user, onAuth, onToggleChat, onRefresh }) => {
                 <td>{l.amount}</td>
                 <td>{new Date(l.createdAt).toLocaleDateString('sw-TZ')}</td>
                 <td><span className={`role-pill role-${l.status}`}>{l.status}</span></td>
+                <td>
+                  <div className="repayment-cell">
+                    <select
+                      className="repayment-select"
+                      value={l.repaymentStatus || 'none'}
+                      onChange={(e) => handleUpdateRepayment(l._id, e.target.value)}
+                    >
+                      <option value="none">Hakuna malipo</option>
+                      <option value="partial">Sehemu ya malipo</option>
+                      <option value="paid">Imelipwa</option>
+                      <option value="overdue">Imekwama</option>
+                    </select>
+                    {l.remaining ? <span className="repayment-note">Bado: {l.remaining}</span> : null}
+                  </div>
+                </td>
                 <td>
                   {l.status === 'pending' && (
                     <div className="user-actions">
@@ -888,7 +1152,8 @@ const AdminDashboard = ({ user, onAuth, onToggleChat, onRefresh }) => {
               <th>Aina</th>
               <th>Mwandishi</th>
               <th>Tarehe</th>
-              <th>Matukio</th>
+              <th>Hali</th>
+              <th>Vitendo</th>
             </tr>
           </thead>
           <tbody>
@@ -898,7 +1163,30 @@ const AdminDashboard = ({ user, onAuth, onToggleChat, onRefresh }) => {
                 <td>{n.category}</td>
                 <td>{n.author}</td>
                 <td>{new Date(n.date || n.createdAt).toLocaleDateString('sw-TZ')}</td>
-                <td>{n.views}</td>
+                <td>
+                  <span className={`role-pill role-${n.status || 'approved'}`}>
+                    {n.status === 'approved' ? 'Imekubaliwa' : n.status === 'pending' ? 'Inasubiri' : 'Imekataliwa'}
+                  </span>
+                </td>
+                <td>
+                  <div className="user-actions">
+                    {n.status === 'pending' && (
+                      <>
+                        <button className="btn btn-sm btn-success" onClick={() => handleModerateNews(n._id, 'approved')}>
+                          <i className="fas fa-check"></i>
+                        </button>
+                        <button className="btn btn-sm btn-danger" onClick={() => handleModerateNews(n._id, 'rejected')}>
+                          <i className="fas fa-times"></i>
+                        </button>
+                      </>
+                    )}
+                    {n.status === 'rejected' && (
+                      <button className="btn btn-sm btn-primary" onClick={() => handleModerateNews(n._id, 'approved')}>
+                        <i className="fas fa-check"></i> Kubali
+                      </button>
+                    )}
+                  </div>
+                </td>
               </tr>
             ))}
           </tbody>
@@ -917,6 +1205,8 @@ const AdminDashboard = ({ user, onAuth, onToggleChat, onRefresh }) => {
               <th>Aina</th>
               <th>Tarehe</th>
               <th>Muda wa Kusoma</th>
+              <th>Hali</th>
+              <th>Vitendo</th>
             </tr>
           </thead>
           <tbody>
@@ -926,6 +1216,30 @@ const AdminDashboard = ({ user, onAuth, onToggleChat, onRefresh }) => {
                 <td>{a.category}</td>
                 <td>{new Date(a.date || a.createdAt).toLocaleDateString('sw-TZ')}</td>
                 <td>{a.readTime}</td>
+                <td>
+                  <span className={`role-pill role-${a.status || 'approved'}`}>
+                    {a.status === 'approved' ? 'Imekubaliwa' : a.status === 'pending' ? 'Inasubiri' : 'Imekataliwa'}
+                  </span>
+                </td>
+                <td>
+                  <div className="user-actions">
+                    {a.status === 'pending' && (
+                      <>
+                        <button className="btn btn-sm btn-success" onClick={() => handleModerateAdvice(a._id, 'approved')}>
+                          <i className="fas fa-check"></i>
+                        </button>
+                        <button className="btn btn-sm btn-danger" onClick={() => handleModerateAdvice(a._id, 'rejected')}>
+                          <i className="fas fa-times"></i>
+                        </button>
+                      </>
+                    )}
+                    {a.status === 'rejected' && (
+                      <button className="btn btn-sm btn-primary" onClick={() => handleModerateAdvice(a._id, 'approved')}>
+                        <i className="fas fa-check"></i> Kubali
+                      </button>
+                    )}
+                  </div>
+                </td>
               </tr>
             ))}
           </tbody>
@@ -1012,6 +1326,8 @@ const AdminDashboard = ({ user, onAuth, onToggleChat, onRefresh }) => {
               <th>Mkulima</th>
               <th>Hali</th>
               <th>Tarehe</th>
+              <th>Uamuzi</th>
+              <th>Vitendo</th>
             </tr>
           </thead>
           <tbody>
@@ -1022,6 +1338,25 @@ const AdminDashboard = ({ user, onAuth, onToggleChat, onRefresh }) => {
                 <td>{d.farmerName}</td>
                 <td><span className="role-pill role-rejected">{d.status}</span></td>
                 <td>{new Date(d.createdAt).toLocaleDateString('sw-TZ')}</td>
+                <td>{d.resolution || '—'}</td>
+                <td>
+                  <div className="user-actions">
+                    <button
+                      className="btn btn-sm btn-success"
+                      onClick={() => handleResolveDispute(d._id, 'completed', 'Mgogoro umetatuliwa kwa kukamilisha agizo')}
+                      title="Kamilisha agizo"
+                    >
+                      <i className="fas fa-check"></i> Tatua
+                    </button>
+                    <button
+                      className="btn btn-sm btn-danger"
+                      onClick={() => handleResolveDispute(d._id, 'cancelled', 'Agizo limekatishwa baada ya mgogoro')}
+                      title="Katisha agizo"
+                    >
+                      <i className="fas fa-times"></i> Katisha
+                    </button>
+                  </div>
+                </td>
               </tr>
             ))}
           </tbody>
@@ -1088,6 +1423,191 @@ const AdminDashboard = ({ user, onAuth, onToggleChat, onRefresh }) => {
     </div>
   );
 
+  const renderWeather = () => (
+    <div className="admin-weather">
+      <div className="weather-config-section">
+        <div className="section-card">
+          <h3>Chanzo cha Data ya Hali ya Hewa</h3>
+          <div className="form-grid">
+            <div className="form-group">
+              <label>Chanzo</label>
+              <select
+                value={weatherConfig.source}
+                onChange={(e) => setWeatherConfig({ ...weatherConfig, source: e.target.value })}
+              >
+                <option value="open-meteo">Open-Meteo</option>
+                <option value="openweather">OpenWeather</option>
+              </select>
+            </div>
+            <div className="form-group">
+              <label>Base URL (hiari)</label>
+              <input
+                type="text"
+                value={weatherConfig.baseUrl}
+                onChange={(e) => setWeatherConfig({ ...weatherConfig, baseUrl: e.target.value })}
+                placeholder="Inaachwa wazi kutumia default"
+              />
+            </div>
+            <div className="form-group">
+              <label>API Key (hiari)</label>
+              <input
+                type="password"
+                value={weatherConfig.apiKey}
+                onChange={(e) => setWeatherConfig({ ...weatherConfig, apiKey: e.target.value })}
+                placeholder="Open-Meteo hakihitaji key"
+              />
+            </div>
+            <div className="form-group">
+              <label>Cache (dakika)</label>
+              <input
+                type="number"
+                min="5"
+                max="1440"
+                value={weatherConfig.cacheMinutes}
+                onChange={(e) => setWeatherConfig({ ...weatherConfig, cacheMinutes: e.target.value })}
+              />
+            </div>
+          </div>
+          <div className="form-actions">
+            <button className="btn btn-primary" onClick={handleSaveWeatherConfig}>
+              <i className="fas fa-save"></i> Hifadhi Chanzo
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div className="weather-zones-section">
+        <div className="section-card">
+          <div className="section-header">
+            <h3>Maeneo ya Tahadhari</h3>
+            <button className="btn btn-primary" onClick={() => { setEditingZone(null); setZoneForm({ name: '', district: '', ward: '', lat: '', lon: '', active: true, alertEnabled: true, alertRainMm: 30, alertTempC: 35 }); setShowZoneModal(true); }}>
+              <i className="fas fa-plus"></i> Ongeza Eneo
+            </button>
+          </div>
+          <div className="users-table-container">
+            <table className="users-table">
+              <thead>
+                <tr>
+                  <th>Eneo</th>
+                  <th>Wilaya</th>
+                  <th>Kata</th>
+                  <th>Hali</th>
+                  <th>Tahadhari ya Mvua (mm)</th>
+                  <th>Tahadhari ya Joto (°C)</th>
+                  <th>Vitendo</th>
+                </tr>
+              </thead>
+              <tbody>
+                {weatherZones.length === 0 ? (
+                  <tr><td colSpan="7" className="no-data">Hakuna maeneo — ongeza eneo la kwanza</td></tr>
+                ) : weatherZones.map(z => (
+                  <tr key={z._id}>
+                    <td><strong>{z.name}</strong><br /><span className="muted">({z.lat}, {z.lon})</span></td>
+                    <td>{z.district || '—'}</td>
+                    <td>{z.ward || '—'}</td>
+                    <td>
+                      <span className={`status-pill ${z.active ? 'status-active' : 'status-banned'}`}>
+                        {z.active ? 'Inatumika' : 'Imesimamishwa'}
+                      </span>
+                    </td>
+                    <td>{z.alertEnabled ? `${z.alertRainMm} mm` : 'Off'}</td>
+                    <td>{z.alertEnabled ? `${z.alertTempC}°C` : 'Off'}</td>
+                    <td>
+                      <div className="user-actions">
+                        <button className="btn btn-sm btn-outline" onClick={() => { setEditingZone(z); setZoneForm({ name: z.name, district: z.district, ward: z.ward, lat: z.lat, lon: z.lon, active: z.active, alertEnabled: z.alertEnabled, alertRainMm: z.alertRainMm, alertTempC: z.alertTempC }); setShowZoneModal(true); }} title="Hariri">
+                          <i className="fas fa-edit"></i>
+                        </button>
+                        <button
+                          className={`btn btn-sm ${z.active ? 'btn-warning' : 'btn-outline'}`}
+                          onClick={async () => { await weatherAPI.updateZone(z._id, { active: !z.active }); loadWeather(); }}
+                          title={z.active ? 'Simamisha' : 'Washa'}
+                        >
+                          <i className={`fas ${z.active ? 'fa-pause' : 'fa-play'}`}></i>
+                        </button>
+                        <button className="btn btn-sm btn-danger" onClick={() => handleZoneDelete(z._id)} title="Futa">
+                          <i className="fas fa-trash"></i>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      {showZoneModal && (
+        <div className="modal-overlay">
+          <div className="modal">
+            <div className="modal-header">
+              <h3>{editingZone ? `Hariri ${editingZone.name}` : 'Ongeza Eneo Mpya'}</h3>
+              <button className="close-btn" onClick={() => setShowZoneModal(false)}><i className="fas fa-times"></i></button>
+            </div>
+            <div className="modal-body">
+              <div className="form-grid">
+                <div className="form-group">
+                  <label>Jina la Eneo *</label>
+                  <input type="text" value={zoneForm.name} onChange={(e) => setZoneForm({ ...zoneForm, name: e.target.value })} placeholder="Mpanda" />
+                </div>
+                <div className="form-group">
+                  <label>Wilaya</label>
+                  <input type="text" value={zoneForm.district} onChange={(e) => setZoneForm({ ...zoneForm, district: e.target.value })} placeholder="Mpanda" />
+                </div>
+                <div className="form-group">
+                  <label>Kata</label>
+                  <input type="text" value={zoneForm.ward} onChange={(e) => setZoneForm({ ...zoneForm, ward: e.target.value })} placeholder="Mpanda Mjini" />
+                </div>
+                <div className="form-group">
+                  <label>Latitude *</label>
+                  <input type="number" step="any" value={zoneForm.lat} onChange={(e) => setZoneForm({ ...zoneForm, lat: e.target.value })} placeholder="-6.346" />
+                </div>
+                <div className="form-group">
+                  <label>Longitude *</label>
+                  <input type="number" step="any" value={zoneForm.lon} onChange={(e) => setZoneForm({ ...zoneForm, lon: e.target.value })} placeholder="31.072" />
+                </div>
+                <div className="form-group">
+                  <label>Tahadhari ya Mvua (mm)</label>
+                  <input type="number" min="0" value={zoneForm.alertRainMm} onChange={(e) => setZoneForm({ ...zoneForm, alertRainMm: e.target.value })} />
+                </div>
+                <div className="form-group">
+                  <label>Tahadhari ya Joto (°C)</label>
+                  <input type="number" min="0" value={zoneForm.alertTempC} onChange={(e) => setZoneForm({ ...zoneForm, alertTempC: e.target.value })} />
+                </div>
+                <div className="form-group checkbox-group">
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={zoneForm.active}
+                      onChange={(e) => setZoneForm({ ...zoneForm, active: e.target.checked })}
+                    />
+                    Eneo Linatumika
+                  </label>
+                </div>
+                <div className="form-group checkbox-group">
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={zoneForm.alertEnabled}
+                      onChange={(e) => setZoneForm({ ...zoneForm, alertEnabled: e.target.checked })}
+                    />
+                    Tahadhari imewashwa
+                  </label>
+                </div>
+              </div>
+              <div className="modal-actions">
+                <button type="button" className="btn btn-outline" onClick={() => setShowZoneModal(false)}>Ghairi</button>
+                <button className="btn btn-primary" onClick={handleZoneSave}>
+                  <i className="fas fa-save"></i> Hifadhi
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
   const renderSettings = () => (
     <div className="admin-settings">
       <div className="section-card">
@@ -1113,6 +1633,16 @@ const AdminDashboard = ({ user, onAuth, onToggleChat, onRefresh }) => {
               Wezesha Bidhaa Zilizojulikana
             </label>
           </div>
+          <div className="form-group checkbox-group">
+            <label>
+              <input
+                type="checkbox"
+                checked={settings.bannerActive}
+                onChange={(e) => setSettings({ ...settings, bannerActive: e.target.checked })}
+              />
+              Onyesha Bendera ya Taarifa kwa Umma
+            </label>
+          </div>
           <div className="form-group full-width">
             <label>Ujumbe wa Bendera</label>
             <textarea
@@ -1136,8 +1666,8 @@ const AdminDashboard = ({ user, onAuth, onToggleChat, onRefresh }) => {
     <>
     <AdminLayout
       user={user}
-      roleLabel="Admin"
-      roleIcon="fas fa-user-shield"
+      roleLabel={ROLE_LABELS[user.role] || 'Admin'}
+      roleIcon={ROLE_ICONS[user.role] || 'fas fa-user-shield'}
       pageTitle="Admin Panel - Usimamizi wa Mfumo"
       subtitle="Dhibiti watumiaji, mazao, bei, mikopo na mfumo mzima"
       headerBadge={<div className="admin-badge content-badge"><i className="fas fa-user-shield"></i> Admin - Usimamizi</div>}
@@ -1162,6 +1692,7 @@ const AdminDashboard = ({ user, onAuth, onToggleChat, onRefresh }) => {
       {activeTab === 'notifications' && renderNotifications()}
       {activeTab === 'ratings' && renderRatings()}
       {activeTab === 'disputes' && renderDisputes()}
+      {activeTab === 'weather' && renderWeather()}
       {activeTab === 'audit-logs' && renderAuditLogs()}
       {activeTab === 'settings' && renderSettings()}
     </AdminLayout>
@@ -1199,6 +1730,9 @@ const AdminDashboard = ({ user, onAuth, onToggleChat, onRefresh }) => {
                   <option value="buyer">Mnunuzi / Muuzaji</option>
                   <option value="expert">Mtaalamu / Extension</option>
                   <option value="admin">Admin</option>
+                  <option value="support">Support</option>
+                  <option value="content_moderator">Msimamizi wa Maudhui</option>
+                  <option value="finance_officer">Afisa Fedha</option>
                 </select>
               </div>
               <div className="form-group">

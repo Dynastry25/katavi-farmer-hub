@@ -43,6 +43,13 @@ export const AuthProvider = ({ children }) => {
     return userData;
   };
 
+  const loginWithUser = (userData) => {
+    localStorage.setItem('kataviUser', JSON.stringify(userData));
+    localStorage.setItem('kataviToken', userData.token);
+    setUser(userData);
+    return userData;
+  };
+
   const register = async (data) => {
     const res = await authAPI.register(data);
     const userData = res.data;
@@ -65,7 +72,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout, updateUser, isAuthenticated: !!user }}>
+    <AuthContext.Provider value={{ user, loading, login, loginWithUser, register, logout, updateUser, isAuthenticated: !!user }}>
       {children}
     </AuthContext.Provider>
   );

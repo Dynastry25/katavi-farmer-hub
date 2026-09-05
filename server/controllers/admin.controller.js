@@ -5,11 +5,13 @@ const Product = require('../models/Product');
 const LoanApplication = require('../models/LoanApplication');
 const FarmerGroup = require('../models/FarmerGroup');
 const NewsArticle = require('../models/NewsArticle');
+const AdviceArticle = require('../models/AdviceArticle');
 const Supplier = require('../models/Supplier');
 const Notification = require('../models/Notification');
 const AuditLog = require('../models/AuditLog');
 const MarketPrice = require('../models/MarketPrice');
 const Rating = require('../models/Rating');
+const PlatformSetting = require('../models/PlatformSetting');
 
 exports.getStats = async (req, res) => {
   try {
@@ -98,9 +100,14 @@ exports.getUser = async (req, res) => {
 exports.updateUserRole = async (req, res) => {
   try {
     const { role } = req.body;
-    const validRoles = ['farmer', 'buyer', 'expert', 'admin'];
+    const validRoles = ['farmer', 'buyer', 'expert', 'admin', 'support', 'content_moderator', 'finance_officer'];
     if (!validRoles.includes(role)) {
       return res.status(400).json({ message: 'Jukumu siyo sahihi' });
+    }
+
+    const staffRoles = ['admin', 'support', 'content_moderator', 'finance_officer'];
+    if (req.user.role !== 'admin' && staffRoles.includes(role)) {
+      return res.status(403).json({ message: 'Wewe pekee unaweza kubadilisha majukumu ya wafanyakazi' });
     }
 
     const user = await User.findById(req.params.id);
@@ -189,7 +196,7 @@ exports.createUser = async (req, res) => {
       return res.status(400).json({ message: 'Barua pepe hii tayari imesajiliwa' });
     }
 
-    const validRoles = ['farmer', 'buyer', 'expert', 'admin'];
+    const validRoles = ['farmer', 'buyer', 'expert', 'admin', 'support', 'content_moderator', 'finance_officer'];
     const userRole = validRoles.includes(role) ? role : 'farmer';
 
     const user = await User.create({
@@ -372,7 +379,7 @@ exports.getLoanApplications = async (req, res) => {
 
     const total = await LoanApplication.countDocuments(filter);
     const applications = await LoanApplication.find(filter)
-      .populate('user', 'name email phone')
+      .populate('user', 'name email phone creditScore trustScore isVerified')
       .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
       .limit(parseInt(limit));
@@ -461,7 +468,8 @@ exports.getNotifications = async (req, res) => {
 
 exports.broadcastNotification = async (req, res) => {
   try {
-    const { title, message, type, targetRole, targetDistrict } = req.body;
+    const { title, message, type, targetRole, targetDistrict, sendVia } = req.body;
+    const channels = Array.isArray(sendVia) && sendVia.length ? sendVia : ['in_app', 'sms'];
 
     if (!title || !message) {
       return res.status(400).json({ message: 'Kichwa na ujumbe vinahitajika' });
@@ -471,7 +479,7 @@ exports.broadcastNotification = async (req, res) => {
     if (targetRole) filter.role = targetRole;
     if (targetDistrict) filter.district = targetDistrict;
 
-    const users = await User.find(filter).select('_id');
+    const users = await User.find(filter).select('_id phone');
     const userIds = users.map(u => u._id);
 
     if (userIds.length === 0) {
@@ -481,16 +489,37 @@ exports.broadcastNotification = async (req, res) => {
     const { sendBulkNotifications } = require('../services/notification.service');
     const notifications = await sendBulkNotifications(userIds, {
       title, message, type: type || 'system',
+      sentVia: channels.filter(c => c !== 'sms'),
     });
+
+    let smsResult = null;
+    if (channels.includes('sms')) {
+      const { sendBulkSms } = require('../services/sms.service');
+      smsResult = await sendBulkSms(
+        users.map(u => u.phone),
+        `${title}\n${message}`
+      );
+    }
+
+    let pushResult = null;
+    if (channels.includes('push')) {
+      const { sendPushToUsers } = require('../services/push.service');
+      pushResult = await sendPushToUsers(userIds, { title, message, type: type || 'system' });
+    }
 
     await AuditLog.create({
       user: req.user._id, userName: req.user.name, userRole: req.user.role,
       action: 'broadcast_notification', category: 'system',
-      details: { title, recipientCount: userIds.length, targetRole, targetDistrict },
+      details: { title, recipientCount: userIds.length, targetRole, targetDistrict, channels, sms: smsResult, push: pushResult },
       ipAddress: req.ip,
     });
 
-    res.status(201).json({ message: `Ujumbe umetumwa kwa watumiaji ${userIds.length}`, count: notifications.length });
+    res.status(201).json({
+      message: `Ujumbe umetumwa kwa watumiaji ${userIds.length}`,
+      count: notifications.length,
+      sms: smsResult ? { attempted: smsResult.attempted, successCount: smsResult.successCount, mock: true } : null,
+      push: pushResult ? { attempted: pushResult.attempted, successCount: pushResult.successCount, mock: pushResult.successCount === 0 } : null,
+    });
   } catch (error) {
     console.error('Admin broadcast error:', error);
     res.status(500).json({ message: 'Hitilafu imetokea' });
@@ -549,6 +578,250 @@ exports.getRatings = async (req, res) => {
     res.json({ ratings, total, page: parseInt(page), pages: Math.ceil(total / limit) });
   } catch (error) {
     console.error('Admin ratings error:', error);
+    res.status(500).json({ message: 'Hitilafu imetokea' });
+  }
+};
+
+exports.verifyUser = async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user) return res.status(404).json({ message: 'Mtumiaji haupatikani' });
+
+    user.isVerified = req.body.verify !== false ? true : false;
+    await user.save();
+
+    await AuditLog.create({
+      user: req.user._id, userName: req.user.name, userRole: req.user.role,
+      action: user.isVerified ? 'verify_user' : 'unverify_user', category: 'user',
+      targetType: 'User', targetId: user._id,
+      details: { targetUser: user.name, isVerified: user.isVerified },
+      ipAddress: req.ip,
+    });
+
+    res.json({ message: user.isVerified ? 'Mtumiaji amethibitishwa (verified)' : 'Uthibitisho umeondolewa', user });
+  } catch (error) {
+    console.error('Admin verify user error:', error);
+    res.status(500).json({ message: 'Hitilafu imetokea' });
+  }
+};
+
+exports.getAdvice = async (req, res) => {
+  try {
+    const { status, page = 1, limit = 20 } = req.query;
+    const filter = {};
+    if (status && status !== 'all') filter.status = status;
+
+    const total = await AdviceArticle.countDocuments(filter);
+    const articles = await AdviceArticle.find(filter).sort({ createdAt: -1 }).skip((page - 1) * limit).limit(parseInt(limit));
+
+    res.json({ articles, total, page: parseInt(page), pages: Math.ceil(total / limit) });
+  } catch (error) {
+    console.error('Admin list advice error:', error);
+    res.status(500).json({ message: 'Hitilafu imetokea' });
+  }
+};
+
+exports.moderateAdvice = async (req, res) => {
+  try {
+    const { status } = req.body;
+    if (!['pending', 'approved', 'rejected'].includes(status)) {
+      return res.status(400).json({ message: 'Hali siyo sahihi' });
+    }
+
+    const article = await AdviceArticle.findById(req.params.id);
+    if (!article) return res.status(404).json({ message: 'Makala haipatikani' });
+
+    article.status = status;
+    await article.save();
+
+    await AuditLog.create({
+      user: req.user._id, userName: req.user.name, userRole: req.user.role,
+      action: 'moderate_advice', category: 'content',
+      targetType: 'AdviceArticle', targetId: article._id,
+      details: { title: article.title, newStatus: status },
+      ipAddress: req.ip,
+    });
+
+    res.json({ message: 'Makala imerekebishwa', article });
+  } catch (error) {
+    console.error('Admin moderate advice error:', error);
+    res.status(500).json({ message: 'Hitilafu imetokea' });
+  }
+};
+
+exports.getNewsAdmin = async (req, res) => {
+  try {
+    const { status, page = 1, limit = 20 } = req.query;
+    const filter = {};
+    if (status && status !== 'all') filter.status = status;
+
+    const total = await NewsArticle.countDocuments(filter);
+    const articles = await NewsArticle.find(filter).sort({ createdAt: -1 }).skip((page - 1) * limit).limit(parseInt(limit));
+
+    res.json({ news: articles, total, page: parseInt(page), pages: Math.ceil(total / limit) });
+  } catch (error) {
+    console.error('Admin list news error:', error);
+    res.status(500).json({ message: 'Hitilafu imetokea' });
+  }
+};
+
+exports.moderateNews = async (req, res) => {
+  try {
+    const { status } = req.body;
+    if (!['pending', 'approved', 'rejected'].includes(status)) {
+      return res.status(400).json({ message: 'Hali siyo sahihi' });
+    }
+
+    const article = await NewsArticle.findById(req.params.id);
+    if (!article) return res.status(404).json({ message: 'Makala haipatikani' });
+
+    article.status = status;
+    await article.save();
+
+    await AuditLog.create({
+      user: req.user._id, userName: req.user.name, userRole: req.user.role,
+      action: 'moderate_news', category: 'content',
+      targetType: 'NewsArticle', targetId: article._id,
+      details: { title: article.title, newStatus: status },
+      ipAddress: req.ip,
+    });
+
+    res.json({ message: 'Makala imerekebishwa', article });
+  } catch (error) {
+    console.error('Admin moderate news error:', error);
+    res.status(500).json({ message: 'Hitilafu imetokea' });
+  }
+};
+
+exports.updateLoanRepayment = async (req, res) => {
+  try {
+    const { repaymentStatus, remaining, nextPayment, repayments } = req.body;
+    const application = await LoanApplication.findById(req.params.id);
+    if (!application) return res.status(404).json({ message: 'Maombi ya mkopo hayapatikani' });
+
+    if (repaymentStatus) application.repaymentStatus = repaymentStatus;
+    if (remaining !== undefined) application.remaining = remaining;
+    if (nextPayment !== undefined) application.nextPayment = nextPayment;
+    if (Array.isArray(repayments)) application.repayments = repayments;
+    await application.save();
+
+    if (application.user) {
+      try {
+        const { refreshCreditData } = require('../services/creditScore.service');
+        await refreshCreditData(application.user);
+      } catch (e) {
+        console.error('Credit refresh error:', e.message);
+      }
+    }
+
+    await AuditLog.create({
+      user: req.user._id, userName: req.user.name, userRole: req.user.role,
+      action: 'update_loan_repayment', category: 'loan',
+      targetType: 'LoanApplication', targetId: application._id,
+      details: { loanName: application.loanName, repaymentStatus: application.repaymentStatus },
+      ipAddress: req.ip,
+    });
+
+    res.json({ message: 'Malipo ya mkopo yamerekebishwa', application });
+  } catch (error) {
+    console.error('Admin update loan repayment error:', error);
+    res.status(500).json({ message: 'Hitilafu imetokea' });
+  }
+};
+
+exports.resolveDispute = async (req, res) => {
+  try {
+    const { status, resolution } = req.body;
+    if (!['completed', 'cancelled'].includes(status)) {
+      return res.status(400).json({ message: 'Hali siyo sahihi' });
+    }
+
+    const order = await Order.findById(req.params.id);
+    if (!order) return res.status(404).json({ message: 'Agizo halipatikani' });
+
+    order.status = status;
+    order.resolution = resolution || '';
+    await order.save();
+
+    await AuditLog.create({
+      user: req.user._id, userName: req.user.name, userRole: req.user.role,
+      action: 'resolve_dispute', category: 'order',
+      targetType: 'Order', targetId: order._id,
+      details: { cropName: order.cropName, newStatus: status, resolution: order.resolution },
+      ipAddress: req.ip,
+    });
+
+    res.json({ message: 'Mgogoro umetatuliwa', order });
+  } catch (error) {
+    console.error('Admin resolve dispute error:', error);
+    res.status(500).json({ message: 'Hitilafu imetokea' });
+  }
+};
+
+exports.getSettings = async (req, res) => {
+  try {
+    let setting = await PlatformSetting.findOne({ key: 'platform' });
+    if (!setting) {
+      setting = await PlatformSetting.create({ key: 'platform' });
+    }
+    res.json({
+      commissionRate: setting.commissionRate,
+      featuredListingsEnabled: setting.featuredListingsEnabled,
+      bannerMessage: setting.bannerMessage,
+      bannerActive: setting.bannerActive,
+    });
+  } catch (error) {
+    console.error('Admin get settings error:', error);
+    res.status(500).json({ message: 'Hitilafu imetokea' });
+  }
+};
+
+exports.updateSettings = async (req, res) => {
+  try {
+    const { commissionRate, featuredListingsEnabled, bannerMessage, bannerActive } = req.body;
+
+    let setting = await PlatformSetting.findOne({ key: 'platform' });
+    if (!setting) {
+      setting = await PlatformSetting.create({ key: 'platform' });
+    }
+
+    if (commissionRate !== undefined) {
+      const rate = Number(commissionRate);
+      if (isNaN(rate) || rate < 0 || rate > 100) {
+        return res.status(400).json({ message: 'Asilimia ya tume iwe kati ya 0 na 100' });
+      }
+      setting.commissionRate = rate;
+    }
+    if (featuredListingsEnabled !== undefined) setting.featuredListingsEnabled = Boolean(featuredListingsEnabled);
+    if (bannerMessage !== undefined) setting.bannerMessage = String(bannerMessage).slice(0, 500);
+    if (bannerActive !== undefined) setting.bannerActive = Boolean(bannerActive);
+
+    setting.updatedBy = req.user._id;
+    await setting.save();
+
+    await AuditLog.create({
+      user: req.user._id, userName: req.user.name, userRole: req.user.role,
+      action: 'update_settings', category: 'settings',
+      targetType: 'PlatformSetting', targetId: setting._id,
+      details: {
+        commissionRate: setting.commissionRate,
+        featuredListingsEnabled: setting.featuredListingsEnabled,
+        bannerActive: setting.bannerActive,
+      },
+      ipAddress: req.ip,
+    });
+
+    res.json({
+      message: 'Mipangilio imehifadhiwa',
+      settings: {
+        commissionRate: setting.commissionRate,
+        featuredListingsEnabled: setting.featuredListingsEnabled,
+        bannerMessage: setting.bannerMessage,
+        bannerActive: setting.bannerActive,
+      },
+    });
+  } catch (error) {
+    console.error('Admin update settings error:', error);
     res.status(500).json({ message: 'Hitilafu imetokea' });
   }
 };

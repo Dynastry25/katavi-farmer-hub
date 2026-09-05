@@ -13,6 +13,7 @@ const orderSchema = new mongoose.Schema({
   orderDate: { type: String, default: () => new Date().toISOString().split('T')[0] },
   deliveryDate: { type: String, default: '' },
   contact: { type: String, default: '' },
+  resolution: { type: String, default: '' },
 }, { timestamps: true });
 
 module.exports = mongoose.model('Order', orderSchema);
