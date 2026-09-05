@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { cropsAPI, productsAPI, ordersAPI, marketPricesAPI, priceAlertsAPI, farmerFinanceAPI, shambaAPI, aiAPI } from '../../api/client';
+import { cropsAPI, productsAPI, ordersAPI, marketPricesAPI, priceAlertsAPI, farmerFinanceAPI, shambaAPI, aiAPI, uploadAPI } from '../../api/client';
 import { useNavigate } from 'react-router-dom';
 import { printView } from '../../shared/utils/export';
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend, LineChart, Line, XAxis, YAxis, CartesianGrid } from 'recharts';
@@ -48,6 +48,11 @@ const FarmerDashboard = () => {
   const [stageForm, setStageForm] = useState({ cropName: '', plantingDate: '' });
   const [diseaseCrop, setDiseaseCrop] = useState('');
   const [aiCropResult, setAiCropResult] = useState(null);
+  const [assistantStep, setAssistantStep] = useState(null);
+  const [aiFile, setAiFile] = useState(null);
+  const [aiPreview, setAiPreview] = useState('');
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiUseUrl, setAiUseUrl] = useState(false);
 
   const fetchData = useCallback(async () => {
     try {
@@ -223,10 +228,42 @@ const FarmerDashboard = () => {
   };
 
   const runAiCropDetect = async () => {
+    setAiLoading(true);
     try {
-      const res = await aiAPI.detectCropDisease({ imageUrl: aiCropResult?.imageUrl, cropHint: aiCropResult?.cropHint });
-      setAiCropResult(prev => ({ ...prev, result: res.data }));
-    } catch (err) { console.error('AI crop detect error:', err); }
+      let imageUrl = aiCropResult?.imageUrl || '';
+      if (aiFile) {
+        const fd = new FormData();
+        fd.append('image', aiFile);
+        const up = await uploadAPI.upload(fd);
+        imageUrl = up.data.url;
+      }
+      if (!imageUrl) {
+        alert('Pakia picha ya jani au weka URL — kisha jaribu tena.');
+        return;
+      }
+      const res = await aiAPI.detectCropDisease({ imageUrl, cropHint: aiCropResult?.cropHint });
+      setAiCropResult({ imageUrl, cropHint: aiCropResult?.cropHint, result: res.data });
+    } catch (err) {
+      console.error('AI crop detect error:', err);
+      alert('AI imeshindwa kutambua picha. Jaribu tena baada ya muda.');
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  const handleAiFileChange = (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    setAiFile(file);
+    setAiPreview(URL.createObjectURL(file));
+    setAiCropResult(null);
+    setAiUseUrl(false);
+  };
+
+  const goToAssistantStep = (id) => {
+    setAssistantStep(prev => (prev === id ? null : id));
+    const el = document.getElementById('assistant-' + id);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
   const handleToggleAlert = async (crop) => {
@@ -978,12 +1015,40 @@ const FarmerDashboard = () => {
         <i className="fas fa-map-marked-alt"></i>
         <div>
           <h3>Uko katika hatua gani sasa?</h3>
-          <p>Ingiza zao na tarehe ya upandaji ili kupata vidokezo vinavyofaa hatua hiyo pekee — kutoka shamba hadi soko.</p>
+          <p>Chagua kilicho rahisi kwako hapa chini — vidokezo vinazingatia hatua yako pekee, kutoka shamba hadi soko.</p>
         </div>
       </div>
 
+      <div className="quick-start">
+        <button type="button" className={`quick-card ${assistantStep === 'ai' ? 'active' : ''}`} onClick={() => goToAssistantStep('ai')}>
+          <i className="fas fa-camera"></i>
+          <strong>Nina picha ya jani?</strong>
+          <span>AI itambue ugonjwa</span>
+        </button>
+        <button type="button" className={`quick-card ${assistantStep === 'planting' ? 'active' : ''}`} onClick={() => goToAssistantStep('planting')}>
+          <i className="fas fa-cloud-rain"></i>
+          <strong>Nataka kupanda</strong>
+          <span>Muda mzuri wa kupanda</span>
+        </button>
+        <button type="button" className={`quick-card ${assistantStep === 'land' ? 'active' : ''}`} onClick={() => goToAssistantStep('land')}>
+          <i className="fas fa-soil"></i>
+          <strong>Nipe zao linalofaa</strong>
+          <span>Udongo wa kata yangu</span>
+        </button>
+        <button type="button" className={`quick-card ${assistantStep === 'cycle' ? 'active' : ''}`} onClick={() => goToAssistantStep('cycle')}>
+          <i className="fas fa-seedling"></i>
+          <strong>Zao limepandwa</strong>
+          <span>Hatua ya sasa + vidokezo</span>
+        </button>
+        <button type="button" className={`quick-card ${assistantStep === 'library' ? 'active' : ''}`} onClick={() => goToAssistantStep('library')}>
+          <i className="fas fa-book-medical"></i>
+          <strong>Magonjwa ya mazao</strong>
+          <span>Dalili na tiba</span>
+        </button>
+      </div>
+
       <div className="pl-cols">
-        <div className="section-card">
+        <div className="section-card" id="assistant-land">
           <h3><i className="fas fa-soil"></i> Uchaguzi wa Zao kwa Udongo (Kata/Wilaya)</h3>
           <form onSubmit={loadLandGuidance} className="expense-form">
             <div className="form-row">
@@ -1014,7 +1079,7 @@ const FarmerDashboard = () => {
           )}
         </div>
 
-        <div className="section-card">
+        <div className="section-card" id="assistant-planting">
           <h3><i className="fas fa-cloud-rain"></i> Muda Mzuri wa Kupanda (Hali ya Hewa)</h3>
           <form onSubmit={loadPlantingRec} className="expense-form">
             <input type="text" placeholder="Zao (mf. Mahindi)" value={plantingForm.cropName}
@@ -1041,7 +1106,7 @@ const FarmerDashboard = () => {
       </div>
 
       <div className="pl-cols">
-        <div className="section-card">
+        <div className="section-card" id="assistant-cycle">
           <h3><i className="fas fa-seedling"></i> Ratiba ya Hatua (Crop Cycle Tracker)</h3>
           <form onSubmit={loadCycleStage} className="expense-form">
             <input type="text" placeholder="Zao (mf. Mahindi)" value={stageForm.cropName}
@@ -1065,7 +1130,7 @@ const FarmerDashboard = () => {
           )}
         </div>
 
-        <div className="section-card">
+        <div className="section-card" id="assistant-library">
           <h3><i className="fas fa-book-medical"></i> Maktaba ya Magonjwa ya Mazao</h3>
           <div className="expense-form">
             <input type="text" placeholder="Zao (mf. Mahindi, Mpunga, Maharage)" value={diseaseCrop}
@@ -1088,24 +1153,52 @@ const FarmerDashboard = () => {
         </div>
       </div>
 
-      <div className="section-card">
+      <div className="section-card" id="assistant-ai">
         <h3><i className="fas fa-microscope"></i> AI Uchunguzi wa Magonjwa (Picha)</h3>
-        <div className="expense-form">
-          <input type="text" placeholder="URL ya picha ya zao (pakia kwenye /upload kwanza)" value={aiCropResult?.imageUrl || ''}
-            onChange={(e) => setAiCropResult(p => ({ ...(p || {}), imageUrl: e.target.value }))} />
-          <input type="text" placeholder="Zao (dalili — mf. Mahindi)" value={aiCropResult?.cropHint || ''}
-            onChange={(e) => setAiCropResult(p => ({ ...(p || {}), cropHint: e.target.value }))} />
-          <button type="button" className="btn btn-primary" onClick={runAiCropDetect}>
-            <i className="fas fa-magnifying-glass-chart"></i> Chunguza Picha
-          </button>
+        <p className="ai-intro">Pakia picha ya jani lenye dalili, ama piga picha moja kwa moja — AI itakujibu ugonjwa unaoshukiwa na hatua ya kuchukua.</p>
+        <div className="ai-upload">
+          <label className={`upload-box ${aiPreview ? 'has-img' : ''}`}>
+            <input type="file" accept="image/*" onChange={handleAiFileChange} />
+            {aiPreview ? (
+              <img src={aiPreview} alt="Picha ya zao" />
+            ) : (
+              <span>
+                <i className="fas fa-cloud-upload-alt"></i>
+                <strong>Gusa ili kupakia picha ya jani</strong>
+                <small>JPG / PNG — picha ya karibu bora</small>
+              </span>
+            )}
+          </label>
+          <div className="ai-upload-fields">
+            <input type="text" placeholder="Zao (dalili — mf. Mahindi)" value={aiCropResult?.cropHint || ''}
+              onChange={(e) => setAiCropResult(p => ({ ...(p || {}), cropHint: e.target.value }))} />
+            <button type="button" className="btn btn-primary" onClick={runAiCropDetect} disabled={aiLoading}>
+              {aiLoading
+                ? <><i className="fas fa-spinner fa-spin"></i> Inachunguza...</>
+                : <><i className="fas fa-magnifying-glass-chart"></i> Chunguza Picha</>}
+            </button>
+            <button type="button" className="ai-url-toggle" onClick={() => setAiUseUrl(v => !v)}>
+              <i className={`fas ${aiUseUrl ? 'fa-chevron-up' : 'fa-link'}`}></i>
+              {aiUseUrl ? 'Ficha ingizo la URL' : 'Weka URL ya picha kwa mkono (badala ya kupakia)'}
+            </button>
+            {aiUseUrl && (
+              <input type="text" placeholder="https://... (URL ya picha iliyopakiwa tayari)" value={aiCropResult?.imageUrl || ''}
+                onChange={(e) => setAiCropResult(p => ({ ...(p || {}), imageUrl: e.target.value }))} />
+            )}
+          </div>
         </div>
         {aiCropResult?.result?.detection && (
-          <div className="disease-item" style={{ marginTop: '12px' }}>
-            <strong>{aiCropResult.result.detection.crop}</strong>
-            <p><b>Matatizo:</b> {(aiCropResult.result.detection.issues || []).join(', ')}</p>
-            <p><b>Ushauri:</b> {aiCropResult.result.detection.recommendation}</p>
-            <p><b>Hatua:</b> {aiCropResult.result.detection.action}</p>
-            {aiCropResult.result.mocked && <p className="cycle-alert"><i className="fas fa-info-circle"></i> {aiCropResult.result.detection.note}</p>}
+          <div className="ai-result">
+            {aiPreview && <img src={aiPreview} alt="Picha ya zao" />}
+            <div className="ai-result-info">
+              <strong>{aiCropResult.result.detection.cropLabel || aiCropResult.result.detection.crop}</strong>
+              <p><b>Matatizo:</b> {(aiCropResult.result.detection.issues || []).join(', ')}</p>
+              <p><b>Ushauri:</b> {aiCropResult.result.detection.recommendation}</p>
+              <p><b>Hatua:</b> {aiCropResult.result.detection.action}</p>
+              {aiCropResult.result.source === 'vision_api_gemini' && <span className="ai-source">Jenasi ya Gemini</span>}
+              {aiCropResult.result.source === 'vision_api_openrouter' && <span className="ai-source">OpenRouter GPT-Zao</span>}
+              {aiCropResult.result.mocked && <p className="cycle-alert"><i className="fas fa-info-circle"></i> {aiCropResult.result.detection.note}</p>}
+            </div>
           </div>
         )}
       </div>
