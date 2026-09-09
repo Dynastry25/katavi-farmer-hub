@@ -2,14 +2,15 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AdminLayout from './AdminLayout';
 import { getRoleNavSections } from './roleNav';
-import { cropsAPI, ordersAPI, productsAPI, adviceAPI, adminAPI } from '../../api/client';
+import { cropsAPI, ordersAPI, productsAPI, adviceAPI, adminAPI, suppliersAPI } from '../../api/client';
 import { useAuth } from '../../shared/context/AuthContext';
 import { downloadCSV, printView } from '../../shared/utils/export';
 import './Reports.css';
 
 const ROLE_LABELS = {
   farmer: 'Mkulima',
-  buyer: 'Mnunuzi / Muuzaji',
+  buyer: 'Mnunuzi',
+  seller: 'Muuzaji / Msambazaji',
   expert: 'Mtaalamu / Extension',
   admin: 'Admin'
 };
@@ -17,6 +18,7 @@ const ROLE_LABELS = {
 const ROLE_ICONS = {
   farmer: 'fas fa-tractor',
   buyer: 'fas fa-shopping-cart',
+  seller: 'fas fa-store',
   expert: 'fas fa-graduation-cap',
   admin: 'fas fa-user-shield'
 };
@@ -125,6 +127,23 @@ const Reports = () => {
           id: 'o' + (o._id || o.id), icon: 'fas fa-shopping-basket',
           text: `Uliweka agizo: ${o.crop || ''} (${o.status || 'pending'})`, time: timeAgo(o.createdAt),
         }));
+      } else if (r === 'seller') {
+        let supplier = null;
+        try {
+          const s = await suppliersAPI.getMine();
+          supplier = s.data || null;
+        } catch (e) {}
+        st = {
+          products: supplier?.products?.length ?? 0,
+          category: supplier ? (supplier.category || '—') : '—',
+          delivery: supplier ? (supplier.delivery ? 1 : 0) : 0,
+          rating: supplier?.rating ?? 0,
+        };
+        act.push({
+          id: 's1', icon: 'fas fa-store',
+          text: supplier ? `Wasifu wako: ${supplier.name} (${supplier.products?.length || 0} bidhaa)` : 'Bado huna wasifu wa muuzaji',
+          time: supplier ? timeAgo(supplier.createdAt) : 'Hivi karibuni',
+        });
       } else if (r === 'expert') {
         let articles = [];
         try {
@@ -177,6 +196,12 @@ const Reports = () => {
         { label: 'Yanasubiri', value: stats.pending ?? 0, icon: 'fas fa-hourglass-half' },
         { label: 'Yaliyokamilika', value: stats.completed ?? 0, icon: 'fas fa-check-circle' },
       ],
+      seller: [
+        { label: 'Bidhaa', value: stats.products ?? 0, icon: 'fas fa-box-open' },
+        { label: 'Aina ya Bidhaa', value: stats.category ?? '—', icon: 'fas fa-tag' },
+        { label: 'Uwasilishaji', value: stats.delivery ? 'Ndiyo' : 'Hapana', icon: 'fas fa-truck' },
+        { label: 'Ukadiriaji', value: stats.rating ?? '—', icon: 'fas fa-star' },
+      ],
       expert: [
         { label: 'Makala', value: stats.articles ?? 0, icon: 'fas fa-newspaper' },
         { label: 'Yaliyojibiwa', value: stats.answered ?? 0, icon: 'fas fa-comments' },
@@ -200,6 +225,7 @@ const Reports = () => {
       admin: 'Ripoti za Mfumo',
       farmer: 'Ripoti Yangu - Mkulima',
       buyer: 'Ripoti Yangu - Mnunuzi',
+      seller: 'Ripoti Yangu - Muuzaji / Msambazaji',
       expert: 'Ripoti Yangu - Mtaalamu',
     };
     const rows = [
@@ -214,6 +240,7 @@ const Reports = () => {
       admin: 'Ripoti za Mfumo - Katavi E-Kilimo',
       farmer: 'Ripoti yangu - Mkulima',
       buyer: 'Ripoti yangu - Mnunuzi',
+      seller: 'Ripoti yangu - Muuzaji / Msambazaji',
       expert: 'Ripoti yangu - Mtaalamu',
     };
     printView({

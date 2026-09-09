@@ -501,6 +501,244 @@
   box-shadow: 0 8px 20px rgba(26, 116, 49, 0.25);
 }
 
+.btn-order {
+  background: #ff9800;
+  border: 1.5px solid #ff9800;
+  color: white;
+}
+
+.btn-order:hover {
+  background: #e68900;
+  border-color: #e68900;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(255, 152, 0, 0.3);
+}
+
+.btn-order:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Market Modals */
+.market-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+}
+
+.market-modal {
+  background: white;
+  border-radius: 18px;
+  width: 100%;
+  max-width: 460px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.3);
+}
+
+.market-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.market-modal-header h3 {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #111827;
+}
+
+.market-modal-close {
+  background: #f3f4f6;
+  border: none;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  color: #6b7280;
+  font-size: 0.85rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.market-modal-close:hover {
+  background: #e5e7eb;
+  color: #111827;
+}
+
+.market-modal-body {
+  padding: 1.5rem;
+}
+
+.detail-hero img {
+  width: 100%;
+  height: 200px;
+  object-fit: cover;
+  border-radius: 12px;
+  margin-bottom: 1.25rem;
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.6rem 1rem;
+  margin-bottom: 1rem;
+}
+
+.detail-grid div {
+  font-size: 0.88rem;
+  color: #374151;
+}
+
+.detail-desc {
+  font-size: 0.88rem;
+  color: #4b5563;
+  line-height: 1.6;
+  margin-bottom: 0;
+}
+
+.contact-note {
+  font-size: 0.9rem;
+  color: #4b5563;
+  line-height: 1.6;
+  margin-bottom: 1rem;
+}
+
+.farmer-contact-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin-bottom: 0.5rem;
+}
+
+.farmer-contact-info div {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.9rem;
+  color: #374151;
+}
+
+.farmer-contact-info i {
+  color: #1a7431;
+  width: 16px;
+}
+
+.order-summary {
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 1rem;
+  margin-bottom: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.order-summary div {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.88rem;
+  color: #6b7280;
+}
+
+.order-summary strong {
+  color: #111827;
+}
+
+.order-qty-field {
+  margin-bottom: 1rem;
+}
+
+.order-qty-field label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 0.4rem;
+}
+
+.order-qty-field input {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 10px;
+  font-size: 1rem;
+  color: #111827;
+  background: #f9fafb;
+}
+
+.order-qty-field input:focus {
+  border-color: #1a7431;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(26, 116, 49, 0.12);
+}
+
+.order-total {
+  background: rgba(26, 116, 49, 0.08);
+  border: 1px solid rgba(26, 116, 49, 0.2);
+  border-radius: 10px;
+  padding: 0.75rem 1rem;
+  font-size: 0.95rem;
+  color: #374151;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.order-total strong {
+  color: #1a7431;
+  font-size: 1.05rem;
+}
+
+.market-modal-actions {
+  display: flex;
+  gap: 10px;
+  padding: 1rem 1.5rem 1.5rem;
+}
+
+.market-modal-actions button {
+  flex: 1;
+  padding: 0.8rem;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: none;
+}
+
+.btn-close-modal {
+  background: #f3f4f6;
+  color: #374151;
+  border: 1.5px solid #e5e7eb !important;
+}
+
+.btn-close-modal:hover {
+  background: #e5e7eb;
+}
+
+.market-modal-actions .btn-order {
+  border: none !important;
+}
+
 /* No results */
 .no-results {
   grid-column: 1 / -1;

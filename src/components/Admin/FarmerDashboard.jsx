@@ -284,14 +284,20 @@ const FarmerDashboard = () => {
 
   const [newCrop, setNewCrop] = useState({
     name: '',
-    type: '',
+    category: '',
     quantity: '',
     price: '',
     description: '',
     harvestDate: '',
     location: user?.location || '',
-    image: ''
+    image: '',
+    unit: 'kg',
+    stockQuantity: ''
   });
+  const [editingCropId, setEditingCropId] = useState(null);
+  const [uploadingImgId, setUploadingImgId] = useState(null);
+  const [approvalQty, setApprovalQty] = useState('');
+  const [orderBusy, setOrderBusy] = useState(false);
 
   const [newProduct, setNewProduct] = useState({
     name: '',
@@ -355,16 +361,86 @@ const FarmerDashboard = () => {
     }
   ];
 
+  const openCropModal = (crop) => {
+    setEditingCropId(crop ? (crop._id || crop.id) : null);
+    setNewCrop({
+      name: crop?.name || '',
+      category: crop?.category || crop?.type || '',
+      quantity: crop?.quantity ?? '',
+      price: crop?.price ?? '',
+      description: crop?.description || '',
+      harvestDate: crop?.harvestDate ? String(crop.harvestDate).slice(0, 10) : '',
+      location: crop?.location || user?.location || '',
+      image: crop?.image || '',
+      unit: crop?.unit || 'kg',
+      stockQuantity: crop?.stockQuantity ?? (Number(String(crop?.quantity || '').replace(/[^0-9.]/g, '')) || ''),
+    });
+    setShowAddCropModal(true);
+  };
+
+  const closeCropModal = () => {
+    setShowAddCropModal(false);
+    setEditingCropId(null);
+    setNewCrop({
+      name: '', category: '', quantity: '', price: '', description: '', harvestDate: '',
+      location: user?.location || '', image: '', unit: 'kg', stockQuantity: ''
+    });
+  };
+
   const handleAddCrop = async (e) => {
     e.preventDefault();
     try {
-      await cropsAPI.create(newCrop);
-      alert('Zao jipya limeongezwa kikamilifu!');
+      const payload = {
+        ...newCrop,
+        stockQuantity: Number(newCrop.stockQuantity) || 0,
+        unit: newCrop.unit,
+      };
+      if (editingCropId) {
+        await cropsAPI.update(editingCropId, payload);
+        alert('Zao limesasishwa kikamilifu!');
+      } else {
+        await cropsAPI.create(payload);
+        alert('Zao jipya limeongezwa kikamilifu!');
+      }
       setShowAddCropModal(false);
+      setEditingCropId(null);
       fetchData();
     } catch (error) {
       console.error('Error:', error);
       alert('Hitilafu imetokea');
+    }
+  };
+
+  const handleDeleteCrop = async (crop) => {
+    const id = crop._id || crop.id;
+    if (!id) return;
+    if (!window.confirm(`Una uhakika unataka kufuta "${crop.name}"? Kitendo hiki hakirudishwi.`)) return;
+    try {
+      await cropsAPI.delete(id);
+      alert('Zao limefutwa');
+      fetchData();
+    } catch (error) {
+      console.error('Delete crop error:', error);
+      alert('Hitilafu imetokea wakati wa kufuta');
+    }
+  };
+
+  const handleCropImageChange = async (crop, e) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file || !(crop._id || crop.id)) return;
+    setUploadingImgId(crop._id || crop.id);
+    try {
+      const fd = new FormData();
+      fd.append('image', file);
+      await cropsAPI.uploadImage(crop._id || crop.id, fd);
+      alert('Picha imesajiliwa!');
+      await fetchData();
+    } catch (error) {
+      console.error('Upload crop image error:', error);
+      alert('Hitilafu imetokea kupakia picha');
+    } finally {
+      setUploadingImgId(null);
+      e.target.value = '';
     }
   };
 
@@ -380,15 +456,43 @@ const FarmerDashboard = () => {
     }
   };
 
-  const handleOrderAction = async (orderId, action) => {
+  const STATUS_LABELS = {
+    pending: 'Inasubiri',
+    approved: 'Imekubaliwa',
+    partially_approved: 'Imekubaliwa Kwa Sehemu',
+    rejected: 'Imekataliwa',
+    expired: 'Imeisha Muda',
+  };
+
+  const stockOf = (crop) => crop.stockQuantity ?? (Number(String(crop.quantity || '').replace(/[^0-9.]/g, '')) || 0);
+
+  const orderIdOf = (o) => o._id || o.id;
+  const cropLabelOf = (o) => o.cropName || (o.crop && typeof o.crop === 'object' ? o.crop.name : o.crop) || 'Bila jina';
+  const buyerLabelOf = (o) => o.buyerName || (o.buyer && typeof o.buyer === 'object' ? o.buyer.name : o.buyer) || 'Bila jina';
+  const qtyLabelOf = (o) => (o.requestedQuantity != null ? `${o.requestedQuantity} ${o.unit || ''}` : o.quantity);
+  const statusLabelOf = (s) => STATUS_LABELS[s] || s || '-';
+
+  const handleOrderAction = async (order, action) => {
     try {
-      await ordersAPI.update(orderId, { status: action === 'accept' ? 'completed' : 'cancelled' });
-      alert(`Umekubali agizo #${orderId}`);
-      fetchData();
+      const orderId = orderIdOf(order);
+      if (action === 'accept') {
+        const fallback = Number(order.requestedQuantity) || 1;
+        const approved = Math.max(1, Number(approvalQty) || fallback);
+        await ordersAPI.approve(orderId, { approvedQuantity: approved });
+        alert(approved >= order.requestedQuantity
+          ? 'Umeidhinisha agizo kikamilifu'
+          : `Umeidhinisha kiasi cha ${approved} ${order.unit || ''}`);
+      } else {
+        await ordersAPI.reject(orderId);
+        alert('Umekataa agizo na umeitoa hisa (reservation)');
+      }
+      await fetchData();
     } catch (error) {
-      console.error('Error:', error);
+      console.error('Order action error:', error);
+      alert(error.response?.data?.message || 'Hitilafu imetokea');
     }
     setShowOrderModal(false);
+    setApprovalQty('');
   };
 
   const renderOverview = () => {
@@ -397,7 +501,7 @@ const FarmerDashboard = () => {
       { name: 'Yanasubiri', value: farmerStats.pendingOrders },
     ].filter(d => d.value > 0);
     const typeCounts = {};
-    myCrops.forEach(c => { const t = c.type || c.crop || 'Bila Aina'; typeCounts[t] = (typeCounts[t] || 0) + 1; });
+    myCrops.forEach(c => { const t = c.type || c.category || c.crop || 'Bila Aina'; typeCounts[t] = (typeCounts[t] || 0) + 1; });
     const types = Object.keys(typeCounts);
     const max = Math.max(1, ...Object.values(typeCounts));
     const cropTypeData = types.map(name => ({ name, count: typeCounts[name], pct: Math.round((typeCounts[name] / max) * 100) }));
@@ -489,7 +593,7 @@ const FarmerDashboard = () => {
       <div className="quick-actions">
         <h3>Vitendo vya Haraka</h3>
         <div className="actions-grid">
-          <button className="action-btn" onClick={() => setShowAddCropModal(true)}>
+          <button className="action-btn" onClick={() => openCropModal(null)}>
             <i className="fas fa-seedling"></i>
             <span>Ongeza Zao Jipya</span>
           </button>
@@ -515,7 +619,7 @@ const FarmerDashboard = () => {
     <div className="farmer-section">
       <div className="section-header">
         <h3>Mazao Yangu</h3>
-        <button className="btn btn-primary" onClick={() => setShowAddCropModal(true)}>
+        <button className="btn btn-primary" onClick={() => openCropModal(null)}>
           <i className="fas fa-plus"></i> Ongeza Zao Jipya
         </button>
       </div>
@@ -523,27 +627,48 @@ const FarmerDashboard = () => {
       {myCrops.length > 0 ? (
         <div className="crops-grid">
           {myCrops.map(crop => (
-            <div key={crop.id} className="crop-card">
+            <div key={crop._id || crop.id} className="crop-card">
               <div className="crop-image">
-                {crop.image ? crop.image : <i className="fas fa-wheat-awn"></i>}
+                {crop.image ? (
+                  <img src={crop.image} alt={crop.name} loading="lazy" />
+                ) : (
+                  <i className="fas fa-wheat-awn"></i>
+                )}
               </div>
               <div className="crop-content">
                 <h4>{crop.name}</h4>
                 <p>{crop.description}</p>
                 <div className="crop-details">
-                  <span><strong>Bei:</strong> {crop.price}/kg</span>
-                  <span><strong>Kiasi:</strong> {crop.quantity}kg</span>
+                  <span><strong>Bei:</strong> {crop.price}/{crop.unit || 'kg'}</span>
+                  <span><strong>Stock:</strong> {stockOf(crop)} {crop.unit || 'kg'}</span>
                   <span><strong>Eneo:</strong> {crop.location}</span>
                 </div>
                 <div className="crop-status">
                   <span className={`status-badge ${crop.status}`}>
-                    {crop.status === 'available' ? 'Inapatikana' : 'Imeuzwa'}
+                    {crop.status === 'available' ? 'Inapatikana' : 
+                     crop.status === 'low_stock' ? 'Hisa Ndogo' : 
+                     crop.status === 'out_of_stock' ? 'Imeisha' : 
+                     crop.status === 'reserved' ? 'Imehifadhiwa' : 'Imeuzwa'}
                   </span>
                 </div>
                 <div className="crop-actions">
-                  <button className="btn btn-sm btn-outline">Hariri</button>
-                  <button className="btn btn-sm btn-primary">Ongeza Picha</button>
-                  <button className="btn btn-sm btn-danger">Futa</button>
+                  <button className="btn btn-sm btn-outline" onClick={() => openCropModal(crop)}>
+                    <i className="fas fa-edit"></i> Hariri
+                  </button>
+                  <button className="btn btn-sm btn-primary" onClick={() => document.getElementById(`crop-img-${crop._id || crop.id}`).click()}>
+                    <i className={`fas ${uploadingImgId === (crop._id || crop.id) ? 'fa-spinner fa-spin' : 'fa-image'}`}></i>
+                    {uploadingImgId === (crop._id || crop.id) ? ' Inapakia...' : ' Ongeza Picha'}
+                  </button>
+                  <button className="btn btn-sm btn-danger" onClick={() => handleDeleteCrop(crop)}>
+                    <i className="fas fa-trash"></i> Futa
+                  </button>
+                  <input
+                    type="file"
+                    id={`crop-img-${crop._id || crop.id}`}
+                    accept="image/*"
+                    style={{ display: 'none' }}
+                    onChange={(e) => handleCropImageChange(crop, e)}
+                  />
                 </div>
               </div>
             </div>
@@ -554,7 +679,7 @@ const FarmerDashboard = () => {
           <i className="fas fa-seedling"></i>
           <h4>Huna mazao yaliyowekwa bado</h4>
           <p>Anza kuuza mazao yako kwa kuongeza zao jipya</p>
-          <button className="btn btn-primary" onClick={() => setShowAddCropModal(true)}>
+          <button className="btn btn-primary" onClick={() => openCropModal(null)}>
             <i className="fas fa-plus"></i> Ongeza Zao la Kwanza
           </button>
         </div>
@@ -627,16 +752,15 @@ const FarmerDashboard = () => {
           </thead>
           <tbody>
             {orders.map(order => (
-              <tr key={order.id}>
-                <td>{order.crop}</td>
-                <td>{order.buyer}</td>
-                <td>{order.quantity}</td>
+              <tr key={orderIdOf(order)}>
+                <td>{cropLabelOf(order)}</td>
+                <td>{buyerLabelOf(order)}</td>
+                <td>{qtyLabelOf(order)}</td>
                 <td>{order.price}</td>
-                <td>{order.orderDate}</td>
+                <td>{order.orderDate || (order.createdAt ? new Date(order.createdAt).toLocaleDateString() : '-')}</td>
                 <td>
                   <span className={`status-badge ${order.status}`}>
-                    {order.status === 'pending' ? 'Inasubiri' : 
-                     order.status === 'completed' ? 'Imekamilika' : 'Imekatizwa'}
+                    {statusLabelOf(order.status)}
                   </span>
                 </td>
                 <td>
@@ -654,19 +778,19 @@ const FarmerDashboard = () => {
                       <>
                         <button 
                           className="btn btn-sm btn-success"
-                          onClick={() => handleOrderAction(order.id, 'accept')}
+                          onClick={() => handleOrderAction(order, 'accept')}
                         >
                           Kubali
                         </button>
                         <button 
                           className="btn btn-sm btn-danger"
-                          onClick={() => handleOrderAction(order.id, 'reject')}
+                          onClick={() => handleOrderAction(order, 'reject')}
                         >
                           Kataa
                         </button>
                       </>
                     )}
-                    {order.status === 'completed' && (
+                    {order.status === 'approved' && (
                       <button 
                         className="btn btn-sm btn-primary"
                         onClick={() => {
@@ -1232,7 +1356,7 @@ const FarmerDashboard = () => {
       onLogout={logout}
       headerActions={
         <>
-          <button className="btn btn-primary" onClick={() => setShowAddCropModal(true)}>
+          <button className="btn btn-primary" onClick={() => openCropModal(null)}>
             <i className="fas fa-plus"></i> Ongeza Zao
           </button>
           <button className="btn btn-success" onClick={() => setActiveTab('loans')}>
@@ -1254,13 +1378,13 @@ const FarmerDashboard = () => {
       {activeTab === 'analytics' && renderAnalytics()}
     </AdminLayout>
 
-    {/* Add Crop Modal */}
+    {/* Add/Edit Crop Modal */}
     {showAddCropModal && (
         <div className="modal-overlay">
           <div className="modal">
             <div className="modal-header">
-              <h3>Ongeza Zao Jipya</h3>
-              <button className="close-btn" onClick={() => setShowAddCropModal(false)}>
+              <h3>{editingCropId ? 'Hariri Zao' : 'Ongeza Zao Jipya'}</h3>
+              <button className="close-btn" onClick={closeCropModal}>
                 <i className="fas fa-times"></i>
               </button>
             </div>
@@ -1279,29 +1403,45 @@ const FarmerDashboard = () => {
                 <div className="form-group">
                   <label>Aina ya Zao *</label>
                   <select
-                    value={newCrop.type}
-                    onChange={(e) => setNewCrop({...newCrop, type: e.target.value})}
+                    value={newCrop.category}
+                    onChange={(e) => setNewCrop({...newCrop, category: e.target.value})}
                     required
                   >
                     <option value="">Chagua aina</option>
-                    <option value="cereal">Nafaka</option>
-                    <option value="legume">Mikunde</option>
-                    <option value="vegetable">Mboga</option>
-                    <option value="fruit">Matunda</option>
+                    <option value="cereals">Nafaka</option>
+                    <option value="legumes">Mikunde</option>
+                    <option value="vegetables">Mboga</option>
+                    <option value="fruits">Matunda</option>
+                    <option value="tubers">Viazi/Mizizi</option>
+                    <option value="oilseeds">Mbegu za Mafuta</option>
                   </select>
                 </div>
                 <div className="form-group">
-                  <label>Kiasi (kg) *</label>
+                  <label>Kiasi Kinachopatikana (Stock) *</label>
                   <input
                     type="number"
-                    value={newCrop.quantity}
-                    onChange={(e) => setNewCrop({...newCrop, quantity: e.target.value})}
+                    min="0"
+                    value={newCrop.stockQuantity}
+                    onChange={(e) => setNewCrop({...newCrop, stockQuantity: e.target.value})}
                     required
                     placeholder="Mf. 100"
                   />
                 </div>
                 <div className="form-group">
-                  <label>Bei (TZS/kg) *</label>
+                  <label>Kipimo (Unit) *</label>
+                  <select
+                    value={newCrop.unit}
+                    onChange={(e) => setNewCrop({...newCrop, unit: e.target.value})}
+                    required
+                  >
+                    <option value="kg">Kilogramu (kg)</option>
+                    <option value="gunia">Gunia</option>
+                    <option value="debe">Debe</option>
+                    <option value="tani">Tani</option>
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label>Bei (TZS) *</label>
                   <input
                     type="number"
                     value={newCrop.price}
@@ -1338,11 +1478,11 @@ const FarmerDashboard = () => {
                 </div>
               </div>
               <div className="modal-actions">
-                <button type="button" className="btn btn-outline" onClick={() => setShowAddCropModal(false)}>
+                <button type="button" className="btn btn-outline" onClick={closeCropModal}>
                   Ghairi
                 </button>
                 <button type="submit" className="btn btn-primary">
-                  <i className="fas fa-save"></i> Hifadhi Zao
+                  <i className="fas fa-save"></i> {editingCropId ? 'Hifadhi Mabadiliko' : 'Hifadhi Zao'}
                 </button>
               </div>
             </form>
@@ -1452,7 +1592,7 @@ const FarmerDashboard = () => {
         <div className="modal-overlay">
           <div className="modal">
             <div className="modal-header">
-              <h3>Maelezo ya Agizo #{selectedOrder.id}</h3>
+              <h3>Maelezo ya Agizo #{orderIdOf(selectedOrder)}</h3>
               <button className="close-btn" onClick={() => setShowOrderModal(false)}>
                 <i className="fas fa-times"></i>
               </button>
@@ -1461,51 +1601,71 @@ const FarmerDashboard = () => {
               <div className="order-details">
                 <div className="detail-row">
                   <label>Zao/Bidhaa:</label>
-                  <span>{selectedOrder.crop}</span>
+                  <span>{cropLabelOf(selectedOrder)}</span>
                 </div>
                 <div className="detail-row">
                   <label>Mnunuzi:</label>
-                  <span>{selectedOrder.buyer}</span>
+                  <span>{buyerLabelOf(selectedOrder)}</span>
                 </div>
                 <div className="detail-row">
-                  <label>Kiasi:</label>
-                  <span>{selectedOrder.quantity}</span>
+                  <label>Kiasi Kilichoombwa:</label>
+                  <span>{qtyLabelOf(selectedOrder)}</span>
                 </div>
+                {selectedOrder.approvedQuantity != null && (
+                  <div className="detail-row">
+                    <label>Kiasi Kilichoidhinishwa:</label>
+                    <span>{selectedOrder.approvedQuantity} {selectedOrder.unit || ''}</span>
+                  </div>
+                )}
                 <div className="detail-row">
                   <label>Bei:</label>
                   <span>{selectedOrder.price}</span>
                 </div>
                 <div className="detail-row">
                   <label>Tarehe ya Agizo:</label>
-                  <span>{selectedOrder.orderDate}</span>
+                  <span>{selectedOrder.orderDate || (selectedOrder.createdAt ? new Date(selectedOrder.createdAt).toLocaleDateString() : '-')}</span>
                 </div>
                 <div className="detail-row">
-                  <label>Tarehe ya Uwasilishaji:</label>
-                  <span>{selectedOrder.deliveryDate}</span>
+                  <label>Tarehe ya Mwisho Kujibu:</label>
+                  <span>{selectedOrder.expiresAt ? new Date(selectedOrder.expiresAt).toLocaleString() : '-'}</span>
                 </div>
                 <div className="detail-row">
                   <label>Namba ya Simu:</label>
-                  <span>{selectedOrder.contact}</span>
+                  <span>{selectedOrder.contact || '-'}</span>
                 </div>
                 <div className="detail-row">
                   <label>Hali:</label>
                   <span className={`status-badge ${selectedOrder.status}`}>
-                    {selectedOrder.status === 'pending' ? 'Inasubiri' : 
-                     selectedOrder.status === 'completed' ? 'Imekamilika' : 'Imekatizwa'}
+                    {statusLabelOf(selectedOrder.status)}
                   </span>
                 </div>
               </div>
               {selectedOrder.status === 'pending' && (
+                <div className="approval-box">
+                  <label htmlFor="approvalQty">Kiasi Unachokubali ({selectedOrder.unit || 'kg'}):</label>
+                  <input
+                    id="approvalQty"
+                    type="number"
+                    min="1"
+                    max={selectedOrder.requestedQuantity}
+                    value={approvalQty}
+                    onChange={(e) => setApprovalQty(e.target.value)}
+                    placeholder={`Hadi ${selectedOrder.requestedQuantity} ${selectedOrder.unit || ''}`}
+                  />
+                  <small>Ukiacha tupu kutathminiwa kama kiasi kizima kilichoombwa.</small>
+                </div>
+              )}
+              {selectedOrder.status === 'pending' && (
                 <div className="modal-actions">
                   <button 
                     className="btn btn-success"
-                    onClick={() => handleOrderAction(selectedOrder.id, 'accept')}
+                    onClick={() => handleOrderAction(selectedOrder, 'accept')}
                   >
                     <i className="fas fa-check"></i> Kubali Agizo
                   </button>
                   <button 
                     className="btn btn-danger"
-                    onClick={() => handleOrderAction(selectedOrder.id, 'reject')}
+                    onClick={() => handleOrderAction(selectedOrder, 'reject')}
                   >
                     <i className="fas fa-times"></i> Kataa Agizo
                   </button>

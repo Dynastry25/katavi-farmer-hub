@@ -138,6 +138,7 @@
 
 .role-farmer { background: #1a7431; }
 .role-buyer { background: #3b82f6; }
+.role-seller { background: #8b5cf6; }
 .role-expert { background: #f59e0b; }
 .role-admin { background: #dc2626; }
 
@@ -174,8 +175,33 @@
 
 .role-pill.role-farmer { background: #dcfce7; color: #166534; }
 .role-pill.role-buyer { background: #dbeafe; color: #1d4ed8; }
+.role-pill.role-seller { background: #ede9fe; color: #6d28d9; }
 .role-pill.role-expert { background: #fef3c7; color: #b45309; }
 .role-pill.role-admin { background: #fee2e2; color: #991b1b; }
+
+.supplier-products {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  max-width: 260px;
+}
+
+.supplier-products span {
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 500;
+  background: #f0fdf4;
+  color: #166534;
+  border: 1px solid #bbf7d0;
+  white-space: nowrap;
+}
+
+.supplier-products .supplier-more {
+  background: #f8f9fa;
+  color: #6c757d;
+  border-color: #e9ecef;
+}
 
 .no-data {
   color: var(--text-secondary, #64748b);

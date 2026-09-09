@@ -444,6 +444,24 @@ const Login = () => {
                       Tumia
                     </button>
                   </div>
+                  <div className="demo-account">
+                    <div className="demo-role"><i className="fas fa-store"></i> Muuzaji / Msambazaji</div>
+                    <div className="demo-email">neema@example.com</div>
+                    <div className="demo-password">password123</div>
+                    <button 
+                      className="btn btn-sm btn-outline"
+                      onClick={() => {
+                        setFormData({
+                          email: 'neema@example.com',
+                          password: 'password123',
+                          rememberMe: false
+                        });
+                      }}
+                      disabled={isLoading}
+                    >
+                      Tumia
+                    </button>
+                  </div>
                   <div className="demo-account admin-account">
                     <div className="demo-role"><i className="fas fa-user-shield"></i> Admin</div>
                     <div className="demo-email">admin@katavi.co.tz</div>

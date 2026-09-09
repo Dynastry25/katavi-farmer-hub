@@ -5,6 +5,7 @@ export const ROLE_TABS = {
     { id: 'products', label: 'Mazao', icon: 'fas fa-leaf' },
     { id: 'market-prices', label: 'Bei za Soko', icon: 'fas fa-chart-line' },
     { id: 'loans', label: 'Mikopo', icon: 'fas fa-hand-holding-usd' },
+    { id: 'suppliers', label: 'Wauzaji', icon: 'fas fa-store' },
     { id: 'groups', label: 'Vikundi', icon: 'fas fa-users' },
     { id: 'advisory', label: 'Ushauri', icon: 'fas fa-book-medical' },
     { id: 'news', label: 'Habari', icon: 'fas fa-newspaper' },
@@ -37,6 +38,12 @@ export const ROLE_TABS = {
     { id: 'farmers', label: 'Wakulima', icon: 'fas fa-users' },
     { id: 'analytics', label: 'Takwimu', icon: 'fas fa-chart-line' },
   ],
+  seller: [
+    { id: 'overview', label: 'Mapitio', icon: 'fas fa-chart-pie' },
+    { id: 'products', label: 'Bidhaa Zangu', icon: 'fas fa-box-open' },
+    { id: 'profile', label: 'Wasifu wa Muuzaji', icon: 'fas fa-store' },
+    { id: 'chat', label: 'Barua na Ushauri', icon: 'fas fa-comments' },
+  ],
   expert: [
     { id: 'overview', label: 'Mapitio', icon: 'fas fa-chart-pie' },
     { id: 'articles', label: 'Makala Yangu', icon: 'fas fa-newspaper' },
@@ -68,6 +75,7 @@ export const REPORT_LABELS = {
   admin: { label: 'Ripoti', icon: 'fas fa-chart-bar' },
   farmer: { label: 'Ripoti', icon: 'fas fa-file-alt' },
   buyer: { label: 'Ripoti', icon: 'fas fa-file-alt' },
+  seller: { label: 'Ripoti', icon: 'fas fa-file-alt' },
   expert: { label: 'Ripoti', icon: 'fas fa-chart-bar' },
   support: { label: 'Ripoti', icon: 'fas fa-file-alt' },
   content_moderator: { label: 'Ripoti', icon: 'fas fa-file-alt' },

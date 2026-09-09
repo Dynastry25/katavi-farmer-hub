@@ -116,6 +116,7 @@
 .role-badge.role-admin { background: #f59e0b; color: #145a25; }
 .role-badge.role-farmer { background: rgba(255, 255, 255, 0.2); }
 .role-badge.role-buyer { background: rgba(255, 255, 255, 0.2); }
+.role-badge.role-seller { background: rgba(255, 255, 255, 0.2); }
 .role-badge.role-expert { background: rgba(255, 255, 255, 0.2); }
 
 /* Sidebar nav */

@@ -8,6 +8,7 @@ const { sendNotification } = require('../services/notification.service');
 const { sendSms } = require('../services/sms.service');
 
 const STAFF_ROLES = ['admin', 'support', 'content_moderator', 'finance_officer'];
+const PUBLIC_ROLES = ['farmer', 'buyer', 'seller', 'expert'];
 
 const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '30d' });
@@ -66,6 +67,10 @@ const publicUser = (user, token) => ({
 router.post('/register', async (req, res) => {
   try {
     const { name, email, phone, password, role, district, ward, village, idNumber, dateOfBirth, farmSize, farmLocation, crops, businessType, businessLocation, expertise, experience } = req.body;
+
+    if (!PUBLIC_ROLES.includes(role)) {
+      return res.status(400).json({ message: 'Aina hii ya akaunti haijaruhusiwa kujiandikisha' });
+    }
 
     const existingUser = await User.findOne({ email });
     if (existingUser) {

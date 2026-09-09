@@ -6,7 +6,7 @@ import {
   AreaChart, Area, LineChart, Line
 } from 'recharts';
 import AdminLayout from './AdminLayout';
-import { adminAPI, adminExtendedAPI, weatherAPI, marketPricesAPI, analyticsAPI } from '../../api/client';
+import { adminAPI, adminExtendedAPI, weatherAPI, marketPricesAPI, analyticsAPI, suppliersAPI } from '../../api/client';
 import { useAuth } from '../../shared/context/AuthContext';
 import { getRoleNavSections } from './roleNav';
 import { CROP_CATEGORIES } from '../../constants/roleConfig';
@@ -14,9 +14,18 @@ import './AdminDashboard.css';
 
 const CHART_COLORS = ['#1a7431', '#22c55e', '#f59e0b', '#3b82f6', '#16a34a', '#86efac'];
 
+const CATEGORY_LABELS = {
+  fertilizers: 'Mbolea',
+  seeds: 'Mbegu',
+  tools: 'Vifaa',
+  pesticides: 'Dawa za kudhibiti wadudu',
+  irrigation: 'Umwagiliaji',
+};
+
 const ROLE_LABELS = {
   farmer: 'Mkulima',
-  buyer: 'Mnunuzi / Muuzaji',
+  buyer: 'Mnunuzi',
+  seller: 'Muuzaji / Msambazaji',
   expert: 'Mtaalamu / Extension',
   admin: 'Admin',
   support: 'Support',
@@ -27,6 +36,7 @@ const ROLE_LABELS = {
 const ROLE_ICONS = {
   farmer: 'fas fa-tractor',
   buyer: 'fas fa-shopping-cart',
+  seller: 'fas fa-store',
   expert: 'fas fa-graduation-cap',
   admin: 'fas fa-user-shield',
   support: 'fas fa-headset',
@@ -67,6 +77,8 @@ const [trendCrop, setTrendCrop] = useState('');
   const [articles, setArticles] = useState([]);
   const [notifications, setNotifications] = useState([]);
   const [auditLogs, setAuditLogs] = useState([]);
+
+  const [suppliers, setSuppliers] = useState([]);
 
   const [forecastData, setForecastData] = useState(null);
   const [loadingForecast, setLoadingForecast] = useState(false);
@@ -132,6 +144,16 @@ const [trendCrop, setTrendCrop] = useState('');
       setLoading(false);
     }
   }, [roleFilter, searchTerm]);
+
+  const loadSuppliers = useCallback(async () => {
+    try {
+      const res = await suppliersAPI.getAll();
+      setSuppliers(Array.isArray(res.data) ? res.data : []);
+    } catch (err) {
+      console.error('Error loading suppliers:', err);
+      showToast('Imeshindikana kupakia wauzaji', 'error');
+    }
+  }, []);
 
   const loadCrops = useCallback(async () => {
     try {
@@ -334,6 +356,10 @@ const [trendCrop, setTrendCrop] = useState('');
   }, [activeTab, loadLoans]);
 
   useEffect(() => {
+    if (activeTab === 'suppliers') loadSuppliers();
+  }, [activeTab, loadSuppliers]);
+
+  useEffect(() => {
     if (activeTab === 'groups') loadGroups();
   }, [activeTab, loadGroups]);
 
@@ -512,6 +538,27 @@ const [trendCrop, setTrendCrop] = useState('');
       await adminExtendedAPI.verifyUser(id, verify);
       showToast(verify ? 'Mtumiaji amethibitishwa' : 'Uthibitisho umeondolewa');
       loadUsers();
+    } catch (err) {
+      showToast(err.response?.data?.message || 'Hitilafu imetokea', 'error');
+    }
+  };
+
+  const handleVerifySupplier = async (id, verify) => {
+    try {
+      await suppliersAPI.verify(id, verify);
+      showToast(verify ? 'Wasifu umethibitishwa' : 'Uthibitisho umeondolewa');
+      loadSuppliers();
+    } catch (err) {
+      showToast(err.response?.data?.message || 'Hitilafu imetokea', 'error');
+    }
+  };
+
+  const handleDeleteSupplier = async (id) => {
+    if (!window.confirm('Una uhakika unataka kufuta wasifu huu wa muuzaji?')) return;
+    try {
+      await suppliersAPI.delete(id);
+      showToast('Wasifu wa muuzaji umefutwa');
+      loadSuppliers();
     } catch (err) {
       showToast(err.response?.data?.message || 'Hitilafu imetokea', 'error');
     }
@@ -761,6 +808,7 @@ const [trendCrop, setTrendCrop] = useState('');
           <option value="all">Watumiaji Wote</option>
           <option value="farmer">Wakulima</option>
           <option value="buyer">Wanunuzi</option>
+          <option value="seller">Wauzaji / Wasambazaji</option>
           <option value="expert">Wataalamu</option>
           <option value="admin">Admin</option>
           <option value="support">Support</option>
@@ -848,6 +896,7 @@ const [trendCrop, setTrendCrop] = useState('');
                       >
                         <option value="farmer">Mkulima</option>
                         <option value="buyer">Mnunuzi</option>
+                        <option value="seller">Muuzaji / Msambazaji</option>
                         <option value="expert">Mtaalamu</option>
                         <option value="admin">Admin</option>
                         {user.role === 'admin' && (
@@ -879,6 +928,83 @@ const [trendCrop, setTrendCrop] = useState('');
                       </button>
                       {user.role === 'admin' && (
                         <button className="btn btn-sm btn-danger" onClick={() => handleDeleteUser(u._id)} disabled={u._id === user?._id} title="Futa">
+                          <i className="fas fa-trash"></i>
+                        </button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+
+  const renderSuppliers = () => (
+    <div className="admin-section">
+      <div className="section-header">
+        <div>
+          <h3><i className="fas fa-store"></i> Wauzaji wa Pembejeo</h3>
+          <p>Dhibiti wasifu za masoko ya pembejeo zilizoundwa na wauzaji. (Tafadhali dhibiti kulingana na hali yako)</p>
+        </div>
+      </div>
+      {suppliers.length === 0 ? (
+        <div className="empty-state"><i className="fas fa-store"></i><h4>Hakuna wasifu za wauzaji bado</h4></div>
+      ) : (
+        <div className="users-table-container">
+          <table className="users-table">
+            <thead>
+              <tr>
+                <th>Duka</th>
+                <th>Aina</th>
+                <th>Eneo</th>
+                <th>Bidhaa</th>
+                <th>Uwasilishaji</th>
+                <th>Kiwango</th>
+                <th>Uthibitisho</th>
+                <th>Vitendo</th>
+              </tr>
+            </thead>
+            <tbody>
+              {suppliers.map((s) => (
+                <tr key={s._id}>
+                  <td>
+                    <div className="user-cell">
+                      <div className="user-avatar"><i className="fas fa-store"></i></div>
+                      <div className="user-meta">
+                        <strong>{s.name}</strong>
+                        <span>{s.email || s.contact || '—'}</span>
+                      </div>
+                    </div>
+                  </td>
+                  <td>{CATEGORY_LABELS[s.category] || s.category || '—'}</td>
+                  <td>{s.location || '—'}</td>
+                  <td>
+                    <div className="supplier-products">
+                      {(s.products || []).length ? s.products.slice(0, 4).map((p, i) => <span key={i}>{p}</span>) : '—'}
+                      {(s.products || []).length > 4 && <span className="supplier-more">+{(s.products || []).length - 4}</span>}
+                    </div>
+                  </td>
+                  <td>{s.delivery ? <span className="role-pill role-approved">Ndiyo</span> : 'Hapana'}</td>
+                  <td>{s.rating ? `${s.rating.toFixed(1)} ★` : '—'}</td>
+                  <td>
+                    <span className={`role-pill ${s.verified ? 'role-approved' : 'role-rejected'}`}>
+                      {s.verified ? 'Imethibitishwa' : 'Haijathibitishwa'}
+                    </span>
+                  </td>
+                  <td>
+                    <div className="user-actions">
+                      <button
+                        className={`btn btn-sm ${s.verified ? 'btn-outline' : 'btn-success'}`}
+                        onClick={() => handleVerifySupplier(s._id, !s.verified)}
+                        title={s.verified ? 'Ondoa uthibitisho' : 'Thibitisha wasifu'}
+                      >
+                        <i className="fas fa-check-double"></i>
+                      </button>
+                      {user.role === 'admin' && (
+                        <button className="btn btn-sm btn-danger" onClick={() => handleDeleteSupplier(s._id)} title="Futa">
                           <i className="fas fa-trash"></i>
                         </button>
                       )}
@@ -1293,6 +1419,7 @@ const [trendCrop, setTrendCrop] = useState('');
                 <option value="">Wafuasi Wote</option>
                 <option value="farmer">Wakulima</option>
                 <option value="buyer">Wanunuzi</option>
+                <option value="seller">Wauzaji / Wasambazaji</option>
                 <option value="expert">Wataalamu</option>
               </select>
             </div>
@@ -1869,6 +1996,7 @@ const [trendCrop, setTrendCrop] = useState('');
       {activeTab === 'products' && renderProducts()}
       {activeTab === 'market-prices' && renderMarketPrices()}
       {activeTab === 'loans' && renderLoans()}
+      {activeTab === 'suppliers' && renderSuppliers()}
       {activeTab === 'groups' && renderGroups()}
       {activeTab === 'advisory' && renderAdvisory()}
       {activeTab === 'news' && renderNews()}
@@ -1911,7 +2039,8 @@ const [trendCrop, setTrendCrop] = useState('');
                 <label>Jukumu *</label>
                 <select value={newUser.role} onChange={(e) => setNewUser({ ...newUser, role: e.target.value })}>
                   <option value="farmer">Mkulima</option>
-                  <option value="buyer">Mnunuzi / Muuzaji</option>
+                  <option value="buyer">Mnunuzi</option>
+                  <option value="seller">Muuzaji / Msambazaji</option>
                   <option value="expert">Mtaalamu / Extension</option>
                   <option value="admin">Admin</option>
                   <option value="support">Support</option>

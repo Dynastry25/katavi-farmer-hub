@@ -25,6 +25,7 @@ const Registration = lazy(() => import('./components/Auth/Registration'));
 const AdminDashboard = lazy(() => import('./components/Admin/AdminDashboard'));
 const FarmerDashboard = lazy(() => import('./components/Admin/FarmerDashboard'));
 const BuyerDashboard = lazy(() => import('./components/Admin/BuyerDashboard'));
+const SellerDashboard = lazy(() => import('./components/Admin/SellerDashboard'));
 const ExpertDashboard = lazy(() => import('./components/Admin/ExpertDashboard'));
 const AdminReports = lazy(() => import('./components/Admin/AdminReports'));
 const Profile = lazy(() => import('./components/Admin/Profile'));
@@ -63,6 +64,7 @@ function App() {
                   <Route path="/dashboard" element={<ProtectedRoute roles={['farmer']}><FarmerDashboard /></ProtectedRoute>} />
                   <Route path="/farmer-dashboard" element={<ProtectedRoute roles={['farmer']}><FarmerDashboard /></ProtectedRoute>} />
                   <Route path="/buyer-dashboard" element={<ProtectedRoute roles={['buyer']}><BuyerDashboard /></ProtectedRoute>} />
+                  <Route path="/seller-dashboard" element={<ProtectedRoute roles={['seller']}><SellerDashboard /></ProtectedRoute>} />
                   <Route path="/expert-dashboard" element={<ProtectedRoute roles={['expert']}><ExpertDashboard /></ProtectedRoute>} />
                   <Route path="/admin-dashboard" element={<ProtectedRoute roles={['admin', 'support', 'content_moderator', 'finance_officer']}><AdminDashboard /></ProtectedRoute>} />
                   <Route path="/admin-reports" element={<ProtectedRoute roles={['admin']}><AdminReports /></ProtectedRoute>} />

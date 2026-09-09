@@ -15,10 +15,11 @@ const PlatformSetting = require('../models/PlatformSetting');
 
 exports.getStats = async (req, res) => {
   try {
-    const [farmers, buyers, experts, admins, totalUsers, totalCrops, totalOrders, totalProducts, totalLoans, totalGroups, totalNotifications, totalRatings] =
+    const [farmers, buyers, sellers, experts, admins, totalUsers, totalCrops, totalOrders, totalProducts, totalLoans, totalGroups, totalNotifications, totalRatings] =
       await Promise.all([
         User.countDocuments({ role: 'farmer' }),
         User.countDocuments({ role: 'buyer' }),
+        User.countDocuments({ role: 'seller' }),
         User.countDocuments({ role: 'expert' }),
         User.countDocuments({ role: 'admin' }),
         User.countDocuments({}),
@@ -48,7 +49,7 @@ exports.getStats = async (req, res) => {
     const recentUsers = await User.find().select('-password').sort({ createdAt: -1 }).limit(6);
 
     res.json({
-      farmers, buyers, experts, admins, totalUsers,
+      farmers, buyers, sellers, experts, admins, totalUsers,
       totalCrops, totalOrders, totalProducts, totalLoans, totalGroups,
       totalNotifications, totalRatings,
       monthlyUsers, recentUsers,
@@ -100,7 +101,7 @@ exports.getUser = async (req, res) => {
 exports.updateUserRole = async (req, res) => {
   try {
     const { role } = req.body;
-    const validRoles = ['farmer', 'buyer', 'expert', 'admin', 'support', 'content_moderator', 'finance_officer'];
+    const validRoles = ['farmer', 'buyer', 'seller', 'expert', 'admin', 'support', 'content_moderator', 'finance_officer'];
     if (!validRoles.includes(role)) {
       return res.status(400).json({ message: 'Jukumu siyo sahihi' });
     }
@@ -196,7 +197,7 @@ exports.createUser = async (req, res) => {
       return res.status(400).json({ message: 'Barua pepe hii tayari imesajiliwa' });
     }
 
-    const validRoles = ['farmer', 'buyer', 'expert', 'admin', 'support', 'content_moderator', 'finance_officer'];
+    const validRoles = ['farmer', 'buyer', 'seller', 'expert', 'admin', 'support', 'content_moderator', 'finance_officer'];
     const userRole = validRoles.includes(role) ? role : 'farmer';
 
     const user = await User.create({

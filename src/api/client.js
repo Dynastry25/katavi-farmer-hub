@@ -54,9 +54,7 @@ export const cropsAPI = {
   create: (data) => api.post('/crops', data),
   update: (id, data) => api.put(`/crops/${id}`, data),
   delete: (id) => api.delete(`/crops/${id}`),
-  uploadImage: (id, formData) => api.post(`/crops/${id}/image`, formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  }),
+  uploadImage: (id, formData) => api.post(`/crops/${id}/image`, formData),
 };
 
 // Products API
@@ -71,8 +69,12 @@ export const productsAPI = {
 // Orders API
 export const ordersAPI = {
   getAll: () => api.get('/orders'),
+  getById: (id) => api.get(`/orders/${id}`),
   create: (data) => api.post('/orders', data),
   update: (id, data) => api.put(`/orders/${id}`, data),
+  approve: (id, data) => api.post(`/orders/${id}/approve`, data),
+  reject: (id) => api.post(`/orders/${id}/reject`),
+  requestRemainder: (id) => api.post(`/orders/${id}/remainder`),
   delete: (id) => api.delete(`/orders/${id}`),
 };
 
@@ -89,9 +91,11 @@ export const newsAPI = {
 // Suppliers API
 export const suppliersAPI = {
   getAll: (params) => api.get('/suppliers', { params }),
+  getMine: () => api.get('/suppliers/me'),
   create: (data) => api.post('/suppliers', data),
   update: (id, data) => api.put(`/suppliers/${id}`, data),
   delete: (id) => api.delete(`/suppliers/${id}`),
+  verify: (id, verified) => api.patch(`/suppliers/${id}/verify`, { verified }),
 };
 
 // Loans API
@@ -144,12 +148,8 @@ export const videosAPI = {
 
 // Upload API
 export const uploadAPI = {
-  upload: (formData) => api.post('/upload', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  }),
-  uploadMultiple: (formData) => api.post('/upload/multiple', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  }),
+  upload: (formData) => api.post('/upload', formData),
+  uploadMultiple: (formData) => api.post('/upload/multiple', formData),
 };
 
 // Ratings API

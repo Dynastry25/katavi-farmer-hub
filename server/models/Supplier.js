@@ -11,6 +11,7 @@ const supplierSchema = new mongoose.Schema({
   description: { type: String, default: '' },
   delivery: { type: Boolean, default: false },
   verified: { type: Boolean, default: false },
+  owner: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
 }, { timestamps: true });
 
 module.exports = mongoose.model('Supplier', supplierSchema);

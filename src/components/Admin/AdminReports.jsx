@@ -12,7 +12,8 @@ import './AdminDashboard.css';
 
 const ROLE_LABELS = {
   farmer: 'Mkulima',
-  buyer: 'Mnunuzi / Muuzaji',
+  buyer: 'Mnunuzi',
+  seller: 'Muuzaji / Msambazaji',
   expert: 'Mtaalamu / Extension',
   admin: 'Admin'
 };
@@ -20,6 +21,7 @@ const ROLE_LABELS = {
 const ROLE_ICONS = {
   farmer: 'fas fa-tractor',
   buyer: 'fas fa-shopping-cart',
+  seller: 'fas fa-store',
   expert: 'fas fa-graduation-cap',
   admin: 'fas fa-user-shield'
 };
@@ -74,6 +76,7 @@ const AdminReports = () => {
   const roleData = [
     { name: 'Wakulima', value: stats?.farmers ?? 0, color: '#1a7431' },
     { name: 'Wanunuzi', value: stats?.buyers ?? 0, color: '#3b82f6' },
+    { name: 'Wauzaji', value: stats?.sellers ?? 0, color: '#8b5cf6' },
     { name: 'Wataalamu', value: stats?.experts ?? 0, color: '#f59e0b' },
     { name: 'Admin', value: stats?.admins ?? 0, color: '#dc2626' },
   ].filter(d => d.value > 0);

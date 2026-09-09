@@ -111,6 +111,19 @@ const seedDB = async () => {
         district: 'Mpanda',
         ward: 'Mpanda Mjini',
       },
+      {
+        name: 'Neema Paul',
+        email: 'neema@example.com',
+        phone: '+255 789 555 999',
+        password: 'password123',
+        role: 'seller',
+        location: 'Mpanda',
+        district: 'Mpanda',
+        ward: 'Mpanda Mjini',
+        businessType: 'Duka la Pembejeo',
+        businessLocation: 'Mpanda',
+        rating: 4.5,
+      },
     ]);
 
     console.log(`Watumiaji ${users.length} wameundwa`);
@@ -290,6 +303,19 @@ const seedDB = async () => {
         description: 'Vifaa vyote vya kilimo kwa bei nafuu',
         delivery: true,
         verified: true,
+      },
+      {
+        name: 'Neema Pembejeo',
+        category: 'seeds',
+        location: 'Mpanda',
+        rating: 4.5,
+        products: ['Mbegu za Mahindi', 'Mbolea DAP', 'Mbolea UREA'],
+        contact: '+255 789 555 999',
+        email: 'neema@example.com',
+        description: 'Pembejeo za uhakika kwa wakulima wa Katavi',
+        delivery: true,
+        verified: false,
+        owner: users[4]._id,
       },
     ]);
 
@@ -667,6 +693,7 @@ const seedDB = async () => {
     console.log('\nAkaunti za majaribio:');
     console.log('  Farmer: juma@example.com / password123');
     console.log('  Buyer:  asha@example.com / password123');
+    console.log('  Seller: neema@example.com / password123');
     console.log('  Expert: mohamed@example.com / password123');
     console.log('  Admin:  admin@katavi.co.tz / Admin@1234');
     

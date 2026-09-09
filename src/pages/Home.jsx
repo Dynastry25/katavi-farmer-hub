@@ -2,6 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import Hero from '../components/Hero/Hero';
 import Features from '../components/Features/Features';
+import SupplierHighlights from '../components/SupplierHighlights/SupplierHighlights';
 import MarketPreview from '../components/MarketPreview/MarketPreview';
 import WeatherWidget from '../components/WeatherWidget/WeatherWidget';
 import ExpertSection from '../components/ExpertSection/ExpertSection';
@@ -27,6 +28,7 @@ const Home = () => {
     <div className="min-h-screen bg-background">
       <Hero onAuth={handleAuth} />
       <Features onPageChange={handlePageChange} />
+      <SupplierHighlights />
       <Overview onPageChange={handlePageChange} />
       <MarketPreview onPageChange={handlePageChange} />
       <WeatherWidget onPageChange={handlePageChange} />

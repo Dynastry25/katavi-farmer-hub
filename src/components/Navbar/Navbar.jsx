@@ -1,22 +1,24 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useLang } from '../../shared/context/LangContext';
+import { useAuth } from '../../shared/context/AuthContext';
 import './Navbar.css';
 
-const Navbar = ({ currentPage, onPageChange, onAuth, user, canGoBack, onGoBack }) => {
+const Navbar = ({ currentPage, onPageChange, onAuth, user: propUser, canGoBack, onGoBack }) => {
   const { t, lang, toggleLang } = useLang();
+  const { user: ctxUser, logout: ctxLogout, loading: authLoading } = useAuth();
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [localUser, setLocalUser] = useState(user);
+  const [localUser, setLocalUser] = useState(propUser || ctxUser);
   const location = useLocation();
   const navigate = useNavigate();
   const searchRef = useRef(null);
   const profileRef = useRef(null);
 
-  useEffect(() => { setLocalUser(user); }, [user]);
+  useEffect(() => { setLocalUser(propUser || ctxUser); }, [propUser, ctxUser]);
 
   useEffect(() => {
     const onScroll = () => setIsScrolled(window.scrollY > 20);
@@ -51,7 +53,7 @@ const Navbar = ({ currentPage, onPageChange, onAuth, user, canGoBack, onGoBack }
     { id: 'contact', label: t('contact'), icon: 'fas fa-envelope', path: '/contact' },
   ];
 
-  const dashboardPaths = { farmer: '/farmer-dashboard', buyer: '/buyer-dashboard', expert: '/expert-dashboard' };
+  const dashboardPaths = { farmer: '/farmer-dashboard', buyer: '/buyer-dashboard', seller: '/seller-dashboard', expert: '/expert-dashboard' };
 
   const isLoggedIn = !!localUser;
   const getInitials = (name) => name ? name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) : 'U';
@@ -68,11 +70,10 @@ const Navbar = ({ currentPage, onPageChange, onAuth, user, canGoBack, onGoBack }
 
   const performLogout = () => {
     if (onAuth) onAuth('logout');
+    if (ctxLogout) ctxLogout();
     setLocalUser(null);
     setIsProfileOpen(false);
     navigate('/', { replace: true });
-    localStorage.removeItem('kataviToken');
-    localStorage.removeItem('kataviUser');
   };
 
   const isActive = (id) => currentPage === id || location.pathname === navLinks.find(l => l.id === id)?.path;
@@ -81,7 +82,7 @@ const Navbar = ({ currentPage, onPageChange, onAuth, user, canGoBack, onGoBack }
     <nav className={`navbar ${isScrolled ? 'scrolled' : ''}`}>
       <div className="navbar-inner">
         {/* Logo */}
-        <Link className="navbar-brand" to="/" onClick={() => onPageChange('home')}>
+        <Link className="navbar-brand" to="/" onClick={() => onPageChange?.('home')}>
           <div className="brand-icon">
             <i className="fas fa-seedling"></i>
           </div>
@@ -98,7 +99,7 @@ const Navbar = ({ currentPage, onPageChange, onAuth, user, canGoBack, onGoBack }
               key={link.id}
               className={`nav-link ${isActive(link.id) ? 'active' : ''}`}
               to={link.path}
-              onClick={() => onPageChange(link.id)}
+              onClick={() => onPageChange?.(link.id)}
             >
               {link.label}
             </Link>
@@ -146,18 +147,22 @@ const Navbar = ({ currentPage, onPageChange, onAuth, user, canGoBack, onGoBack }
           </div>
 
           {/* Auth */}
-          {isLoggedIn ? (
+          {authLoading ? (
+            <div className="auth-loading" aria-hidden="true"></div>
+          ) : isLoggedIn ? (
             <div className="profile-wrapper" ref={profileRef}>
               <button
                 className="profile-trigger"
                 onClick={() => setIsProfileOpen(!isProfileOpen)}
                 aria-label="Profaili"
+                title={localUser.name || 'Mtumiaji'}
               >
                 {localUser.profilePicture ? (
                   <img src={localUser.profilePicture} alt={localUser.name} className="profile-img" />
                 ) : (
                   <div className="profile-initials">{getInitials(localUser.name)}</div>
                 )}
+                <span className="profile-online-dot" title="Umeingia"></span>
               </button>
 
               {isProfileOpen && (
@@ -198,8 +203,8 @@ const Navbar = ({ currentPage, onPageChange, onAuth, user, canGoBack, onGoBack }
             </div>
           ) : (
             <div className="auth-buttons">
-              <Link className="btn-ghost" to="/login" onClick={() => onAuth('login')}>Ingia</Link>
-              <Link className="btn-filled" to="/register" onClick={() => onAuth('register')}>Jisajili</Link>
+              <Link className="btn-ghost" to="/login" onClick={() => onAuth?.('login')}>Ingia</Link>
+              <Link className="btn-filled" to="/register" onClick={() => onAuth?.('register')}>Jisajili</Link>
             </div>
           )}
 
@@ -249,7 +254,7 @@ const Navbar = ({ currentPage, onPageChange, onAuth, user, canGoBack, onGoBack }
                 key={link.id}
                 className={`mobile-link ${isActive(link.id) ? 'active' : ''}`}
                 to={link.path}
-                onClick={() => { onPageChange(link.id); setIsMobileOpen(false); }}
+                onClick={() => { onPageChange?.(link.id); setIsMobileOpen(false); }}
               >
                 <i className={link.icon}></i>
                 <span>{link.label}</span>
@@ -275,10 +280,10 @@ const Navbar = ({ currentPage, onPageChange, onAuth, user, canGoBack, onGoBack }
           {/* Mobile Auth */}
           {!isLoggedIn ? (
             <div className="mobile-auth">
-              <Link className="btn-filled full-width" to="/login" onClick={() => { onAuth('login'); setIsMobileOpen(false); }}>
+              <Link className="btn-filled full-width" to="/login" onClick={() => { onAuth?.('login'); setIsMobileOpen(false); }}>
                 <i className="fas fa-sign-in-alt"></i> Ingia
               </Link>
-              <Link className="btn-ghost full-width" to="/register" onClick={() => { onAuth('register'); setIsMobileOpen(false); }}>
+              <Link className="btn-ghost full-width" to="/register" onClick={() => { onAuth?.('register'); setIsMobileOpen(false); }}>
                 <i className="fas fa-user-plus"></i> Jisajili
               </Link>
             </div>

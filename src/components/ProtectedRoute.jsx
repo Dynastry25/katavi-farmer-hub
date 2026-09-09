@@ -6,6 +6,7 @@ import Loading from './Loading/Loading';
 const ROLE_HOMES = {
   farmer: '/farmer-dashboard',
   buyer: '/buyer-dashboard',
+  seller: '/seller-dashboard',
   expert: '/expert-dashboard',
   admin: '/admin-dashboard',
   support: '/admin-dashboard',

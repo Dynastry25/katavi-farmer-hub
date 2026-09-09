@@ -8,7 +8,8 @@ import { authAPI } from '../../api/client';
 
 const ROLE_LABELS = {
   farmer: 'Mkulima',
-  buyer: 'Mnunuzi / Muuzaji',
+  buyer: 'Mnunuzi',
+  seller: 'Muuzaji / Msambazaji',
   expert: 'Mtaalamu / Extension',
   admin: 'Admin'
 };
@@ -16,6 +17,7 @@ const ROLE_LABELS = {
 const ROLE_ICONS = {
   farmer: 'fas fa-tractor',
   buyer: 'fas fa-shopping-cart',
+  seller: 'fas fa-store',
   expert: 'fas fa-graduation-cap',
   admin: 'fas fa-user-shield'
 };

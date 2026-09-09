@@ -6,7 +6,7 @@ const userSchema = new mongoose.Schema({
   email: { type: String, required: [true, 'Barua pepe inahitajika'], unique: true, lowercase: true, trim: true },
   phone: { type: String, required: [true, 'Namba ya simu inahitajika'], trim: true },
   password: { type: String, required: [true, 'Nenosiri linahitajika'], minlength: 6 },
-  role: { type: String, enum: ['farmer', 'buyer', 'expert', 'admin', 'support', 'content_moderator', 'finance_officer'], default: 'farmer' },
+  role: { type: String, enum: ['farmer', 'buyer', 'seller', 'expert', 'admin', 'support', 'content_moderator', 'finance_officer'], default: 'farmer' },
   isActive: { type: Boolean, default: true },
   isVerified: { type: Boolean, default: false },
   profilePicture: { type: String, default: '' },

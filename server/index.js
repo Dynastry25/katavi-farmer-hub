@@ -7,6 +7,7 @@ const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
 const http = require('http');
 const { Server } = require('socket.io');
+const cron = require('node-cron');
 const connectDB = require('./config/db');
 
 dotenv.config();
@@ -159,6 +160,18 @@ app.use((err, req, res, next) => {
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
   console.log(`Server inafanya kazi kwenye port ${PORT}`);
+});
+
+// Auto-expiry job: mark pending orders past their expiresAt as 'expired' and
+// release their stock reservations. Runs every hour.
+const ordersRouter = require('./routes/orders');
+cron.schedule('0 * * * *', async () => {
+  try {
+    const released = await ordersRouter.expirePendingOrders();
+    if (released > 0) console.log(`[cron] Expired ${released} order(s) and released their stock reservations`);
+  } catch (err) {
+    console.error('[cron] Auto-expiry job error:', err);
+  }
 });
 
 process.on('SIGTERM', () => {

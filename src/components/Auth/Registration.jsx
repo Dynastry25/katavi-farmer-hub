@@ -7,6 +7,7 @@ import './Registration.css';
 const Registration = () => {
   const { loginWithUser } = useAuth();
   const [step, setStep] = useState(1);
+  const [termsAccepted, setTermsAccepted] = useState(false);
   const [userType, setUserType] = useState('');
   const [formData, setFormData] = useState({
     fullName: '',
@@ -46,6 +47,13 @@ const Registration = () => {
       icon: 'fas fa-shopping-cart',
       description: 'Ninanunua mazao kwa ajili ya biashara',
       dashboardPath: '/buyer-dashboard'
+    },
+    {
+      value: 'seller',
+      label: 'Muuzaji / Msambazaji',
+      icon: 'fas fa-store',
+      description: 'Ninauza mbolea, mbegu na vifaa vya pembejeo',
+      dashboardPath: '/seller-dashboard'
     },
     {
       value: 'expert',
@@ -132,13 +140,22 @@ const Registration = () => {
       }
       if (!formData.password) {
         newErrors.password = 'Nenosiri linahitajika';
-      } else if (formData.password.length < 6) {
-        newErrors.password = 'Nenosiri lazima liwe na herufi 6 au zaidi';
+      } else if (formData.password.length < 8) {
+        newErrors.password = 'Nenosiri lazima liwe na herufi 8 au zaidi';
       }
       if (!formData.confirmPassword) {
         newErrors.confirmPassword = 'Thibitisha nenosiri linahitajika';
       } else if (formData.password !== formData.confirmPassword) {
         newErrors.confirmPassword = 'Nenosiri na uthibitisho wa nenosiri hazifanani';
+      }
+
+      if (userType === 'expert') {
+        if (!formData.expertise) {
+          newErrors.expertise = 'Eneo la utaalamu linahitajika';
+        }
+        if (!formData.experience && formData.experience !== '0') {
+          newErrors.experience = 'Uzoefu unahitajika';
+        }
       }
     }
 
@@ -151,6 +168,9 @@ const Registration = () => {
       }
       if (!formData.village) {
         newErrors.village = 'Kijiji kinahitajika';
+      }
+      if (!termsAccepted) {
+        newErrors.terms = 'Lazima ukubali Sheria na Masharti';
       }
     }
 
@@ -264,6 +284,14 @@ const Registration = () => {
                   <li>⫸ Wasiliana na wakulima moja kwa moja</li>
                   <li>⫸ Pata mazao kwa kiwango kikubwa</li>
                   <li>⫸ Angalia ubora wa mazao</li>
+                </ul>
+              )}
+              {type.value === 'seller' && (
+                <ul>
+                  <li>⫸ Ongeza mbolea, mbegu na vifaa unavyouza</li>
+                  <li>⫸ Bidhaa zako zinaonekana kwa wakulima wote</li>
+                  <li>⫸ Wasiliana na wateja moja kwa moja</li>
+                  <li>⫸ Jenga sifa kama msambazaji wa uhakika</li>
                 </ul>
               )}
               {type.value === 'expert' && (
@@ -494,6 +522,54 @@ const Registration = () => {
         </div>
       )}
 
+      {userType === 'seller' && (
+        <div className="user-specific-fields">
+          <h3>🏪 Taarifa za Duka la Pembejeo</h3>
+          <div className="form-grid">
+            <div className="form-group">
+              <label htmlFor="businessType">Aina ya Biashara</label>
+              <select
+                id="businessType"
+                name="businessType"
+                value={formData.businessType}
+                onChange={handleInputChange}
+                className="form-control"
+                disabled={isLoading}
+              >
+                <option value="">Chagua aina ya biashara</option>
+                {businessTypes.map(type => (
+                  <option key={type} value={type}>{type}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="businessLocation">Eneo la Duka</label>
+              <input
+                type="text"
+                id="businessLocation"
+                name="businessLocation"
+                value={formData.businessLocation}
+                onChange={handleInputChange}
+                className="form-control"
+                placeholder="Mji, Mtaa, Jina la duka"
+                disabled={isLoading}
+              />
+            </div>
+          </div>
+
+          <div className="seller-benefits">
+            <h4><i className="fas fa-check-circle" style={{color:'#16a34a'}}></i> Faida za Kujiandikisha kama Muuzaji / Msambazaji wa Pembejeo:</h4>
+            <ul>
+              <li>Orodhesha mbolea, mbegu, dawa na vifaa unavyouza</li>
+              <li>Wakulima wa Katavi wataona bidhaa zako kwenye ukurasa wa Wauzaji</li>
+              <li>Wasiliana na wakulima kwa urahisi kupitia simu/ujumbe</li>
+              <li>Jenga sifa ya uhakika kwa wateja wako</li>
+            </ul>
+          </div>
+        </div>
+      )}
+
       {userType === 'expert' && (
         <div className="user-specific-fields">
           <h3>🎓 Taarifa za Utaalamu</h3>
@@ -514,6 +590,7 @@ const Registration = () => {
                   <option key={area} value={area}>{area}</option>
                 ))}
               </select>
+              {errors.expertise && <div className="error-message">{errors.expertise}</div>}
             </div>
 
             <div className="form-group">
@@ -530,6 +607,7 @@ const Registration = () => {
                 required
                 disabled={isLoading}
               />
+              {errors.experience && <div className="error-message">{errors.experience}</div>}
             </div>
           </div>
           
@@ -672,6 +750,7 @@ const Registration = () => {
             <span className={`user-type-badge ${userType}`}>
               {userType === 'farmer' && <><i className="fas fa-user"></i> Mkulima</>}
               {userType === 'buyer' && '🛒 Mnunuzi'}
+              {userType === 'seller' && '🏪 Muuzaji / Msambazaji'}
               {userType === 'expert' && '🎓 Mtaalamu'}
             </span>
           </div>
@@ -707,6 +786,17 @@ const Registration = () => {
             </>
           )}
           
+          {userType === 'seller' && (
+            <>
+              <div className="summary-item">
+                <strong>Aina ya Biashara:</strong> {formData.businessType || 'Haijajazwa'}
+              </div>
+              <div className="summary-item">
+                <strong>Eneo la Duka:</strong> {formData.businessLocation || 'Haijajazwa'}
+              </div>
+            </>
+          )}
+          
           {userType === 'expert' && (
             <>
               <div className="summary-item">
@@ -725,7 +815,12 @@ const Registration = () => {
         <label className="terms-checkbox">
           <input 
             type="checkbox" 
-            required 
+            name="terms"
+            checked={termsAccepted}
+            onChange={(e) => {
+              setTermsAccepted(e.target.checked);
+              setErrors(prev => ({ ...prev, terms: '' }));
+            }}
             disabled={isLoading}
           />
           <span className="checkmark"></span>
@@ -734,6 +829,7 @@ const Registration = () => {
             Naelewa kuwa taarifa zangu zitatumika kwa madhumuni ya kuwezesha biashara na mawasiliano kwenye jukwaa.
           </div>
         </label>
+        {errors.terms && <div className="error-message">{errors.terms}</div>}
       </div>
 
       <div className="step-actions">
@@ -805,7 +901,7 @@ const Registration = () => {
             )}
 
             {/* Registration Form */}
-            <form onSubmit={handleSubmit} className="registration-form">
+            <form onSubmit={handleSubmit} noValidate className="registration-form">
               {step === 1 && renderStep1()}
               {step === 2 && renderStep2()}
               {step === 3 && renderStep3()}

@@ -5,7 +5,7 @@ const cropSchema = new mongoose.Schema({
   category: { type: String, required: true, enum: ['cereals', 'legumes', 'vegetables', 'fruits', 'tubers', 'oilseeds'] },
   price: { type: Number, required: true },
   quantity: { type: String, required: true },
-  unit: { type: String, default: 'kg' },
+  unit: { type: String, enum: ['kg', 'gunia', 'debe', 'tani'], default: 'kg' },
   location: { type: String, required: true },
   farmer: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   farmerName: { type: String, required: true },
@@ -14,7 +14,9 @@ const cropSchema = new mongoose.Schema({
   fallback: { type: String, default: '🌾' },
   rating: { type: Number, default: 4.0 },
   reviews: { type: Number, default: 0 },
-  status: { type: String, enum: ['available', 'sold', 'reserved', 'rejected'], default: 'available' },
+  stockQuantity: { type: Number, required: true, min: 0, default: 0 },
+  reservedQuantity: { type: Number, default: 0 },
+  status: { type: String, enum: ['available', 'sold', 'reserved', 'rejected', 'low_stock', 'out_of_stock'], default: 'available' },
   harvestDate: { type: String, default: '' },
 }, { timestamps: true });
 

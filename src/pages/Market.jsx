@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { cropsAPI } from '../api/client';
+import { cropsAPI, ordersAPI } from '../api/client';
 import Loading from '../components/Loading/Loading';
 import './CSS/Market.css';
 import Mpunga from '../components/assets/mpunga.jpeg';
@@ -25,6 +25,15 @@ const categoryMeta = {
 
 const getCat = (cat) => categoryMeta[cat] || { label: 'Zao', icon: 'fas fa-wheat-awn', photo: Mahindi };
 
+const getFarmerName = (c) => c.farmerName || (typeof c.farmer === 'string' && !/^[0-9a-f]{24}$/i.test(c.farmer) ? c.farmer : null) || 'Muuzaji';
+
+const availableOf = (c) => {
+  if (c.availableQuantity != null) return Math.max(0, Number(c.availableQuantity));
+  const stock = c.stockQuantity ?? (Number(String(c.quantity || '').replace(/[^0-9.]/g, '')) || 0);
+  const reserved = Number(c.reservedQuantity) || 0;
+  return Math.max(0, Number(stock) - reserved);
+};
+
 const Market = ({ crops, onContactFarmer, onCropDetails }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
@@ -33,6 +42,12 @@ const Market = ({ crops, onContactFarmer, onCropDetails }) => {
   const [imageErrors, setImageErrors] = useState({});
   const [loading, setLoading] = useState(true);
   const [apiCrops, setApiCrops] = useState([]);
+  const [selectedCrop, setSelectedCrop] = useState(null);
+  const [showDetails, setShowDetails] = useState(false);
+  const [showOrder, setShowOrder] = useState(false);
+  const [showContact, setShowContact] = useState(false);
+  const [orderQty, setOrderQty] = useState('');
+  const [placing, setPlacing] = useState(false);
 
   useEffect(() => {
     const fetchCrops = async () => {
@@ -149,7 +164,7 @@ const Market = ({ crops, onContactFarmer, onCropDetails }) => {
       const matchesSearch = searchTerm === '' || 
         crop.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         crop.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        crop.farmer.toLowerCase().includes(searchTerm.toLowerCase());
+        getFarmerName(crop).toLowerCase().includes(searchTerm.toLowerCase());
       
       const matchesCategory = selectedCategory === 'all' || crop.category === selectedCategory;
       const matchesLocation = selectedLocation === 'all' || crop.location === selectedLocation;
@@ -184,6 +199,62 @@ const Market = ({ crops, onContactFarmer, onCropDetails }) => {
     setSelectedCategory('all');
     setSelectedLocation('all');
     setSortBy('newest');
+  };
+
+  const openDetails = (crop) => {
+    setSelectedCrop(crop);
+    setShowDetails(true);
+  };
+
+  const closeDetails = () => {
+    setShowDetails(false);
+    setSelectedCrop(null);
+  };
+
+  const openOrder = (crop) => {
+    setSelectedCrop(crop);
+    setOrderQty('');
+    setShowOrder(true);
+  };
+
+  const closeOrder = () => {
+    setShowOrder(false);
+    setShowContact(false);
+    setSelectedCrop(null);
+    setOrderQty('');
+  };
+
+  const placeOrder = async (e) => {
+    e.preventDefault();
+    if (!selectedCrop || !orderQty) return;
+    setPlacing(true);
+    try {
+      await ordersAPI.create({
+        crop: selectedCrop.id,
+        cropName: selectedCrop.name,
+        farmer: selectedCrop.farmer && !/^[0-9a-f]{24}$/i.test(selectedCrop.farmer) ? selectedCrop.farmer : undefined,
+        farmerName: getFarmerName(selectedCrop),
+        requestedQuantity: Number(orderQty),
+        price: String(selectedCrop.price),
+        unit: selectedCrop.unit || 'kg',
+        deliveryDate: '',
+      });
+      alert(`Agizo lako la ${selectedCrop.name} (${orderQty} ${selectedCrop.unit || 'kg'}) limetumwa kwa ${getFarmerName(selectedCrop)}. Mmiliki atakupigia simu kukuhusu.`);
+      closeOrder();
+    } catch (err) {
+      console.error('Place order error:', err);
+      const status = err.response?.status;
+      const serverMsg = err.response?.data?.message;
+      if (status === 401 || status === 403) {
+        alert('Unahitaji kuingia kwenye mfumo kabla ya kuweka oda.');
+      } else if (serverMsg) {
+        alert(serverMsg);
+      } else {
+        alert('Hitilafu imetokea wakati wa kuweka oda. Jaribu tena au kuwasiliana na huduma kwa wateja.');
+      }
+    } finally {
+      setPlacing(false);
+    }
   };
 
   return (
@@ -303,7 +374,7 @@ const Market = ({ crops, onContactFarmer, onCropDetails }) => {
                       )}
                       <div className="crop-badge">{cat.icon ? <i className={cat.icon}></i> : cat.emoji} {cat.label}</div>
                       <div className="crop-stock">
-                        {crop.quantity ? `${crop.quantity} ${crop.unit}` : 'Ipo'}
+                        {availableOf(crop) > 0 ? `${availableOf(crop)} ${crop.unit || 'kg'} inapatikana` : 'Imeisha'}
                       </div>
                     </div>
                     
@@ -322,10 +393,12 @@ const Market = ({ crops, onContactFarmer, onCropDetails }) => {
                       </div>
 
                       <div className="crop-farmer">
-                        <div className="farmer-avatar"></div>
+                        <div className="farmer-avatar">
+                          <i className="fas fa-user"></i>
+                        </div>
                         <div className="farmer-info">
                           <span className="farmer-label">Muuzaji</span>
-                          <span className="farmer-name">{crop.farmer}</span>
+                          <span className="farmer-name">{getFarmerName(crop)}</span>
                         </div>
                       </div>
 
@@ -345,16 +418,23 @@ const Market = ({ crops, onContactFarmer, onCropDetails }) => {
 
                       <div className="crop-actions">
                         <button 
-                          className="btn-contact"
-                          onClick={() => onContactFarmer && onContactFarmer(crop)}
+                          className="btn-details"
+                          onClick={() => openDetails(crop)}
                         >
-                          Wasiliana
+                          <i className="fas fa-info-circle"></i> Maelezo
                         </button>
                         <button 
-                          className="btn-details"
-                          onClick={() => onCropDetails && onCropDetails(crop)}
+                          className="btn-contact"
+                          onClick={() => { setSelectedCrop(crop); setShowContact(true); }}
                         >
-                          Maelezo
+                          <i className="fas fa-phone"></i> Wasiliana
+                        </button>
+                        <button 
+                          className="btn-order"
+                          disabled={availableOf(crop) <= 0}
+                          onClick={() => openOrder(crop)}
+                        >
+                          <i className="fas fa-cart-plus"></i> {availableOf(crop) > 0 ? 'Agiza' : 'Imeisha'}
                         </button>
                       </div>
                     </div>
@@ -404,6 +484,124 @@ const Market = ({ crops, onContactFarmer, onCropDetails }) => {
           </div>
         </div>
       </div>
+
+      {/* Details Modal */}
+      {showDetails && selectedCrop && (
+        <div className="market-modal-overlay" onClick={closeDetails}>
+          <div className="market-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="market-modal-header">
+              <h3>Maelezo ya {selectedCrop.name}</h3>
+              <button className="market-modal-close" onClick={closeDetails}>
+                <i className="fas fa-times"></i>
+              </button>
+            </div>
+            <div className="market-modal-body">
+              <div className="detail-hero">
+                {(() => {
+                  const cat = getCat(selectedCrop.category);
+                  return <img src={selectedCrop.image || cat.photo} alt={selectedCrop.name} />;
+                })()}
+              </div>
+              <div className="detail-grid">
+                <div><strong>Jina:</strong> {selectedCrop.name}</div>
+                <div><strong>Aina:</strong> {getCat(selectedCrop.category).label}</div>
+                <div><strong>Bei:</strong> TZS {Number(selectedCrop.price).toLocaleString()}/{selectedCrop.unit || 'kg'}</div>
+                <div><strong>Kiasi:</strong> {availableOf(selectedCrop)} {selectedCrop.unit || 'kg'}</div>
+                <div><strong>Eneo:</strong> {selectedCrop.location}</div>
+                <div><strong>Muuzaji:</strong> {getFarmerName(selectedCrop)}</div>
+              </div>
+              <p className="detail-desc"><strong>Maelezo:</strong> {selectedCrop.description}</p>
+              <div className="market-modal-actions">
+                <button className="btn-close-modal" onClick={closeDetails}>Funga</button>
+                <button className="btn-order" onClick={() => { setShowDetails(false); openOrder(selectedCrop); }}>
+                  <i className="fas fa-cart-plus"></i> Agiza
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Contact Modal */}
+      {showContact && selectedCrop && (
+        <div className="market-modal-overlay" onClick={closeOrder}>
+          <div className="market-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="market-modal-header">
+              <h3>Wasiliana na {getFarmerName(selectedCrop)}</h3>
+              <button className="market-modal-close" onClick={closeOrder}>
+                <i className="fas fa-times"></i>
+              </button>
+            </div>
+            <div className="market-modal-body">
+              <p className="contact-note">
+                Unaweza kuwasiliana na muuzaji {getFarmerName(selectedCrop)} kuhusu "{selectedCrop.name}".
+                Weka oda yako hapa na atakupigia simu.
+              </p>
+              <div className="farmer-contact-info">
+                <div><i className="fas fa-user"></i> {getFarmerName(selectedCrop)}</div>
+                <div><i className="fas fa-map-marker-alt"></i> {selectedCrop.location}</div>
+                <div><i className="fas fa-box"></i> {availableOf(selectedCrop)} {selectedCrop.unit || 'kg'} inapatikana</div>
+              </div>
+              <div className="market-modal-actions">
+                <button className="btn-close-modal" onClick={closeOrder}>Funga</button>
+                <button className="btn-order" onClick={() => { setShowContact(false); openOrder(selectedCrop); }}>
+                  <i className="fas fa-cart-plus"></i> Weka Oda
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Order Modal */}
+      {showOrder && selectedCrop && (
+        <div className="market-modal-overlay" onClick={closeOrder}>
+          <div className="market-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="market-modal-header">
+              <h3>Weka Oda - {selectedCrop.name}</h3>
+              <button className="market-modal-close" onClick={closeOrder}>
+                <i className="fas fa-times"></i>
+              </button>
+            </div>
+            <form onSubmit={placeOrder}>
+              <div className="market-modal-body">
+                <p className="contact-note">
+                  Kuweka oda kwa {selectedCrop.name} kutoka kwa {getFarmerName(selectedCrop)}.
+                </p>
+                <div className="order-summary">
+                  <div><span>Muuzaji:</span><strong>{getFarmerName(selectedCrop)}</strong></div>
+                  <div><span>Bei:</span><strong>TZS {Number(selectedCrop.price).toLocaleString()}/{selectedCrop.unit || 'kg'}</strong></div>
+                  <div><span>Kinachopatikana:</span><strong>{availableOf(selectedCrop)} {selectedCrop.unit || 'kg'}</strong></div>
+                </div>
+                <div className="order-qty-field">
+                  <label>Kiasi Unachohitaji ({selectedCrop.unit || 'kg'}) *</label>
+                  <input
+                    type="number"
+                    min="1"
+                    max={availableOf(selectedCrop) || undefined}
+                    required
+                    value={orderQty}
+                    onChange={(e) => setOrderQty(e.target.value)}
+                    placeholder={`Kiasi (kg)`}
+                  />
+                </div>
+                {orderQty > 0 && (
+                  <div className="order-total">
+                    Jumla: <strong>TZS {Number(selectedCrop.price * Number(orderQty)).toLocaleString()}</strong>
+                  </div>
+                )}
+              </div>
+              <div className="market-modal-actions">
+                <button type="button" className="btn-close-modal" onClick={closeOrder}>Ghairi</button>
+                <button type="submit" className="btn-order" disabled={!!placing}>
+                  <i className={`fas ${placing ? 'fa-spinner fa-spin' : 'fa-paper-plane'}`}></i>
+                  {placing ? ' Inaweka...' : ' Tumia Oda'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
     </div>
   );
