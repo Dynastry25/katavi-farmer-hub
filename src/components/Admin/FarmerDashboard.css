@@ -1518,3 +1518,22 @@
   .ai-result { flex-direction: column; }
   .ai-result img { width: 100%; height: auto; max-height: 220px; }
 }
+
+/* Price-limit hint in crop modal */
+.price-limit-hint {
+  margin-top: 6px;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: var(--text-secondary, #6c757d);
+  background: var(--background, #f8f9fa);
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: var(--radius-sm, 8px);
+  padding: 8px 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  align-items: flex-start;
+}
+.price-limit-hint i { color: var(--info, #17a2b8); margin-right: 6px; margin-top: 2px; }
+.price-limit-hint .limit-warn { color: var(--danger, #dc3545); font-weight: 600; }
+.price-limit-hint .limit-ok   { color: var(--success, #28a745); font-weight: 600; }

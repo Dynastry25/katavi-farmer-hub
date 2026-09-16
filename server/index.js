@@ -139,6 +139,7 @@ app.use('/api/v1/analytics', require('./routes/analytics'));
 app.use('/api/v1/settings', require('./routes/settings'));
 app.use('/api/v1/input-products', require('./routes/inputProducts'));
 app.use('/api/v1/input-orders', require('./routes/inputOrders'));
+app.use('/api/v1/price-limits', require('./routes/priceLimits'));
 
 // Health check
 app.get('/api/v1/health', (req, res) => {

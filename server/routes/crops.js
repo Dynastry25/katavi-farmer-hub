@@ -16,6 +16,16 @@ const uploadToCloudinary = (file) => {
   });
 };
 
+const validatePriceLimit = async ({ name, price }) => {
+  if (!name || price == null || isNaN(price)) return null;
+  const limit = await require('../models/PriceLimit').findOne({ cropName: new RegExp(`^${name.trim()}$`, 'i'), active: true });
+  if (!limit) return null;
+  if (price < limit.minPrice || price > limit.maxPrice) {
+    return `Umeweka bei ya ${name} kwa shilingi ${price}. Wanunuzi tunapendekeza bei iwe kati ya TZS ${limit.minPrice.toLocaleString()} na TZS ${limit.maxPrice.toLocaleString()} kwa ${limit.unit} ili kudhibiti mfumuko wa bei.`;
+  }
+  return null;
+};
+
 // Normalize stock fields for display. Crops created before the stock-management
 // schema store legacy quantities (e.g. "500" instead of "500 kg") with a defaulted
 // stockQuantity of 0. Backfill source stock from the legacy quantity and persist
@@ -69,6 +79,9 @@ router.get('/:id', async (req, res) => {
 // POST /api/crops
 router.post('/', auth, async (req, res) => {
   try {
+    const priceError = await validatePriceLimit({ name: req.body.name, price: req.body.price });
+    if (priceError) return res.status(400).json({ message: priceError });
+
     const unit = ['kg', 'gunia', 'debe', 'tani'].includes(req.body.unit) ? req.body.unit : 'kg';
     const stockQuantity = Math.max(0, Number(req.body.stockQuantity) || Number(req.body.quantity) || 0);
     const crop = await Crop.create({
@@ -100,6 +113,13 @@ router.put('/:id', auth, async (req, res) => {
       crop.unit = unit;
       crop.quantity = `${stockQuantity} ${unit}`;
       crop.status = stockQuantity <= 0 ? 'out_of_stock' : (stockQuantity < 100 ? 'low_stock' : 'available');
+    }
+    if (req.body.name !== undefined || req.body.price !== undefined) {
+      const priceError = await validatePriceLimit({
+        name: req.body.name !== undefined ? req.body.name : crop.name,
+        price: req.body.price !== undefined ? req.body.price : crop.price,
+      });
+      if (priceError) return res.status(400).json({ message: priceError });
     }
     if (req.body.name !== undefined) crop.name = req.body.name;
     if (req.body.category !== undefined) crop.category = req.body.category;

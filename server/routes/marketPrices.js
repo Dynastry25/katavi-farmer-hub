@@ -61,4 +61,49 @@ router.get('/baselines', async (req, res) => {
   }
 });
 
+// GET /api/v1/market-prices/ticker — latest vs previous price per crop for scrolling ticker
+router.get('/ticker', async (req, res) => {
+  try {
+    const rows = await MarketPrice.aggregate([
+      { $sort: { cropName: 1, dateRecorded: -1 } },
+      {
+        $group: {
+          _id: '$cropName',
+          category: { $first: '$category' },
+          unit: { $first: '$unit' },
+          prices: { $push: { price: '$pricePerUnit', date: '$dateRecorded' } },
+        },
+      },
+      {
+        $project: {
+          cropName: '$_id',
+          category: 1,
+          unit: 1,
+          currentPrice: { $arrayElemAt: ['$prices.price', 0] },
+          previousPrice: { $arrayElemAt: ['$prices.price', 1] },
+          currentDate: { $arrayElemAt: ['$prices.date', 0] },
+          previousDate: { $arrayElemAt: ['$prices.date', 1] },
+        },
+      },
+      {
+        $addFields: {
+          changePct: {
+            $cond: [
+              { $and: [{ $gt: ['$previousPrice', 0] }, { $gt: ['$currentPrice', 0] }] },
+              { $round: [{ $multiply: [{ $divide: [{ $subtract: ['$currentPrice', '$previousPrice'] }, '$previousPrice'] }, 100] }, 1] },
+              0,
+            ],
+          },
+        },
+      },
+      { $sort: { cropName: 1 } },
+    ]);
+
+    res.json(rows);
+  } catch (error) {
+    console.error('Ticker error:', error);
+    res.status(500).json({ message: 'Hitilafu imetokea' });
+  }
+});
+
 module.exports = router;

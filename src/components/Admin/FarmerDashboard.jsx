@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { cropsAPI, productsAPI, ordersAPI, marketPricesAPI, priceAlertsAPI, farmerFinanceAPI, shambaAPI, aiAPI, uploadAPI } from '../../api/client';
+import { cropsAPI, productsAPI, ordersAPI, marketPricesAPI, priceAlertsAPI, farmerFinanceAPI, shambaAPI, aiAPI, uploadAPI, priceLimitsAPI } from '../../api/client';
 import { useNavigate } from 'react-router-dom';
 import { printView } from '../../shared/utils/export';
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend, LineChart, Line, XAxis, YAxis, CartesianGrid } from 'recharts';
@@ -301,6 +301,20 @@ const FarmerDashboard = () => {
   const [uploadingImgId, setUploadingImgId] = useState(null);
   const [approvalQty, setApprovalQty] = useState('');
   const [orderBusy, setOrderBusy] = useState(false);
+  const [priceLimits, setPriceLimits] = useState([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    priceLimitsAPI.getAll()
+      .then((res) => { if (!cancelled) setPriceLimits(Array.isArray(res.data) ? res.data : []); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
+
+  const matchPriceLimit = (name) => {
+    if (!name) return null;
+    return priceLimits.find(l => String(l.cropName).toLowerCase() === String(name).toLowerCase()) || null;
+  };
 
   const [newProduct, setNewProduct] = useState({
     name: '',
@@ -1472,10 +1486,26 @@ const FarmerDashboard = () => {
                   <input
                     type="number"
                     value={newCrop.price}
+                    min={matchPriceLimit(newCrop.name)?.minPrice || undefined}
+                    max={matchPriceLimit(newCrop.name)?.maxPrice || undefined}
                     onChange={(e) => setNewCrop({...newCrop, price: e.target.value})}
                     required
                     placeholder="Mf. 1500"
                   />
+                  {newCrop.name && matchPriceLimit(newCrop.name) && (
+                    <div className="price-limit-hint">
+                      <i className="fas fa-info-circle"></i>
+                      Bei inapendekezwa iwe kati ya{' '}
+                      <strong>TZS {matchPriceLimit(newCrop.name).minPrice.toLocaleString()}</strong> —{' '}
+                      <strong>TZS {matchPriceLimit(newCrop.name).maxPrice.toLocaleString()}</strong>{' '}
+                      kwa {matchPriceLimit(newCrop.name).unit || 'kg'}
+                      {newCrop.price && (
+                        Number(newCrop.price) < matchPriceLimit(newCrop.name).minPrice || Number(newCrop.price) > matchPriceLimit(newCrop.name).maxPrice
+                          ? <span className="limit-warn"> — Bei hii iko nje ya kipimo kilichoidhinishwa. Agizo linaweza kukataliwa na usimamizi.</span>
+                          : <span className="limit-ok"> — Bei hii ipo ndani ya kipimo.</span>
+                      )}
+                    </div>
+                  )}
                 </div>
                 <div className="form-group full-width">
                   <label>Maelezo</label>

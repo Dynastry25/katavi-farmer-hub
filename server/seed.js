@@ -26,6 +26,7 @@ const CropDisease = require('./models/CropDisease');
 const InputProduct = require('./models/InputProduct');
 const InputOrder = require('./models/InputOrder');
 const WeatherSubscription = require('./models/WeatherSubscription');
+const PriceLimit = require('./models/PriceLimit');
 
 dotenv.config();
 
@@ -61,6 +62,7 @@ const seedDB = async () => {
     await InputProduct.deleteMany({});
     await InputOrder.deleteMany({});
     await WeatherSubscription.deleteMany({});
+    await PriceLimit.deleteMany({});
 
     // Create users
     const users = await User.create([
@@ -737,8 +739,23 @@ const seedDB = async () => {
 
     console.log('Mazungumzo yameundwa');
 
-    // Create market prices
+    // Create market prices (siku 3 zilizopita — kwa ajili ya ticker kutofautisha kupanda/kushuka)
+    const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
     await MarketPrice.create([
+      // Historical (previous) prices
+      { cropName: 'Mahindi', category: 'cereals', region: 'Katavi', district: 'Mpanda', pricePerUnit: 1150, unit: 'kg', dateRecorded: sevenDaysAgo, recordedBy: users[3]._id },
+      { cropName: 'Mpunga', category: 'cereals', region: 'Katavi', district: 'Mpanda', pricePerUnit: 2600, unit: 'kg', dateRecorded: sevenDaysAgo, recordedBy: users[3]._id },
+      { cropName: 'Maharage', category: 'legumes', region: 'Katavi', district: 'Mlele', pricePerUnit: 2900, unit: 'kg', dateRecorded: sevenDaysAgo, recordedBy: users[3]._id },
+      { cropName: 'Viazi', category: 'tubers', region: 'Katavi', district: 'Mpanda', pricePerUnit: 850, unit: 'kg', dateRecorded: sevenDaysAgo, recordedBy: users[3]._id },
+      { cropName: 'Alizeti', category: 'oilseeds', region: 'Katavi', district: 'Mlele', pricePerUnit: 1750, unit: 'kg', dateRecorded: sevenDaysAgo, recordedBy: users[3]._id },
+      // Mid (siku 3 zilizopita)
+      { cropName: 'Mahindi', category: 'cereals', region: 'Katavi', district: 'Mpanda', pricePerUnit: 1180, unit: 'kg', dateRecorded: threeDaysAgo, recordedBy: users[3]._id },
+      { cropName: 'Mpunga', category: 'cereals', region: 'Katavi', district: 'Mpanda', pricePerUnit: 2550, unit: 'kg', dateRecorded: threeDaysAgo, recordedBy: users[3]._id },
+      { cropName: 'Maharage', category: 'legumes', region: 'Katavi', district: 'Mlele', pricePerUnit: 2950, unit: 'kg', dateRecorded: threeDaysAgo, recordedBy: users[3]._id },
+      { cropName: 'Viazi', category: 'tubers', region: 'Katavi', district: 'Mpanda', pricePerUnit: 830, unit: 'kg', dateRecorded: threeDaysAgo, recordedBy: users[3]._id },
+      { cropName: 'Alizeti', category: 'oilseeds', region: 'Katavi', district: 'Mlele', pricePerUnit: 1780, unit: 'kg', dateRecorded: threeDaysAgo, recordedBy: users[3]._id },
+      // Current (leo)
       { cropName: 'Mahindi', category: 'cereals', region: 'Katavi', district: 'Mpanda', pricePerUnit: 1200, unit: 'kg', dateRecorded: new Date(), recordedBy: users[3]._id },
       { cropName: 'Mpunga', category: 'cereals', region: 'Katavi', district: 'Mpanda', pricePerUnit: 2500, unit: 'kg', dateRecorded: new Date(), recordedBy: users[3]._id },
       { cropName: 'Maharage', category: 'legumes', region: 'Katavi', district: 'Mlele', pricePerUnit: 3000, unit: 'kg', dateRecorded: new Date(), recordedBy: users[3]._id },
@@ -747,6 +764,23 @@ const seedDB = async () => {
     ]);
 
     console.log('Bei za soko zimeundwa');
+
+    // Create price limits (kudhibiti mfumuko wa bei)
+    await PriceLimit.create([
+      { cropName: 'Mahindi', category: 'cereals', minPrice: 800, maxPrice: 2000, unit: 'kg', updatedBy: users[3]._id },
+      { cropName: 'Mpunga', category: 'cereals', minPrice: 1800, maxPrice: 3500, unit: 'kg', updatedBy: users[3]._id },
+      { cropName: 'Mchele', category: 'cereals', minPrice: 2000, maxPrice: 4000, unit: 'kg', updatedBy: users[3]._id },
+      { cropName: 'Maharage', category: 'legumes', minPrice: 2200, maxPrice: 4500, unit: 'kg', updatedBy: users[3]._id },
+      { cropName: 'Kunde', category: 'legumes', minPrice: 1200, maxPrice: 2500, unit: 'kg', updatedBy: users[3]._id },
+      { cropName: 'Viazi', category: 'tubers', minPrice: 400, maxPrice: 1200, unit: 'kg', updatedBy: users[3]._id },
+      { cropName: 'Muhogo', category: 'tubers', minPrice: 300, maxPrice: 1000, unit: 'kg', updatedBy: users[3]._id },
+      { cropName: 'Alizeti', category: 'oilseeds', minPrice: 1400, maxPrice: 2600, unit: 'kg', updatedBy: users[3]._id },
+      { cropName: 'Ufuta', category: 'oilseeds', minPrice: 2500, maxPrice: 5000, unit: 'kg', updatedBy: users[3]._id },
+      { cropName: 'Kitunguu', category: 'vegetables', minPrice: 200, maxPrice: 1500, unit: 'kg', updatedBy: users[3]._id },
+      { cropName: 'Nyanya', category: 'vegetables', minPrice: 200, maxPrice: 1200, unit: 'kg', updatedBy: users[3]._id },
+    ]);
+
+    console.log('Viwango vya bei (price limits) vimeundwa');
 
     // Create notifications
     await Notification.create([

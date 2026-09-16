@@ -244,6 +244,15 @@ export const marketPricesAPI = {
   getAverage: (params) => api.get('/market-prices/average', { params }),
   getTrend: (params) => api.get('/market-prices/trend', { params }),
   getBaselines: (params) => api.get('/market-prices/baselines', { params }),
+  getTicker: () => api.get('/market-prices/ticker'),
+};
+
+// Price Limits API (kudhibiti mfumuko wa bei)
+export const priceLimitsAPI = {
+  getAll: () => api.get('/price-limits'),
+  getAllAdmin: () => api.get('/price-limits/all'),
+  save: (data) => api.post('/price-limits', data),
+  remove: (id) => api.delete(`/price-limits/${id}`),
 };
 
 // Weather API
