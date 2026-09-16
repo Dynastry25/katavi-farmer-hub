@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import Loading from '../components/Loading/Loading';
-import { weatherAPI } from '../api/client';
+import { weatherAPI, weatherSubAPI } from '../api/client';
+import { useAuth } from '../shared/context/AuthContext';
 import './CSS/Weather.css';
 
 const DEFAULT_ZONES = [
@@ -25,6 +26,7 @@ const dayLabel = (index, dateStr) => {
 };
 
 const Weather = ({ onRefresh }) => {
+  const { user } = useAuth();
   const [zones, setZones] = useState(DEFAULT_ZONES);
   const [selectedLocation, setSelectedLocation] = useState('Mpanda');
   const [current, setCurrent] = useState(null);
@@ -32,6 +34,10 @@ const Weather = ({ onRefresh }) => {
   const [advisories, setAdvisories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [smsPhone, setSmsPhone] = useState('');
+  const [smsLoading, setSmsLoading] = useState(false);
+  const [smsMessage, setSmsMessage] = useState(null);
+  const [smsError, setSmsError] = useState(null);
 
   // Load zones from backend, fall back to defaults if the API is unavailable
   useEffect(() => {
@@ -139,9 +145,41 @@ const Weather = ({ onRefresh }) => {
     );
   }
 
-  const forecast = daily.slice(0, 5);
+  const forecast = daily.slice(0, 7);
   const advisory = getAdvisory(current, advisories);
   const today = daily[0] || {};
+
+  const getDayAdvisory = (day) => {
+    const desc = String(day.description || '').toLowerCase();
+    if (desc.includes('mvua') || desc.includes('thunder')) {
+      return 'Inafaa kupanda. Jihadhari na mafuriko katika maeneo ya chini.';
+    }
+    if (desc.includes('jua') || desc.includes('wazi') || day.maxTemp > 33) {
+      return 'Umwagiliaji wa nyongeza unashauriwa. Epuka kupalilia jioni.';
+    }
+    return 'Shughuli za kawaida za kilimo zinaweza kuendelea.';
+  };
+
+  const handleSmsSubscribe = async (e) => {
+    e.preventDefault();
+    if (!smsPhone.trim()) return;
+    setSmsLoading(true);
+    setSmsMessage(null);
+    setSmsError(null);
+    try {
+      const res = await weatherSubAPI.subscribe({
+        phone: smsPhone.trim(),
+        zone: selectedLocation,
+        userId: user?._id || undefined,
+      });
+      setSmsMessage(res.data.message || 'Umesajiliwa kikamilifu');
+      setSmsPhone('');
+    } catch (err) {
+      setSmsError(err.response?.data?.message || 'Hitilafu imetokea. Jaribu tena.');
+    } finally {
+      setSmsLoading(false);
+    }
+  };
 
   return (
     <div className="page weather-page">
@@ -227,9 +265,9 @@ const Weather = ({ onRefresh }) => {
             </div>
           </div>
 
-          {/* 5-Day Forecast */}
+          {/* 7-Day Forecast */}
           <div className="forecast-section">
-            <h2>Tabiri ya Siku 5</h2>
+            <h2>Tabiri ya Siku 7</h2>
             <div className="forecast-grid">
               {forecast.map((day, index) => (
                 <div key={index} className="forecast-card">
@@ -238,10 +276,15 @@ const Weather = ({ onRefresh }) => {
                     <i className={getWeatherIcon(day.description)}></i>
                   </div>
                   <div className="forecast-temp">{Math.round(day.maxTemp)}°C</div>
+                  <div className="forecast-min-temp">{Math.round(day.minTemp)}°C</div>
                   <div className="forecast-condition">{day.description}</div>
                   <div className="forecast-rain">
                     <i className="fas fa-cloud-rain"></i>
                     {day.precipitationProbability != null ? `${day.precipitationProbability}%` : '—'}
+                  </div>
+                  <div className="forecast-advisory">
+                    <i className="fas fa-seedling"></i>
+                    <span>{getDayAdvisory(day)}</span>
                   </div>
                 </div>
               ))}
@@ -277,17 +320,35 @@ const Weather = ({ onRefresh }) => {
           <div className="sms-alert">
             <div className="sms-content">
               <h3>Pokea Arifa za Hali ya Hewa kwenye Simu</h3>
-              <p>Jiandikishe kupokea arifa za hali ya hewa kwenye simu yako kupitia SMS</p>
-              <div className="sms-form">
+              <p>Jiandikishe kupokea arifa za hali ya hewa na ushauri wa kilimo kwenye simu yako kupitia SMS</p>
+              {smsMessage && (
+                <div className="sms-success">
+                  <i className="fas fa-check-circle"></i> {smsMessage}
+                </div>
+              )}
+              {smsError && (
+                <div className="sms-error">
+                  <i className="fas fa-exclamation-circle"></i> {smsError}
+                </div>
+              )}
+              <form onSubmit={handleSmsSubscribe} className="sms-form">
                 <input
                   type="tel"
                   placeholder="Weka namba yako ya simu"
                   className="sms-input"
+                  value={smsPhone}
+                  onChange={(e) => setSmsPhone(e.target.value)}
+                  required
                 />
-                <button className="btn btn-primary">
-                  <i className="fas fa-bell"></i> Jiandikishe
+                <button className="btn btn-primary" disabled={smsLoading}>
+                  {smsLoading ? (
+                    <><i className="fas fa-spinner fa-spin"></i> Inasajili...</>
+                  ) : (
+                    <><i className="fas fa-bell"></i> Jiandikishe</>
+                  )}
                 </button>
-              </div>
+              </form>
+              <small className="sms-hint">Unaweza kujisajili bila akaunti. Pia unakuwa na haki ya kujiondoa wakati wowote.</small>
             </div>
           </div>
         </div>

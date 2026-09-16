@@ -5,6 +5,7 @@ import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Toolti
 import AdminLayout from './AdminLayout';
 import { getRoleNavSections } from './roleNav';
 import RatingModal from './RatingModal';
+import DisputeModal from './DisputeModal';
 import { useAuth } from '../../shared/context/AuthContext';
 import './BuyerDashboard.css';
 
@@ -19,6 +20,8 @@ const BuyerDashboard = () => {
   const [showOrderDetailsModal, setShowOrderDetailsModal] = useState(false);
   const [orderDetail, setOrderDetail] = useState(null);
   const [ratingOrder, setRatingOrder] = useState(null);
+  const [showDisputeModal, setShowDisputeModal] = useState(false);
+  const [disputeOrder, setDisputeOrder] = useState(null);
   const [selectedCrop, setSelectedCrop] = useState(null);
   const [selectedFarmer, setSelectedFarmer] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -268,8 +271,13 @@ const BuyerDashboard = () => {
     partially_approved: 'Imekubaliwa Kwa Sehemu',
     rejected: 'Imekataliwa',
     expired: 'Imeisha Muda',
+    disputed: 'Mgogoro',
+    delivered: 'Imefikishwa',
+    completed: 'Imekamilika',
+    cancelled: 'Imefutwa',
   };
   const statusLabelOf = (s) => STATUS_LABELS[s] || s || '-';
+  const canDispute = (order) => !['rejected', 'expired', 'disputed', 'cancelled'].includes(order.status);
   const qtyLabelOf = (o) => (o.requestedQuantity != null ? `${o.requestedQuantity} ${o.unit || ''}` : o.quantity);
   const availableOf = (c) => {
     const stock = c.stockQuantity ?? (Number(String(c.quantity || '').replace(/[^0-9.]/g, '')) || 0);
@@ -411,6 +419,13 @@ const BuyerDashboard = () => {
         })
         .catch(err => alert(err.response?.data?.message || 'Hitilafu imetokea kughairi agizo'));
     }
+  };
+
+  const handleDisputeSubmitted = async () => {
+    setShowDisputeModal(false);
+    setDisputeOrder(null);
+    await fetchOrders();
+    alert('Mgogoro umefunguliwa kikamilifu. Timu ya usaidizi itaugundua hivi karibuni.');
   };
 
   const handleRequestRemainder = async (order) => {
@@ -808,6 +823,17 @@ const BuyerDashboard = () => {
                       >
                         <i className={`fas ${remainderBusyId === order.id ? 'fa-spinner fa-spin' : 'fa-plus'}`}></i>
                         {remainderBusyId === order.id ? ' Inatuma...' : ' Omba Kiasi Kilichobaki'}
+                      </button>
+                    )}
+                    {canDispute(order) && (
+                      <button 
+                        className="btn btn-sm btn-danger"
+                        onClick={() => {
+                          setDisputeOrder(order);
+                          setShowDisputeModal(true);
+                        }}
+                      >
+                        <i className="fas fa-gavel"></i> Mgogoro
                       </button>
                     )}
                   </div>
@@ -1250,6 +1276,15 @@ const BuyerDashboard = () => {
             alert('Asante kwa ukadiriaji wako!');
             fetchOrders();
           }}
+        />
+      )}
+      {showDisputeModal && disputeOrder && (
+        <DisputeModal
+          order={disputeOrder}
+          orderId={disputeOrder.id}
+          orderLabel={disputeOrder.crop}
+          onClose={() => { setShowDisputeModal(false); setDisputeOrder(null); }}
+          onSubmitted={handleDisputeSubmitted}
         />
       )}
     </>

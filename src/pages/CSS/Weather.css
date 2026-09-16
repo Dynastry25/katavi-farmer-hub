@@ -199,7 +199,7 @@
 
 .forecast-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
   gap: 1.5rem;
 }
 
@@ -251,6 +251,36 @@
   justify-content: center;
   color: var(--info);
   font-weight: 600;
+}
+
+.forecast-min-temp {
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+  margin-bottom: 0.4rem;
+}
+
+.forecast-min-temp::before {
+  content: 'Chini: ';
+  font-size: 0.75rem;
+}
+
+.forecast-advisory {
+  margin-top: 1rem;
+  padding: 0.75rem;
+  background: var(--surface-alt);
+  border-radius: var(--radius-sm);
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  text-align: left;
+  line-height: 1.4;
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-start;
+}
+
+.forecast-advisory i {
+  color: var(--primary);
+  margin-top: 0.1rem;
 }
 
 .seasonal-info {
@@ -350,6 +380,36 @@
 
 .sms-input::placeholder {
   color: rgba(255, 255, 255, 0.7);
+}
+
+.sms-hint {
+  display: block;
+  margin-top: 0.75rem;
+  font-size: 0.85rem;
+  opacity: 0.85;
+}
+
+.sms-success,
+.sms-error {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  max-width: 500px;
+  margin: 0 auto 1rem;
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.95rem;
+  text-align: left;
+}
+
+.sms-success {
+  background: rgba(22, 163, 74, 0.9);
+  color: #fff;
+}
+
+.sms-error {
+  background: rgba(220, 38, 38, 0.9);
+  color: #fff;
 }
 
 @media (max-width: 768px) {

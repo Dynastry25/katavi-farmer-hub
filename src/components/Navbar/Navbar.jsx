@@ -48,6 +48,8 @@ const Navbar = ({ currentPage, onPageChange, onAuth, user: propUser, canGoBack, 
   const navLinks = [
     { id: 'home', label: t('home'), icon: 'fas fa-home', path: '/' },
     { id: 'market', label: t('market'), icon: 'fas fa-store', path: '/market' },
+    { id: 'inputs', label: 'Pembejeo', icon: 'fas fa-boxes', path: '/inputs' },
+    { id: 'loans', label: 'Mikopo', icon: 'fas fa-hand-holding-dollar', path: '/loans' },
     { id: 'advice', label: t('advice'), icon: 'fas fa-book-open', path: '/advice' },
     { id: 'news', label: t('news'), icon: 'fas fa-newspaper', path: '/news' },
     { id: 'contact', label: t('contact'), icon: 'fas fa-envelope', path: '/contact' },
@@ -273,6 +275,16 @@ const Navbar = ({ currentPage, onPageChange, onAuth, user: propUser, canGoBack, 
             <Link className="mobile-link" to="/weather" onClick={() => setIsMobileOpen(false)}>
               <i className="fas fa-cloud-sun"></i>
               <span>Hali ya Hewa</span>
+              <i className="fas fa-chevron-right mobile-link-arrow"></i>
+            </Link>
+            <Link className="mobile-link" to="/learn" onClick={() => setIsMobileOpen(false)}>
+              <i className="fas fa-graduation-cap"></i>
+              <span>Video za Mafunzo</span>
+              <i className="fas fa-chevron-right mobile-link-arrow"></i>
+            </Link>
+            <Link className="mobile-link" to="/partners" onClick={() => setIsMobileOpen(false)}>
+              <i className="fas fa-handshake"></i>
+              <span>Wadau wa Kilimo</span>
               <i className="fas fa-chevron-right mobile-link-arrow"></i>
             </Link>
           </div>

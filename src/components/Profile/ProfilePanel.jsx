@@ -22,6 +22,9 @@ const ProfilePanel = ({ user, onAuth }) => {
   const [form, setForm] = useState({});
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState(null);
+  const [otpSent, setOtpSent] = useState(false);
+  const [otpCode, setOtpCode] = useState('');
+  const [otpLoading, setOtpLoading] = useState(false);
 
   const role = user?.role || 'farmer';
 
@@ -87,6 +90,41 @@ const ProfilePanel = ({ user, onAuth }) => {
     </div>
   );
 
+  const handleSendOtp = async () => {
+    setOtpLoading(true);
+    try {
+      await authAPI.sendPhoneOtp();
+      setOtpSent(true);
+      setOtpCode('');
+      showToast('Namba ya uthibitisho imetumwa kwenye simu yako kupitia SMS');
+    } catch (err) {
+      showToast(err?.response?.data?.message || 'Hitilafu imetokea wakati wa kutuma namba', 'error');
+    } finally {
+      setOtpLoading(false);
+    }
+  };
+
+  const handleVerifyOtp = async () => {
+    if (!otpCode.trim()) {
+      showToast('Weka namba ya uthibitisho', 'error');
+      return;
+    }
+    setOtpLoading(true);
+    try {
+      const res = await authAPI.verifyPhoneOtp({ code: otpCode.trim() });
+      const merged = { ...user, phoneVerified: true };
+      localStorage.setItem('kataviUser', JSON.stringify(merged));
+      if (onAuth) onAuth('login-success', merged);
+      setOtpSent(false);
+      setOtpCode('');
+      showToast(res.data.message || 'Simu yako imethibitishwa kikamilifu!');
+    } catch (err) {
+      showToast(err?.response?.data?.message || 'Namba siyo sahihi. Jaribu tena.', 'error');
+    } finally {
+      setOtpLoading(false);
+    }
+  };
+
   return (
     <div className="profile-panel">
       {toast && <div className={`profile-toast ${toast.type === 'error' ? 'toast-error' : 'toast-success'}`}>{toast.message}</div>}
@@ -103,6 +141,51 @@ const ProfilePanel = ({ user, onAuth }) => {
             <span className="badge verified"><i className="fas fa-check-circle"></i> Imethibitishwa</span>
             <span className="badge active"><i className="fas fa-circle"></i> Akaunti Aktivu</span>
           </div>
+        </div>
+      </div>
+
+      <div className="profile-verification-card">
+        <div className="verification-icon">
+          <i className={user?.phoneVerified ? 'fas fa-check-circle' : 'fas fa-phone-alt'}></i>
+        </div>
+        <div className="verification-info">
+          <h4>Uthibitisho wa Namba ya Simu</h4>
+          <p>
+            {user?.phoneVerified
+              ? 'Namba yako ya simu imethibitishwa. Unapata kuaminika zaidi na unaweza kupokea arifa za SMS.'
+              : 'Thibitisha namba yako ya simu ili kuongeza usalama, kuaminika na kupokea arifa za bei na hali ya hewa kwa SMS.'}
+          </p>
+          {user?.phone && <span className="verification-phone">{user.phone}</span>}
+          {user?.phoneVerified ? (
+            <span className="verification-badge verified">
+              <i className="fas fa-shield-alt"></i> Imethibitishwa
+            </span>
+          ) : (
+            <div className="verification-actions">
+              {otpSent ? (
+                <>
+                  <input
+                    type="text"
+                    maxLength="6"
+                    placeholder="Weka namba ya 6"
+                    value={otpCode}
+                    onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
+                    className="otp-input"
+                  />
+                  <button className="btn btn-primary" onClick={handleVerifyOtp} disabled={otpLoading}>
+                    {otpLoading ? <><i className="fas fa-spinner fa-spin"></i> Inathibitisha...</> : <><i className="fas fa-check"></i> Thibitisha</>}
+                  </button>
+                  <button className="btn btn-outline" onClick={handleSendOtp} disabled={otpLoading}>
+                    <i className="fas fa-sync-alt"></i> Tuma Tena
+                  </button>
+                </>
+              ) : (
+                <button className="btn btn-primary" onClick={handleSendOtp} disabled={otpLoading}>
+                  {otpLoading ? <><i className="fas fa-spinner fa-spin"></i> Inatuma...</> : <><i className="fas fa-paper-plane"></i> Tumia Namba ya Uthibitisho</>}
+                </button>
+              )}
+            </div>
+          )}
         </div>
       </div>
 

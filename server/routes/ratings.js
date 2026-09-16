@@ -2,7 +2,44 @@ const express = require('express');
 const router = express.Router();
 const Rating = require('../models/Rating');
 const Order = require('../models/Order');
+const Crop = require('../models/Crop');
+const User = require('../models/User');
+const InputProduct = require('../models/InputProduct');
 const { auth, optionalAuth } = require('../middleware/auth');
+
+const recalcAggregate = async ({ ratedUser, ratedProduct }) => {
+  if (ratedProduct) {
+    try {
+      const [agg] = await Rating.aggregate([
+        { $match: { ratedProduct } },
+        { $group: { _id: null, avg: { $avg: '$rating' }, count: { $sum: 1 } } },
+      ]);
+      if (agg) {
+        const summary = { rating: Math.round(agg.avg * 10) / 10, reviews: agg.count };
+        await Crop.findByIdAndUpdate(ratedProduct, summary).catch(() => null);
+        await InputProduct.findByIdAndUpdate(ratedProduct, {
+          averageRating: summary.rating,
+          totalReviews: summary.reviews,
+        }).catch(() => null);
+      }
+    } catch (err) {
+      console.error('Recalc product rating error:', err);
+    }
+  }
+  if (ratedUser) {
+    try {
+      const [agg] = await Rating.aggregate([
+        { $match: { ratedUser } },
+        { $group: { _id: null, avg: { $avg: '$rating' }, count: { $sum: 1 } } },
+      ]);
+      if (agg) {
+        await User.findByIdAndUpdate(ratedUser, { rating: Math.round(agg.avg * 10) / 10 });
+      }
+    } catch (err) {
+      console.error('Recalc user rating error:', err);
+    }
+  }
+};
 
 // POST /api/v1/ratings - toa ukadiriaji
 router.post('/', auth, async (req, res) => {
@@ -61,6 +98,8 @@ router.post('/', auth, async (req, res) => {
       type: target.type,
     });
 
+    await recalcAggregate({ ratedUser: target.ratedUser, ratedProduct: target.ratedProduct });
+
     res.status(201).json(created);
   } catch (error) {
     console.error('Rating create error:', error);
@@ -88,6 +127,30 @@ router.get('/user/:id', optionalAuth, async (req, res) => {
     const ratings = await Rating.find(query).sort({ createdAt: -1 }).limit(100);
     res.json(ratings);
   } catch (error) {
+    res.status(500).json({ message: 'Hitilafu imetokea' });
+  }
+});
+
+// GET /api/v1/ratings/summary/:targetType/:targetId - average rating + review count
+router.get('/summary/:targetType/:targetId', optionalAuth, async (req, res) => {
+  try {
+    const { targetType, targetId } = req.params;
+    let match = {};
+    if (targetType === 'user') {
+      match = { ratedUser: targetId };
+    } else if (targetType === 'product') {
+      match = { ratedProduct: targetId };
+    } else {
+      return res.status(400).json({ message: 'Type isiyo sahihi' });
+    }
+    const result = await Rating.aggregate([
+      { $match: match },
+      { $group: { _id: null, avg: { $avg: '$rating' }, count: { $sum: 1 } } }
+    ]);
+    const data = result[0] || { avg: 0, count: 0 };
+    res.json({ averageRating: Math.round(data.avg * 10) / 10, totalReviews: data.count });
+  } catch (error) {
+    console.error('Ratings summary error:', error);
     res.status(500).json({ message: 'Hitilafu imetokea' });
   }
 });

@@ -362,4 +362,81 @@ router.expirePendingOrders = async () => {
   return released;
 };
 
+// ──────────────────────────────────────────────
+// Dispute Resolution (user-facing)
+// ──────────────────────────────────────────────
+
+// POST /api/v1/orders/:id/dispute — buyer/farmer raises a dispute on their order
+router.post('/:id/dispute', auth, async (req, res) => {
+  try {
+    const order = await Order.findById(req.params.id);
+    if (!order) return res.status(404).json({ message: 'Agizo halipatikani' });
+
+    const isParty = String(order.buyer) === String(req.user._id) || String(order.farmer) === String(req.user._id);
+    if (!isParty) return res.status(403).json({ message: 'Huna ruhusa ya kuripoti mgogoro huu' });
+
+    if (['rejected', 'expired', 'disputed'].includes(order.status)) {
+      return res.status(400).json({ message: `Agizo tayari liko katika hali ya ${order.status}, haiwezi kufunguliwa mgogoro` });
+    }
+
+    const { reason, description } = req.body;
+    if (!reason) return res.status(400).json({ message: 'Sababu ya mgogoro inahitajika' });
+
+    order.status = 'disputed';
+    order.resolution = `[${reason}] ${description || ''}`;
+    order.respondedAt = new Date();
+    await order.save();
+
+    // Release stock reservation if pending
+    if (order.crop) {
+      await Crop.updateOne(
+        { _id: order.crop, reservedQuantity: { $gte: order.requestedQuantity } },
+        { $inc: { reservedQuantity: -order.requestedQuantity } }
+      );
+    }
+
+    // Notify the other party
+    const otherPartyId = String(order.buyer) === String(req.user._id) ? order.farmer : order.buyer;
+    const reporter = String(order.buyer) === String(req.user._id) ? 'Mnunuzi' : 'Mkulima';
+    await notify(req, otherPartyId, {
+      title: 'Mgogoro Umefunguliwa',
+      message: `${reporter} amefunguliwa mgogoro kwenye agizo la ${order.cropName}: ${reason}`,
+      link: '/farmer',
+      metadata: { orderId: order._id, status: 'disputed' },
+    });
+
+    // Notify admin/support
+    try {
+      const admins = await require('../models/User').find({ role: { $in: ['admin', 'support'] } }).select('_id');
+      for (const admin of admins) {
+        await sendNotification(admin._id, {
+          title: 'Mgogoro Mpya',
+          message: `Mgogoro mpya umefunguliwa: ${reason}. Agizo: ${order.cropName}`,
+          type: 'dispute',
+          link: '/admin-dashboard',
+          metadata: { orderId: order._id, reason, reporter: req.user.name },
+        });
+      }
+    } catch (e) { /* best effort */ }
+
+    res.json({ message: 'Mgogoro umefunguliwa', order });
+  } catch (error) {
+    console.error('Dispute error:', error);
+    res.status(500).json({ message: 'Hitilafu imetokea' });
+  }
+});
+
+// GET /api/v1/orders/disputes/my — user's disputed orders
+router.get('/disputes/my', auth, async (req, res) => {
+  try {
+    const disputes = await Order.find({
+      $or: [{ buyer: req.user._id }, { farmer: req.user._id }],
+      status: 'disputed',
+    }).sort({ createdAt: -1 });
+    res.json(disputes);
+  } catch (error) {
+    res.status(500).json({ message: 'Hitilafu imetokea' });
+  }
+});
+
 module.exports = router;

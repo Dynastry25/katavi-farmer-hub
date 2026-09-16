@@ -1,16 +1,20 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import './Footer.css';
 
 const Footer = ({ onPageChange }) => {
   const currentYear = new Date().getFullYear();
 
   const quickLinks = [
-    { label: 'Nyumbani', page: 'home' },
-    { label: 'Habari za Kilimo', page: 'news' },
-    { label: 'Masoko ya Mazao', page: 'market' },
-    { label: 'Pembejeo za Kilimo', page: 'inputs' },
-    { label: 'Ushauri wa Kilimo', page: 'advice' },
-    { label: 'Hali ya Hewa', page: 'weather' }
+    { label: 'Nyumbani', page: 'home', path: '/' },
+    { label: 'Habari za Kilimo', page: 'news', path: '/news' },
+    { label: 'Masoko ya Mazao', page: 'market', path: '/market' },
+    { label: 'Pembejeo za Kilimo', page: 'inputs', path: '/inputs' },
+    { label: 'Boards za Mikopo', page: 'loans', path: '/loans' },
+    { label: 'Video za Mafunzo', page: 'learn', path: '/learn' },
+    { label: 'Ushauri wa Kilimo', page: 'advice', path: '/advice' },
+    { label: 'Hali ya Hewa', page: 'weather', path: '/weather' },
+    { label: 'Wadau wa Kilimo', page: 'partners', path: '/partners' }
   ];
 
   const services = [
@@ -96,13 +100,14 @@ const Footer = ({ onPageChange }) => {
             <ul className="footer-links">
               {quickLinks.map((link, index) => (
                 <li key={index}>
-                  <button 
-                    onClick={() => onPageChange(link.page)}
+                  <Link
+                    to={link.path}
                     className="footer-link"
+                    onClick={() => onPageChange?.(link.page)}
                   >
                     <i className="fas fa-chevron-right"></i>
                     {link.label}
-                  </button>
+                  </Link>
                 </li>
               ))}
             </ul>

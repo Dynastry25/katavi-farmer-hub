@@ -23,6 +23,9 @@ const PlatformSetting = require('./models/PlatformSetting');
 const LandGuidance = require('./models/LandGuidance');
 const CropCycle = require('./models/CropCycle');
 const CropDisease = require('./models/CropDisease');
+const InputProduct = require('./models/InputProduct');
+const InputOrder = require('./models/InputOrder');
+const WeatherSubscription = require('./models/WeatherSubscription');
 
 dotenv.config();
 
@@ -55,6 +58,9 @@ const seedDB = async () => {
     await LandGuidance.deleteMany({});
     await CropCycle.deleteMany({});
     await CropDisease.deleteMany({});
+    await InputProduct.deleteMany({});
+    await InputOrder.deleteMany({});
+    await WeatherSubscription.deleteMany({});
 
     // Create users
     const users = await User.create([
@@ -267,7 +273,7 @@ const seedDB = async () => {
     console.log('Habari zimeundwa');
 
     // Create suppliers
-    await Supplier.create([
+    const suppliers = await Supplier.create([
       {
         name: 'Agro Supplies Ltd',
         category: 'fertilizers',
@@ -320,6 +326,147 @@ const seedDB = async () => {
     ]);
 
     console.log('Wauzaji wameundwa');
+
+    // Create input products (Pembejeo)
+    await InputProduct.create([
+      {
+        name: 'Mbolea UREA',
+        category: 'fertilizers',
+        price: 85000,
+        unit: 'gunia',
+        stockQuantity: 40,
+        supplier: suppliers[0]._id,
+        supplierName: 'Agro Supplies Ltd',
+        location: 'Mpanda Mjini',
+        owner: users[4]._id,
+        description: 'Mbolea ya UREA (46% N) kwa ukuaji wa majani na mmea. Inafaa kwa mazao yote ya shamba.',
+        averageRating: 4.7,
+        totalReviews: 12,
+      },
+      {
+        name: 'Mbolea DAP',
+        category: 'fertilizers',
+        price: 98000,
+        unit: 'gunia',
+        stockQuantity: 25,
+        supplier: suppliers[0]._id,
+        supplierName: 'Agro Supplies Ltd',
+        location: 'Mpanda Mjini',
+        owner: users[4]._id,
+        description: 'Mbolea ya DAP kwa mizizi na ukuaji wa mmea. Inapendekezwa kwa upandaji.',
+        averageRating: 4.5,
+        totalReviews: 9,
+      },
+      {
+        name: 'Mbegu za Mahindi DK90',
+        category: 'seeds',
+        price: 4500,
+        unit: 'kg',
+        stockQuantity: 200,
+        supplier: suppliers[1]._id,
+        supplierName: 'SeedCo Tanzania',
+        location: 'Mlele',
+        owner: users[4]._id,
+        description: 'Mbegu bora za mahindi aina ya DK90, zenye uwezo mkubwa wa mavuno na kustahimili ukame.',
+        averageRating: 4.8,
+        totalReviews: 21,
+      },
+      {
+        name: 'Mbegu za Mpunga SARO',
+        category: 'seeds',
+        price: 3800,
+        unit: 'kg',
+        stockQuantity: 150,
+        supplier: suppliers[1]._id,
+        supplierName: 'SeedCo Tanzania',
+        location: 'Mlele',
+        description: 'Mbegu za mpunga aina ya SARO zilizoidhinishwa, zinazofaa mazingira ya Katavi.',
+        averageRating: 4.6,
+        totalReviews: 14,
+      },
+      {
+        name: 'Jembe la Kisasa',
+        category: 'tools',
+        price: 15000,
+        unit: 'kila moja',
+        stockQuantity: 80,
+        supplier: suppliers[2]._id,
+        supplierName: 'Farm Tools Tanzania',
+        location: 'Nsimbo',
+        description: 'Jembe imara la chuma kwa matumizi ya kilimo, linadumu kwa muda mrefu.',
+        averageRating: 4.4,
+        totalReviews: 17,
+      },
+      {
+        name: 'Trolley ya Kusukuma',
+        category: 'tools',
+        price: 120000,
+        unit: 'kila moja',
+        stockQuantity: 12,
+        supplier: suppliers[2]._id,
+        supplierName: 'Farm Tools Tanzania',
+        location: 'Nsimbo',
+        description: 'Trolley imara kwa usafirishaji wa mazao na pembejeo shambani.',
+        averageRating: 4.3,
+        totalReviews: 6,
+      },
+      {
+        name: 'Dawa ya Wadudu (Pesticide 2.5L)',
+        category: 'pesticides',
+        price: 32000,
+        unit: 'chupa',
+        stockQuantity: 60,
+        supplier: suppliers[3]._id,
+        supplierName: 'Neema Pembejeo',
+        location: 'Mpanda',
+        owner: users[4]._id,
+        description: 'Dawa yenye nguvu ya kudhibiti wadudu wa mazao kama nondo na vibuguzi.',
+        averageRating: 4.2,
+        totalReviews: 11,
+      },
+      {
+        name: 'Bomba la Umwagiliaji',
+        category: 'irrigation',
+        price: 95000,
+        unit: 'roll (100m)',
+        stockQuantity: 30,
+        supplier: suppliers[0]._id,
+        supplierName: 'Agro Supplies Ltd',
+        location: 'Mpanda Mjini',
+        description: 'Bomba bora la umwagiliaji wa kumwagilia, linalodumu miaka kadhaa.',
+        averageRating: 4.9,
+        totalReviews: 8,
+      },
+      {
+        name: 'Mbolea ya Pamba (CAN)',
+        category: 'fertilizers',
+        price: 90000,
+        unit: 'gunia',
+        stockQuantity: 20,
+        supplier: suppliers[3]._id,
+        supplierName: 'Neema Pembejeo',
+        location: 'Mpanda',
+        owner: users[4]._id,
+        description: 'Mbolea ya CAN (26% N) kwa mazao ya nafaka na mazao ya biashara.',
+        averageRating: 4.5,
+        totalReviews: 10,
+      },
+      {
+        name: 'Kisahani cha Kupimia Bei',
+        category: 'tools',
+        price: 25000,
+        unit: 'kila moja',
+        stockQuantity: 45,
+        supplier: suppliers[2]._id,
+        supplierName: 'Farm Tools Tanzania',
+        location: 'Nsimbo',
+        description: 'Kisahani cha kupimia kiasi cha mazao kwa ufanisi shambani na sokoni.',
+        averageRating: 4.6,
+        totalReviews: 13,
+      },
+    ]);
+
+    console.log('Pembejeo zimeundwa');
 
     // Create loans
     const loans = await Loan.create([
@@ -412,10 +559,13 @@ const seedDB = async () => {
         buyerName: 'Asha Hassan',
         farmer: users[0]._id,
         farmerName: 'Juma Mwinyi',
-        quantity: '500',
+        quantity: '500 kg',
+        requestedQuantity: 500,
+        unit: 'kg',
         price: '1200',
         status: 'disputed',
-        resolution: '',
+        expiresAt: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
+        resolution: '[Ubora wa bidhaa] Mahindi yalifika yameharibika na kiasi kilitosha si hasa.',
       },
       {
         crop: crops[1]._id,
@@ -424,9 +574,12 @@ const seedDB = async () => {
         buyerName: 'Asha Hassan',
         farmer: users[0]._id,
         farmerName: 'Juma Mwinyi',
-        quantity: '300',
+        quantity: '300 kg',
+        requestedQuantity: 300,
+        unit: 'kg',
         price: '2500',
         status: 'cancelled',
+        expiresAt: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000),
         resolution: 'Mnunuzi alikatisha agizo baada ya mgogoro wa uwasilishaji',
       },
     ]);

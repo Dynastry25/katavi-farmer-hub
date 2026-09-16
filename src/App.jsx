@@ -7,6 +7,7 @@ import Loading from './components/Loading/Loading';
 import ErrorBoundary from './components/ErrorBoundary/ErrorBoundary';
 import ChatWidget from './components/ChatWidget/ChatWidget';
 import ProtectedRoute from './components/ProtectedRoute';
+import ScrollToTop from './components/ScrollToTop';
 import './App.css';
 
 const PublicLayout = lazy(() => import('./shared/layouts/PublicLayout'));
@@ -19,6 +20,9 @@ const Contact = lazy(() => import('./pages/Contact'));
 const Advice = lazy(() => import('./pages/Advice'));
 const Inputs = lazy(() => import('./pages/Inputs'));
 const Suppliers = lazy(() => import('./components/Suppliers'));
+const Loans = lazy(() => import('./pages/Loans'));
+const Partners = lazy(() => import('./pages/Partners'));
+const Learn = lazy(() => import('./pages/Learn'));
 const Login = lazy(() => import('./components/Auth/Login'));
 const Registration = lazy(() => import('./components/Auth/Registration'));
 
@@ -44,6 +48,7 @@ function App() {
         <AuthProvider>
           <SocketProvider>
             <div className="App">
+              <ScrollToTop />
               <Suspense fallback={<RouteLoading />}>
                 <Routes>
                   <Route element={<PublicLayout />}>
@@ -54,6 +59,9 @@ function App() {
                     <Route path="advice" element={<Advice />} />
                     <Route path="inputs" element={<Inputs />} />
                     <Route path="suppliers" element={<Suppliers />} />
+                    <Route path="loans" element={<Loans />} />
+                    <Route path="partners" element={<Partners />} />
+                    <Route path="learn" element={<Learn />} />
                     <Route path="about" element={<About />} />
                     <Route path="contact" element={<Contact />} />
                   </Route>

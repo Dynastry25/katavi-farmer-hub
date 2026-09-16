@@ -183,6 +183,90 @@
   min-width: 190px;
 }
 
+/* Phone Verification Card */
+.profile-verification-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1.25rem 1.5rem;
+  border-radius: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  margin-bottom: 20px;
+}
+
+.profile-verification-card .verification-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.4rem;
+  flex-shrink: 0;
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.profile-verification-card .verification-info {
+  flex: 1;
+}
+
+.profile-verification-card .verification-info h4 {
+  margin: 0 0 0.3rem;
+  font-size: 1.05rem;
+  color: var(--text-primary);
+}
+
+.profile-verification-card .verification-info p {
+  margin: 0 0 0.6rem;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.verification-phone {
+  display: inline-block;
+  font-size: 0.85rem;
+  color: var(--text-primary);
+  background: var(--surface-alt, #f3f4f6);
+  padding: 0.25rem 0.6rem;
+  border-radius: 4px;
+  margin-bottom: 0.6rem;
+  font-weight: 600;
+}
+
+.verification-badge.verified {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: #dcfce7;
+  color: #16a34a;
+  padding: 0.35rem 0.7rem;
+  border-radius: 2rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.verification-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  align-items: center;
+}
+
+.verification-actions .otp-input {
+  width: 130px;
+  padding: 0.55rem 0.75rem;
+  border: 2px solid var(--border);
+  border-radius: 8px;
+  font-size: 1rem;
+  text-align: center;
+  letter-spacing: 0.2rem;
+  background: var(--surface);
+  color: var(--text-primary);
+}
+
 @media (max-width: 640px) {
   .profile-form .form-grid {
     grid-template-columns: 1fr;
@@ -191,5 +275,15 @@
   .profile-header-card {
     flex-direction: column;
     text-align: center;
+  }
+
+  .profile-verification-card {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+
+  .verification-actions {
+    justify-content: center;
   }
 }

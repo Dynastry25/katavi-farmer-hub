@@ -14,7 +14,7 @@ const orderSchema = new mongoose.Schema({
   approvedQuantity: { type: Number, default: null },
   status: {
     type: String,
-    enum: ['pending', 'approved', 'partially_approved', 'rejected', 'expired'],
+    enum: ['pending', 'approved', 'partially_approved', 'rejected', 'expired', 'disputed', 'delivered', 'completed', 'cancelled'],
     default: 'pending',
   },
   expiresAt: { type: Date, required: true },

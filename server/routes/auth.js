@@ -58,6 +58,7 @@ const publicUser = (user, token) => ({
   creditScore: user.creditScore,
   trustScore: user.trustScore,
   isVerified: user.isVerified,
+  phoneVerified: user.phoneVerified,
   twoFactorEnabled: user.twoFactorEnabled,
   registrationDate: user.createdAt,
   token,
@@ -285,6 +286,76 @@ router.put('/profile', auth, async (req, res) => {
     });
   } catch (error) {
     console.error('Profile update error:', error);
+    res.status(500).json({ message: 'Hitilafu imetokea' });
+  }
+});
+
+// ──────────────────────────────────────────────
+// Phone OTP Verification
+// ──────────────────────────────────────────────
+const generatePhoneOtp = () => String(Math.floor(100000 + Math.random() * 900000));
+
+// POST /api/v1/auth/phone/send-otp
+router.post('/phone/send-otp', auth, async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+    if (!user) return res.status(404).json({ message: 'Mtumiaji haupatikani' });
+    if (user.phoneVerified) return res.json({ message: 'Simu yako imeshathibitishwa' });
+
+    const code = generatePhoneOtp();
+    user.phoneOtpHash = await bcrypt.hash(code, 8);
+    user.phoneOtpExpires = new Date(Date.now() + 5 * 60 * 1000);
+    await user.save();
+
+    const smsResult = await sendSms(user.phone, `Katavi E-Kilimo: Namba ya uthibitisho wa simu ni ${code}. Inamalizika baada ya dakika 5.`);
+    await sendNotification(user._id, {
+      title: 'Uthibitisho wa Simu',
+      message: `Namba yako ya uthibitisho ni: ${code}.`,
+      type: 'system',
+      sentVia: ['in_app', 'sms'],
+    });
+
+    res.json({ message: 'Namba ya uthibitisho imetumwa kwenye simu yako', mock: smsResult.mock || false });
+  } catch (error) {
+    console.error('Phone OTP send error:', error);
+    res.status(500).json({ message: 'Hitilafu imetokea' });
+  }
+});
+
+// POST /api/v1/auth/phone/verify
+router.post('/phone/verify', auth, async (req, res) => {
+  try {
+    const { code } = req.body;
+    if (!code) return res.status(400).json({ message: 'Namba ya uthibitisho inahitajika' });
+
+    const user = await User.findById(req.user._id);
+    if (!user) return res.status(404).json({ message: 'Mtumiaji haupatikani' });
+    if (user.phoneVerified) return res.json({ message: 'Simu yako imeshathibitishwa', phoneVerified: true });
+
+    if (!user.phoneOtpHash || !user.phoneOtpExpires) {
+      return res.status(400).json({ message: 'Ombi la uthibitisho halipo. Tuma namba upya.' });
+    }
+    if (user.phoneOtpExpires < new Date()) {
+      return res.status(400).json({ message: 'Namba imeisha muda. Tuma namba upya.' });
+    }
+
+    const isValid = await bcrypt.compare(String(code).trim(), user.phoneOtpHash);
+    if (!isValid) return res.status(400).json({ message: 'Namba ya uthibitisho siyo sahihi' });
+
+    user.phoneVerified = true;
+    user.phoneOtpHash = '';
+    user.phoneOtpExpires = null;
+    await user.save();
+
+    // Boost credit score for phone verification
+    try {
+      const { refreshCreditData } = require('../services/creditScore.service');
+      await refreshCreditData(user._id);
+    } catch (e) { /* optional */ }
+
+    res.json({ message: 'Simu imethibitishwa kikamilifu', phoneVerified: true });
+  } catch (error) {
+    console.error('Phone OTP verify error:', error);
     res.status(500).json({ message: 'Hitilafu imetokea' });
   }
 });

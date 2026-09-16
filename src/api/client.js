@@ -45,6 +45,8 @@ export const authAPI = {
   verifyTwoFactor: (data) => api.post('/auth/2fa/verify', data),
   resendTwoFactor: (email) => api.post('/auth/2fa/resend', { email }),
   setupTwoFactor: (data) => api.post('/auth/2fa/setup', data),
+  sendPhoneOtp: () => api.post('/auth/phone/send-otp'),
+  verifyPhoneOtp: (data) => api.post('/auth/phone/verify', data),
 };
 
 // Crops API
@@ -75,6 +77,8 @@ export const ordersAPI = {
   approve: (id, data) => api.post(`/orders/${id}/approve`, data),
   reject: (id) => api.post(`/orders/${id}/reject`),
   requestRemainder: (id) => api.post(`/orders/${id}/remainder`),
+  dispute: (id, data) => api.post(`/orders/${id}/dispute`, data),
+  getMyDisputes: () => api.get('/orders/disputes/my'),
   delete: (id) => api.delete(`/orders/${id}`),
 };
 
@@ -157,6 +161,7 @@ export const ratingsAPI = {
   create: (data) => api.post('/ratings', data),
   getMy: () => api.get('/ratings/my'),
   getByUser: (id) => api.get(`/ratings/user/${id}`),
+  getSummary: (targetType, targetId) => api.get(`/ratings/summary/${targetType}/${targetId}`),
 };
 
 // Admin API (role management)
@@ -308,6 +313,32 @@ export const priceAlertsAPI = {
   getMy: () => api.get('/price-alerts/my'),
   create: (data) => api.post('/price-alerts', data),
   remove: (id) => api.delete(`/price-alerts/${id}`),
+};
+
+// Input Products (Pembejeo Marketplace)
+export const inputProductsAPI = {
+  getAll: (params) => api.get('/input-products', { params }),
+  getById: (id) => api.get(`/input-products/${id}`),
+  getMy: () => api.get('/input-products/my/products'),
+  create: (data) => api.post('/input-products', data),
+  update: (id, data) => api.put(`/input-products/${id}`, data),
+  delete: (id) => api.delete(`/input-products/${id}`),
+};
+
+// Input Orders (Pembejeo Orders)
+export const inputOrdersAPI = {
+  getAll: () => api.get('/input-orders'),
+  getMy: () => api.get('/input-orders/my'),
+  create: (data) => api.post('/input-orders', data),
+  updateStatus: (id, status) => api.put(`/input-orders/${id}/status`, { status }),
+  pay: (id, data) => api.post(`/input-orders/${id}/pay`, data),
+};
+
+// Weather SMS Subscriptions
+export const weatherSubAPI = {
+  subscribe: (data) => api.post('/weather/subscribe', data),
+  unsubscribe: (phone) => api.delete('/weather/subscribe', { data: { phone } }),
+  getSubscriptions: () => api.get('/weather/subscriptions'),
 };
 
 // Farmer finance (P&L)

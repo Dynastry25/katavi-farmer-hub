@@ -6,6 +6,7 @@ import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend, LineChart, L
 import AdminLayout from './AdminLayout';
 import { getRoleNavSections } from './roleNav';
 import RatingModal from './RatingModal';
+import DisputeModal from './DisputeModal';
 import FarmerGroups from '../FarmerGroups';
 import Loans from '../Loans';
 import ChatSystem from '../ChatSystem/ChatSystem';
@@ -21,6 +22,8 @@ const FarmerDashboard = () => {
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [showRatingModal, setShowRatingModal] = useState(false);
   const [ratingOrder, setRatingOrder] = useState(null);
+  const [showDisputeModal, setShowDisputeModal] = useState(false);
+  const [disputeOrder, setDisputeOrder] = useState(null);
   const navigate = useNavigate();
 
   const [apiCrops, setApiCrops] = useState([]);
@@ -462,6 +465,10 @@ const FarmerDashboard = () => {
     partially_approved: 'Imekubaliwa Kwa Sehemu',
     rejected: 'Imekataliwa',
     expired: 'Imeisha Muda',
+    disputed: 'Mgogoro',
+    delivered: 'Imefikishwa',
+    completed: 'Imekamilika',
+    cancelled: 'Imefutwa',
   };
 
   const stockOf = (crop) => crop.stockQuantity ?? (Number(String(crop.quantity || '').replace(/[^0-9.]/g, '')) || 0);
@@ -493,6 +500,15 @@ const FarmerDashboard = () => {
     }
     setShowOrderModal(false);
     setApprovalQty('');
+  };
+
+  const canDispute = (order) => !['rejected', 'expired', 'disputed', 'cancelled'].includes(order.status);
+
+  const handleDisputeSubmitted = async () => {
+    setShowDisputeModal(false);
+    setDisputeOrder(null);
+    await fetchData();
+    alert('Mgogoro umefunguliwa kikamilifu. Timu ya usaidizi itaugundua hivi karibuni.');
   };
 
   const renderOverview = () => {
@@ -799,6 +815,17 @@ const FarmerDashboard = () => {
                         }}
                       >
                         <i className="fas fa-star"></i> Kadiria
+                      </button>
+                    )}
+                    {canDispute(order) && (
+                      <button 
+                        className="btn btn-sm btn-danger"
+                        onClick={() => {
+                          setDisputeOrder(order);
+                          setShowDisputeModal(true);
+                        }}
+                      >
+                        <i className="fas fa-gavel"></i> Mgogoro
                       </button>
                     )}
                   </div>
@@ -1685,6 +1712,15 @@ const FarmerDashboard = () => {
             alert('Asante kwa ukadiriaji wako!');
             fetchData();
           }}
+        />
+      )}
+      {showDisputeModal && disputeOrder && (
+        <DisputeModal
+          order={disputeOrder}
+          orderId={orderIdOf(disputeOrder)}
+          orderLabel={cropLabelOf(disputeOrder)}
+          onClose={() => { setShowDisputeModal(false); setDisputeOrder(null); }}
+          onSubmitted={handleDisputeSubmitted}
         />
       )}
     </>

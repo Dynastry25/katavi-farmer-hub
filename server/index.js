@@ -137,6 +137,8 @@ app.use('/api/v1/farmer-finance', require('./routes/farmerFinance'));
 app.use('/api/v1/shamba', require('./routes/shamba'));
 app.use('/api/v1/analytics', require('./routes/analytics'));
 app.use('/api/v1/settings', require('./routes/settings'));
+app.use('/api/v1/input-products', require('./routes/inputProducts'));
+app.use('/api/v1/input-orders', require('./routes/inputOrders'));
 
 // Health check
 app.get('/api/v1/health', (req, res) => {
