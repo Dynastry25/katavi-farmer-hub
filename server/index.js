@@ -16,9 +16,19 @@ connectDB();
 const app = express();
 const server = http.createServer(app);
 
+const connectedUsers = new Map();
+
+// CORS origins: allowed clients (React on :5173, Flutter web on :8090, plus FRONTEND_URL).
+const corsOrigins = [
+  'http://localhost:5173',
+  'http://localhost:8090',
+  ...(process.env.FRONTEND_URL ? [process.env.FRONTEND_URL] : []),
+];
+const uniqueOrigins = [...new Set(corsOrigins)];
+
 const io = new Server(server, {
   cors: {
-    origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+    origin: uniqueOrigins,
     credentials: true,
   },
 });
@@ -54,15 +64,13 @@ const chatbotLimiter = rateLimit({
 });
 
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  origin: uniqueOrigins,
   credentials: true,
 }));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
 // Socket.IO
-const connectedUsers = new Map();
-
 io.on('connection', (socket) => {
   console.log(`Socket connected: ${socket.id}`);
 
