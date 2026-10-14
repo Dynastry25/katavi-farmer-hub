@@ -24,6 +24,8 @@ const orderSchema = new mongoose.Schema({
   deliveryDate: { type: String, default: '' },
   contact: { type: String, default: '' },
   resolution: { type: String, default: '' },
+  options: { type: mongoose.Schema.Types.Mixed, default: {} },
+  note: { type: String, default: '' },
 }, { timestamps: true });
 
 orderSchema.index({ status: 1, expiresAt: 1 });

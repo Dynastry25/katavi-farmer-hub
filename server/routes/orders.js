@@ -47,7 +47,7 @@ router.get('/', auth, async (req, res) => {
 // POST /api/orders - place an order (buyer) with atomic reservation
 router.post('/', auth, async (req, res) => {
   try {
-    const { crop, requestedQuantity, deliveryDate, contact } = req.body;
+    const { crop, requestedQuantity, deliveryDate, contact, options, note } = req.body;
     const qty = Number(requestedQuantity);
 
     if (!crop || !qty || qty < 1) {
@@ -95,6 +95,8 @@ router.post('/', auth, async (req, res) => {
       expiresAt: expiryDate(),
       deliveryDate: deliveryDate || '',
       contact: contact || '',
+      options: options || {},
+      note: note || '',
       buyer: req.user._id,
       buyerName: req.user.name,
     });
