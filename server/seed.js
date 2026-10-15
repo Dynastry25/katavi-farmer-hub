@@ -599,6 +599,7 @@ const seedDB = async () => {
         maxMembers: 50,
         createdBy: users[0]._id,
         creatorName: 'Juma Mwinyi',
+        budget: { akiba: 600000, uendeshaji: 250000, mkopo: 150000 },
       },
       {
         name: 'Wakulima wa Mahindi Mlele',
@@ -609,6 +610,7 @@ const seedDB = async () => {
         maxMembers: 30,
         createdBy: users[1]._id,
         creatorName: 'Asha Hassan',
+        budget: { akiba: 400000, uendeshaji: 120000, mkopo: 280000 },
       },
     ]);
 

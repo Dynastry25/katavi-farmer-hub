@@ -9,6 +9,11 @@ const farmerGroupSchema = new mongoose.Schema({
   maxMembers: { type: Number, default: 50 },
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   creatorName: { type: String, default: '' },
+  budget: {
+    akiba: { type: Number, default: 0 },
+    uendeshaji: { type: Number, default: 0 },
+    mkopo: { type: Number, default: 0 },
+  },
   createdDate: { type: String, default: () => new Date().toISOString().split('T')[0] },
 }, { timestamps: true });
 

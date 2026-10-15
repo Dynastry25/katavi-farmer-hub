@@ -12,7 +12,9 @@ const groupOwnerId = async (req) => {
 // GET /api/farmer-groups
 router.get('/', async (req, res) => {
   try {
-    const groups = await FarmerGroup.find().sort({ createdAt: -1 });
+    const groups = await FarmerGroup.find()
+      .sort({ createdAt: -1 })
+      .populate('members', 'name location');
     res.json(groups);
   } catch (error) {
     res.status(500).json({ message: 'Hitilafu imetokea' });
@@ -64,6 +66,34 @@ router.put('/:id/leave', auth, async (req, res) => {
     group.members = group.members.filter(
       (m) => m.toString() !== req.user._id.toString()
     );
+    await group.save();
+    res.json(group);
+  } catch (error) {
+    res.status(500).json({ message: 'Hitilafu imetokea' });
+  }
+});
+
+// PUT /api/farmer-groups/:id/budget — any member (or admin) may update
+router.put('/:id/budget', auth, async (req, res) => {
+  try {
+    const group = await FarmerGroup.findById(req.params.id);
+    if (!group) return res.status(404).json({ message: 'Kikundi hiki hakipatikani' });
+    const isMember = group.members.some(
+      (m) => m.toString() === req.user._id.toString()
+    );
+    const isOwner =
+      group.createdBy && group.createdBy.toString() === req.user._id.toString();
+    if (!isMember && !isOwner && req.user.role !== 'admin') {
+      return res
+        .status(403)
+        .json({ message: 'Huna ruhusa kubadili bajeti ya kikundi hiki' });
+    }
+    const { akiba, uendeshaji, mkopo } = req.body;
+    group.budget = {
+      akiba: Number(akiba) || 0,
+      uendeshaji: Number(uendeshaji) || 0,
+      mkopo: Number(mkopo) || 0,
+    };
     await group.save();
     res.json(group);
   } catch (error) {
