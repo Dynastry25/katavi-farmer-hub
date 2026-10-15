@@ -5,6 +5,7 @@ const platformSettingSchema = new mongoose.Schema({
   commissionRate: { type: Number, default: 5, min: 0, max: 100 },
   featuredListingsEnabled: { type: Boolean, default: true },
   bannerMessage: { type: String, default: '' },
+  bannerImage: { type: String, default: '' },
   bannerActive: { type: Boolean, default: true },
   updatedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
 }, { timestamps: true });

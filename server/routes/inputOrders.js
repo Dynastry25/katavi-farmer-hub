@@ -3,6 +3,7 @@ const router = express.Router();
 const InputOrder = require('../models/InputOrder');
 const InputProduct = require('../models/InputProduct');
 const { auth } = require('../middleware/auth');
+const { requireRole } = require('../middleware/roleCheck');
 const { sendNotification } = require('../services/notification.service');
 const { initiatePayment } = require('../services/payment.service');
 
@@ -39,8 +40,8 @@ router.get('/', auth, async (req, res) => {
   }
 });
 
-// POST /api/v1/input-orders — place an input order (with payment initiation)
-router.post('/', auth, async (req, res) => {
+// POST /api/v1/input-orders — buyers/farmers place an input order (with payment initiation)
+router.post('/', requireRole('buyer', 'farmer', 'admin'), async (req, res) => {
   try {
     const { items, deliveryMethod, deliveryLocation, contact, notes, paymentProvider, paymentPhone } = req.body;
 

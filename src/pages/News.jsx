@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { newsAPI } from '../api/client';
+import { newsAPI, announcementsAPI } from '../api/client';
 import './CSS/News.css';
 
 const News = () => {
   const [activeCategory, setActiveCategory] = useState('all');
+  const [announcements, setAnnouncements] = useState([]);
   const [apiNews, setApiNews] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -18,7 +19,19 @@ const News = () => {
         setLoading(false);
       }
     };
+
+    const fetchAnnouncements = async () => {
+      try {
+        const res = await announcementsAPI.getAll();
+        const list = res.data?.announcements || res.data || [];
+        setAnnouncements(Array.isArray(list) ? list : []);
+      } catch (err) {
+        console.error('Announcements error:', err);
+      }
+    };
+
     fetchNews();
+    fetchAnnouncements();
   }, []);
 
   const newsCategories = [
@@ -129,7 +142,7 @@ const News = () => {
     }
   ];
 
-  const announcements = [
+  const fallbackAnnouncements = [
     {
       id: 1,
       title: 'Mafunzo ya Kilimo cha Kisasa',
@@ -159,6 +172,10 @@ const News = () => {
       type: 'event'
     }
   ];
+
+  const announcementList = announcements.length > 0
+    ? announcements
+    : fallbackAnnouncements;
 
   const filteredArticles = activeCategory === 'all' 
     ? newsArticles 
@@ -254,7 +271,7 @@ const News = () => {
                   Matangazo
                 </h3>
                 <div className="announcements-list">
-                  {announcements.map(announcement => (
+                  {announcementList.map(announcement => (
                     <div key={announcement.id} className="announcement-item">
                       <div className="announcement-date">{announcement.date}</div>
                       <h4 className="announcement-title">{announcement.title}</h4>

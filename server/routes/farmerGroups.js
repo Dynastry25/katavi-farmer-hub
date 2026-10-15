@@ -2,6 +2,12 @@ const express = require('express');
 const router = express.Router();
 const FarmerGroup = require('../models/FarmerGroup');
 const { auth } = require('../middleware/auth');
+const { requireRole, requireOwnershipOrAdmin } = require('../middleware/roleCheck');
+
+const groupOwnerId = async (req) => {
+  const group = await FarmerGroup.findById(req.params.id).select('createdBy').lean();
+  return group && group.createdBy;
+};
 
 // GET /api/farmer-groups
 router.get('/', async (req, res) => {
@@ -13,8 +19,8 @@ router.get('/', async (req, res) => {
   }
 });
 
-// POST /api/farmer-groups
-router.post('/', auth, async (req, res) => {
+// POST /api/farmer-groups — farmers (and admins) create groups
+router.post('/', requireRole('farmer', 'admin'), async (req, res) => {
   try {
     const group = await FarmerGroup.create({
       ...req.body,
@@ -47,8 +53,8 @@ router.put('/:id/join', auth, async (req, res) => {
   }
 });
 
-// PUT /api/farmer-groups/:id
-router.put('/:id', auth, async (req, res) => {
+// PUT /api/farmer-groups/:id — creator (or admin) only
+router.put('/:id', requireOwnershipOrAdmin(groupOwnerId), async (req, res) => {
   try {
     const group = await FarmerGroup.findByIdAndUpdate(req.params.id, req.body, { new: true });
     if (!group) return res.status(404).json({ message: 'Kikundi hiki hakipatikani' });
@@ -58,8 +64,8 @@ router.put('/:id', auth, async (req, res) => {
   }
 });
 
-// DELETE /api/farmer-groups/:id
-router.delete('/:id', auth, async (req, res) => {
+// DELETE /api/farmer-groups/:id — creator (or admin) only
+router.delete('/:id', requireOwnershipOrAdmin(groupOwnerId), async (req, res) => {
   try {
     await FarmerGroup.findByIdAndDelete(req.params.id);
     res.json({ message: 'Kikundi kimefutwa' });

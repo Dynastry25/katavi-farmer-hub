@@ -44,8 +44,8 @@ const ROLE_ICONS = {
   finance_officer: 'fas fa-coins'
 };
 
-const AdminDashboard = ({ user: propUser, onAuth, onToggleChat, onRefresh }) => {
-  const { user: authUser } = useAuth();
+const AdminDashboard = ({ user: propUser, onToggleChat, onRefresh }) => {
+  const { user: authUser, logout } = useAuth();
   const user = propUser || authUser;
   const [activeTab, setActiveTab] = useState('overview');
   const [stats, setStats] = useState(null);
@@ -779,7 +779,7 @@ const [trendCrop, setTrendCrop] = useState('');
             <button className="action-btn" onClick={() => navigate('/admin-reports')}>
               <i className="fas fa-chart-bar"></i> Ripoti za Mfumo
             </button>
-            <button className="action-btn" onClick={onRefresh}>
+            <button className="action-btn" onClick={onRefresh || loadStats}>
               <i className="fas fa-sync-alt"></i> Refresh
             </button>
           </div>
@@ -1982,12 +1982,14 @@ const [trendCrop, setTrendCrop] = useState('');
       subtitle="Dhibiti watumiaji, mazao, bei, mikopo na mfumo mzima"
       headerBadge={<div className="admin-badge content-badge"><i className="fas fa-user-shield"></i> Admin - Usimamizi</div>}
       navSections={navSections}
-      onLogout={() => onAuth('logout')}
+      onLogout={logout}
       headerActions={
         <>
-          <button className="btn btn-outline" onClick={onToggleChat}>
-            <i className="fas fa-comments"></i> Mazungumzo
-          </button>
+          {onToggleChat && (
+            <button className="btn btn-outline" onClick={onToggleChat}>
+              <i className="fas fa-comments"></i> Mazungumzo
+            </button>
+          )}
         </>
       }
     >

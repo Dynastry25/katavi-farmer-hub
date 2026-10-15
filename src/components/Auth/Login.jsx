@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Navigate } from 'react-router-dom';
 import { authAPI } from '../../api/client';
 import { useAuth } from '../../shared/context/AuthContext';
 import './Login.css';
@@ -22,8 +22,12 @@ const Login = () => {
   const dashboardPaths = {
     farmer: '/farmer-dashboard',
     buyer: '/buyer-dashboard',
+    seller: '/seller-dashboard',
     expert: '/expert-dashboard',
-    admin: '/admin-dashboard'
+    admin: '/admin-dashboard',
+    support: '/admin-dashboard',
+    content_moderator: '/admin-dashboard',
+    finance_officer: '/admin-dashboard'
   };
 
   const handleInputChange = (e) => {
@@ -157,9 +161,7 @@ const Login = () => {
 
   // If user is already logged in, redirect to dashboard
   if (user) {
-    const dashboardPath = dashboardPaths[user.role] || '/dashboard';
-    navigate(dashboardPath);
-    return null;
+    return <Navigate to={dashboardPaths[user.role] || '/dashboard'} replace />;
   }
 
   return (

@@ -9,6 +9,8 @@ const adviceArticleSchema = new mongoose.Schema({
   date: { type: String, default: () => new Date().toLocaleDateString('sw-TZ') },
   image: { type: String, default: '' },
   status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'approved' },
+  author: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  authorName: { type: String, default: '' },
 }, { timestamps: true });
 
 module.exports = mongoose.model('AdviceArticle', adviceArticleSchema);

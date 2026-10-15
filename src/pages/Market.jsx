@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { cropsAPI, ordersAPI } from '../api/client';
+import { useAuth } from '../shared/context/AuthContext';
 import Loading from '../components/Loading/Loading';
 import './CSS/Market.css';
 import Mpunga from '../components/assets/mpunga.jpeg';
@@ -35,6 +36,9 @@ const availableOf = (c) => {
 };
 
 const Market = ({ crops, onContactFarmer, onCropDetails }) => {
+  const { user } = useAuth();
+  // Placing crop orders is a buyer action (reading is open to everyone).
+  const canBuy = user?.role === 'buyer';
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedLocation, setSelectedLocation] = useState('all');
@@ -429,13 +433,15 @@ const Market = ({ crops, onContactFarmer, onCropDetails }) => {
                         >
                           <i className="fas fa-phone"></i> Wasiliana
                         </button>
-                        <button 
-                          className="btn-order"
-                          disabled={availableOf(crop) <= 0}
-                          onClick={() => openOrder(crop)}
-                        >
-                          <i className="fas fa-cart-plus"></i> {availableOf(crop) > 0 ? 'Agiza' : 'Imeisha'}
-                        </button>
+                        {canBuy && (
+                          <button 
+                            className="btn-order"
+                            disabled={availableOf(crop) <= 0}
+                            onClick={() => openOrder(crop)}
+                          >
+                            <i className="fas fa-cart-plus"></i> {availableOf(crop) > 0 ? 'Agiza' : 'Imeisha'}
+                          </button>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -513,9 +519,11 @@ const Market = ({ crops, onContactFarmer, onCropDetails }) => {
               <p className="detail-desc"><strong>Maelezo:</strong> {selectedCrop.description}</p>
               <div className="market-modal-actions">
                 <button className="btn-close-modal" onClick={closeDetails}>Funga</button>
-                <button className="btn-order" onClick={() => { setShowDetails(false); openOrder(selectedCrop); }}>
-                  <i className="fas fa-cart-plus"></i> Agiza
-                </button>
+                {canBuy && (
+                  <button className="btn-order" onClick={() => { setShowDetails(false); openOrder(selectedCrop); }}>
+                    <i className="fas fa-cart-plus"></i> Agiza
+                  </button>
+                )}
               </div>
             </div>
           </div>

@@ -3,6 +3,7 @@ const router = express.Router();
 const { requirePermission } = require('../middleware/roleCheck');
 const ctrl = require('../controllers/admin.controller');
 const s = require('../controllers/adminShamba.controller');
+const upload = require('../middleware/upload');
 
 // ---- Shamba Assistant reference dataset (admin-curated) ----
 router.get('/shamba/land', requirePermission('content.manage'), s.getLandGuidance);
@@ -61,5 +62,6 @@ router.get('/audit-logs', requirePermission('admin.only'), ctrl.getAuditLogs);
 
 router.get('/settings', requirePermission('admin.only'), ctrl.getSettings);
 router.put('/settings', requirePermission('admin.only'), ctrl.updateSettings);
+router.post('/settings/banner-image', requirePermission('admin.only'), upload.single('image'), ctrl.uploadBannerImage);
 
 module.exports = router;

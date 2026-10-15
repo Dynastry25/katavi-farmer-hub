@@ -211,9 +211,11 @@ const Loans = () => {
                         <button className="btn btn-outline" onClick={() => openApply(loan)}>
                           <i className="fas fa-eye"></i> Maelezo
                         </button>
-                        <button className="btn btn-primary" onClick={() => openApply(loan)}>
-                          <i className="fas fa-hand-holding-dollar"></i> Omba Mkopo
-                        </button>
+                        {user?.role === 'farmer' && (
+                          <button className="btn btn-primary" onClick={() => openApply(loan)}>
+                            <i className="fas fa-hand-holding-dollar"></i> Omba Mkopo
+                          </button>
+                        )}
                       </div>
                     </div>
                   ))

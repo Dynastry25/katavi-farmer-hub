@@ -6,12 +6,13 @@ router.get('/platform', async (req, res) => {
   try {
     const setting = await PlatformSetting.findOne({ key: 'platform' });
     if (!setting) {
-      return res.json({ commissionRate: 5, featuredListingsEnabled: true, bannerMessage: '', bannerActive: true });
+      return res.json({ commissionRate: 5, featuredListingsEnabled: true, bannerMessage: '', bannerImage: '', bannerActive: true });
     }
     res.json({
       commissionRate: setting.commissionRate,
       featuredListingsEnabled: setting.featuredListingsEnabled,
       bannerMessage: setting.bannerMessage,
+      bannerImage: setting.bannerImage || '',
       bannerActive: setting.bannerActive,
     });
   } catch (error) {

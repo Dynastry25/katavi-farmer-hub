@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Video = require('../models/Video');
-const { auth } = require('../middleware/auth');
+const { requirePermission } = require('../middleware/roleCheck');
 
 // GET /api/videos
 router.get('/', async (req, res) => {
@@ -13,8 +13,8 @@ router.get('/', async (req, res) => {
   }
 });
 
-// POST /api/videos
-router.post('/', auth, async (req, res) => {
+// POST /api/videos — content staff only
+router.post('/', requirePermission('content.manage'), async (req, res) => {
   try {
     const video = await Video.create(req.body);
     res.status(201).json(video);

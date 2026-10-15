@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const NewsArticle = require('../models/NewsArticle');
-const { auth } = require('../middleware/auth');
+const { requirePermission } = require('../middleware/roleCheck');
 
 // GET /api/news
 router.get('/', async (req, res) => {
@@ -42,8 +42,8 @@ router.put('/:id/view', async (req, res) => {
   }
 });
 
-// POST /api/news
-router.post('/', auth, async (req, res) => {
+// POST /api/news — content staff only
+router.post('/', requirePermission('content.manage'), async (req, res) => {
   try {
     const article = await NewsArticle.create(req.body);
     res.status(201).json(article);
@@ -52,8 +52,8 @@ router.post('/', auth, async (req, res) => {
   }
 });
 
-// PUT /api/news/:id
-router.put('/:id', auth, async (req, res) => {
+// PUT /api/news/:id — content staff only
+router.put('/:id', requirePermission('content.manage'), async (req, res) => {
   try {
     const article = await NewsArticle.findByIdAndUpdate(req.params.id, req.body, { new: true });
     if (!article) return res.status(404).json({ message: 'Makala haipatikani' });
@@ -63,8 +63,8 @@ router.put('/:id', auth, async (req, res) => {
   }
 });
 
-// DELETE /api/news/:id
-router.delete('/:id', auth, async (req, res) => {
+// DELETE /api/news/:id — content staff only
+router.delete('/:id', requirePermission('content.manage'), async (req, res) => {
   try {
     await NewsArticle.findByIdAndDelete(req.params.id);
     res.json({ message: 'Makala imefutwa' });

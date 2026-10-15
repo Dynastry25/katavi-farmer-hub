@@ -3,6 +3,7 @@ const router = express.Router();
 const Order = require('../models/Order');
 const Crop = require('../models/Crop');
 const { auth } = require('../middleware/auth');
+const { requireRole } = require('../middleware/roleCheck');
 const { sendNotification } = require('../services/notification.service');
 const {
   isTerminal,
@@ -45,7 +46,7 @@ router.get('/', auth, async (req, res) => {
 });
 
 // POST /api/orders - place an order (buyer) with atomic reservation
-router.post('/', auth, async (req, res) => {
+router.post('/', requireRole('buyer', 'admin'), async (req, res) => {
   try {
     const { crop, requestedQuantity, deliveryDate, contact, options, note } = req.body;
     const qty = Number(requestedQuantity);

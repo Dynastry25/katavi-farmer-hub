@@ -92,6 +92,24 @@ export const newsAPI = {
   trackView: (id) => api.put(`/news/${id}/view`),
 };
 
+// Announcements API (matangazo — admin-managed, DB-backed)
+export const announcementsAPI = {
+  getAll: () => api.get('/announcements'),
+  getAdmin: () => api.get('/announcements/admin'),
+  create: (data) => api.post('/announcements', data),
+  update: (id, data) => api.put(`/announcements/${id}`, data),
+  delete: (id) => api.delete(`/announcements/${id}`),
+};
+
+// Offers API (ofa za nyumbani — admin-managed, DB-backed)
+export const offersAPI = {
+  getAll: () => api.get('/offers'),
+  getAdmin: () => api.get('/offers/admin'),
+  create: (data) => api.post('/offers', data),
+  update: (id, data) => api.put(`/offers/${id}`, data),
+  delete: (id) => api.delete(`/offers/${id}`),
+};
+
 // Suppliers API
 export const suppliersAPI = {
   getAll: (params) => api.get('/suppliers', { params }),

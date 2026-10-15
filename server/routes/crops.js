@@ -1,7 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const Crop = require('../models/Crop');
-const { auth, optionalAuth } = require('../middleware/auth');
+const { optionalAuth } = require('../middleware/auth');
+const { requireRole, requireOwnershipOrAdmin } = require('../middleware/roleCheck');
 const upload = require('../middleware/upload');
 const cloudinary = require('../config/cloudinary');
 const { normalizeStock, ensureStockPersisted } = require('../services/crop.stock.service');
@@ -14,6 +15,12 @@ const uploadToCloudinary = (file) => {
     );
     stream.end(file.buffer);
   });
+};
+
+// Resolve the owner (farmer) of a crop for ownership-guarded writes.
+const cropOwnerId = async (req) => {
+  const crop = await Crop.findById(req.params.id).select('farmer').lean();
+  return crop && crop.farmer;
 };
 
 const validatePriceLimit = async ({ name, price }) => {
@@ -30,10 +37,17 @@ const validatePriceLimit = async ({ name, price }) => {
 // schema store legacy quantities (e.g. "500" instead of "500 kg") with a defaulted
 // stockQuantity of 0. Backfill source stock from the legacy quantity and persist
 // it so old listings remain orderable and consistent with what is shown.
-router.get('/', async (req, res) => {
+router.get('/', optionalAuth, async (req, res) => {
   try {
-    const { category, location, search, sort } = req.query;
+    const { category, location, search, sort, owner } = req.query;
     let query = {};
+
+    if (owner === 'me') {
+      if (!req.user) {
+        return res.status(401).json({ message: 'Unahitaji kuingia kuona mazao yako' });
+      }
+      query.farmer = req.user._id;
+    }
 
     if (category && category !== 'all') query.category = category;
     if (location && location !== 'all') query.location = location;
@@ -76,8 +90,8 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// POST /api/crops
-router.post('/', auth, async (req, res) => {
+// POST /api/crops — only farmers (and admins) may list crops for sale
+router.post('/', requireRole('farmer', 'admin'), async (req, res) => {
   try {
     const priceError = await validatePriceLimit({ name: req.body.name, price: req.body.price });
     if (priceError) return res.status(400).json({ message: priceError });
@@ -100,8 +114,8 @@ router.post('/', auth, async (req, res) => {
   }
 });
 
-// PUT /api/crops/:id
-router.put('/:id', auth, async (req, res) => {
+// PUT /api/crops/:id — owner (or admin) only
+router.put('/:id', requireOwnershipOrAdmin(cropOwnerId), async (req, res) => {
   try {
     const crop = await Crop.findById(req.params.id);
     if (!crop) return res.status(404).json({ message: 'Zao hili halipatikani' });
@@ -137,8 +151,8 @@ router.put('/:id', auth, async (req, res) => {
   }
 });
 
-// DELETE /api/crops/:id
-router.delete('/:id', auth, async (req, res) => {
+// DELETE /api/crops/:id — owner (or admin) only
+router.delete('/:id', requireOwnershipOrAdmin(cropOwnerId), async (req, res) => {
   try {
     const crop = await Crop.findByIdAndDelete(req.params.id);
     if (!crop) return res.status(404).json({ message: 'Zao hili halipatikani' });
@@ -148,8 +162,8 @@ router.delete('/:id', auth, async (req, res) => {
   }
 });
 
-// POST /api/crops/:id/image
-router.post('/:id/image', auth, upload.single('image'), async (req, res) => {
+// POST /api/crops/:id/image — owner (or admin) only
+router.post('/:id/image', requireOwnershipOrAdmin(cropOwnerId), upload.single('image'), async (req, res) => {
   try {
     const crop = await Crop.findById(req.params.id);
     if (!crop) return res.status(404).json({ message: 'Zao hili halipatikani' });

@@ -776,6 +776,7 @@ exports.getSettings = async (req, res) => {
       commissionRate: setting.commissionRate,
       featuredListingsEnabled: setting.featuredListingsEnabled,
       bannerMessage: setting.bannerMessage,
+      bannerImage: setting.bannerImage || '',
       bannerActive: setting.bannerActive,
     });
   } catch (error) {
@@ -786,7 +787,7 @@ exports.getSettings = async (req, res) => {
 
 exports.updateSettings = async (req, res) => {
   try {
-    const { commissionRate, featuredListingsEnabled, bannerMessage, bannerActive } = req.body;
+    const { commissionRate, featuredListingsEnabled, bannerMessage, bannerImage, bannerActive } = req.body;
 
     let setting = await PlatformSetting.findOne({ key: 'platform' });
     if (!setting) {
@@ -802,6 +803,7 @@ exports.updateSettings = async (req, res) => {
     }
     if (featuredListingsEnabled !== undefined) setting.featuredListingsEnabled = Boolean(featuredListingsEnabled);
     if (bannerMessage !== undefined) setting.bannerMessage = String(bannerMessage).slice(0, 500);
+    if (bannerImage !== undefined) setting.bannerImage = String(bannerImage).slice(0, 1000);
     if (bannerActive !== undefined) setting.bannerActive = Boolean(bannerActive);
 
     setting.updatedBy = req.user._id;
@@ -825,11 +827,41 @@ exports.updateSettings = async (req, res) => {
         commissionRate: setting.commissionRate,
         featuredListingsEnabled: setting.featuredListingsEnabled,
         bannerMessage: setting.bannerMessage,
+        bannerImage: setting.bannerImage || '',
         bannerActive: setting.bannerActive,
       },
     });
   } catch (error) {
     console.error('Admin update settings error:', error);
+    res.status(500).json({ message: 'Hitilafu imetokea' });
+  }
+};
+
+// Upload a promotional banner image (stored on Cloudinary) and attach it to the
+// platform settings so the mobile app can render a real banner.
+exports.uploadBannerImage = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: 'Picha ya bango inahitajika' });
+    }
+    const cloudinary = require('../config/cloudinary');
+    const result = await new Promise((resolve, reject) => {
+      const stream = cloudinary.uploader.upload_stream(
+        { folder: 'katavi-ekilimo/banners', resource_type: 'image' },
+        (error, uploaded) => (error ? reject(error) : resolve(uploaded)),
+      );
+      stream.end(req.file.buffer);
+    });
+
+    let setting = await PlatformSetting.findOne({ key: 'platform' });
+    if (!setting) setting = await PlatformSetting.create({ key: 'platform' });
+    setting.bannerImage = result.secure_url;
+    setting.updatedBy = req.user._id;
+    await setting.save();
+
+    res.json({ message: 'Picha ya bango imepakiwa', bannerImage: setting.bannerImage });
+  } catch (error) {
+    console.error('Admin upload banner error:', error);
     res.status(500).json({ message: 'Hitilafu imetokea' });
   }
 };

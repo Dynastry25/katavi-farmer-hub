@@ -2,6 +2,12 @@ const express = require('express');
 const router = express.Router();
 const Product = require('../models/Product');
 const { auth } = require('../middleware/auth');
+const { requireRole, requireOwnershipOrAdmin } = require('../middleware/roleCheck');
+
+const productOwnerId = async (req) => {
+  const product = await Product.findById(req.params.id).select('farmer').lean();
+  return product && product.farmer;
+};
 
 // GET /api/products
 router.get('/', async (req, res) => {
@@ -23,8 +29,8 @@ router.get('/my', auth, async (req, res) => {
   }
 });
 
-// POST /api/products
-router.post('/', auth, async (req, res) => {
+// POST /api/products — farmers (and admins) only
+router.post('/', requireRole('farmer', 'admin'), async (req, res) => {
   try {
     const product = await Product.create({ ...req.body, farmer: req.user._id });
     res.status(201).json(product);
@@ -33,8 +39,8 @@ router.post('/', auth, async (req, res) => {
   }
 });
 
-// PUT /api/products/:id
-router.put('/:id', auth, async (req, res) => {
+// PUT /api/products/:id — owner (or admin) only
+router.put('/:id', requireOwnershipOrAdmin(productOwnerId), async (req, res) => {
   try {
     const product = await Product.findById(req.params.id);
     if (!product) return res.status(404).json({ message: 'Bidhaa hii haipatikani' });
@@ -46,8 +52,8 @@ router.put('/:id', auth, async (req, res) => {
   }
 });
 
-// DELETE /api/products/:id
-router.delete('/:id', auth, async (req, res) => {
+// DELETE /api/products/:id — owner (or admin) only
+router.delete('/:id', requireOwnershipOrAdmin(productOwnerId), async (req, res) => {
   try {
     await Product.findByIdAndDelete(req.params.id);
     res.json({ message: 'Bidhaa imefutwa' });

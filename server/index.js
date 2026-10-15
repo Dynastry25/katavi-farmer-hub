@@ -26,9 +26,20 @@ const corsOrigins = [
 ];
 const uniqueOrigins = [...new Set(corsOrigins)];
 
+// In development, also accept any localhost/127.0.0.1 origin so tools like
+// `flutter run -d chrome` (which picks a random dev port) can reach the API.
+const isProd = process.env.NODE_ENV === 'production';
+const corsOrigin = (origin, callback) => {
+  if (!origin || uniqueOrigins.includes(origin)) return callback(null, true);
+  if (!isProd && /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) {
+    return callback(null, true);
+  }
+  return callback(null, false);
+};
+
 const io = new Server(server, {
   cors: {
-    origin: uniqueOrigins,
+    origin: corsOrigin,
     credentials: true,
   },
 });
@@ -64,7 +75,7 @@ const chatbotLimiter = rateLimit({
 });
 
 app.use(cors({
-  origin: uniqueOrigins,
+  origin: corsOrigin,
   credentials: true,
 }));
 app.use(express.json({ limit: '10mb' }));
@@ -122,10 +133,13 @@ app.use('/api/v1/auth', apiLimiter, require('./routes/auth'));
 app.use('/api/v1/chatbot', chatbotLimiter, require('./routes/chatbot'));
 app.use('/api/v1/ai', require('./routes/ai'));
 app.use('/api/v1/crops', require('./routes/crops'));
+app.use('/api/v1/favorites', require('./routes/favorites'));
 app.use('/api/v1/products', require('./routes/products'));
 app.use('/api/v1/orders', require('./routes/orders'));
 app.use('/api/v1/news', require('./routes/news'));
 app.use('/api/v1/videos', require('./routes/videos'));
+app.use('/api/v1/announcements', require('./routes/announcements'));
+app.use('/api/v1/offers', require('./routes/offers'));
 app.use('/api/v1/suppliers', require('./routes/suppliers'));
 app.use('/api/v1/loans', require('./routes/loans'));
 app.use('/api/v1/farmer-groups', require('./routes/farmerGroups'));

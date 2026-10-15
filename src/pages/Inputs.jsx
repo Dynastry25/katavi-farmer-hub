@@ -25,6 +25,8 @@ const CATEGORY_FALLBACKS = {
 
 const Inputs = () => {
   const { user } = useAuth();
+  // Buying inputs is a buyer/farmer action (browsing is open to everyone).
+  const canBuy = user?.role === 'buyer' || user?.role === 'farmer';
   const navigate = useNavigate();
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -198,10 +200,12 @@ const Inputs = () => {
               <option value="rating">Ukadiriaji</option>
               <option value="name">Jina</option>
             </select>
-            <button className="cart-toggle-btn" onClick={() => setCartOpen(!cartOpen)}>
-              <i className="fas fa-shopping-cart"></i>
-              {cartCount > 0 && <span className="cart-badge">{cartCount}</span>}
-            </button>
+            {canBuy && (
+              <button className="cart-toggle-btn" onClick={() => setCartOpen(!cartOpen)}>
+                <i className="fas fa-shopping-cart"></i>
+                {cartCount > 0 && <span className="cart-badge">{cartCount}</span>}
+              </button>
+            )}
           </div>
 
           {/* Category Filter */}
@@ -321,16 +325,18 @@ const Inputs = () => {
                                 <i className="fas fa-plus"></i>
                               </button>
                             </div>
-                            <button
-                              className={`btn btn-primary ${addedIds[product._id] ? 'added' : ''}`}
-                              onClick={() => addToCart(product)}
-                            >
-                              {addedIds[product._id] ? (
-                                <><i className="fas fa-check"></i> Imewekwa</>
-                              ) : (
-                                <><i className="fas fa-cart-plus"></i> Weka Kwenye Kikapu</>
-                              )}
-                            </button>
+                            {canBuy && (
+                              <button
+                                className={`btn btn-primary ${addedIds[product._id] ? 'added' : ''}`}
+                                onClick={() => addToCart(product)}
+                              >
+                                {addedIds[product._id] ? (
+                                  <><i className="fas fa-check"></i> Imewekwa</>
+                                ) : (
+                                  <><i className="fas fa-cart-plus"></i> Weka Kwenye Kikapu</>
+                                )}
+                              </button>
+                            )}
                           </div>
                         )}
                       </div>

@@ -1,13 +1,13 @@
 const express = require('express');
 const router = express.Router();
-const { auth } = require('../middleware/auth');
+const { requireRole } = require('../middleware/roleCheck');
 const FarmerExpense = require('../models/FarmerExpense');
 const { computePL } = require('../services/farmerFinance.service');
 
 const EXPENSE_CATEGORIES = ['inputs', 'labor', 'seeds', 'transport', 'equipment', 'other'];
 
 // GET /api/v1/farmer-finance/summary?months=6
-router.get('/summary', auth, async (req, res) => {
+router.get('/summary', requireRole('farmer', 'admin'), async (req, res) => {
   try {
     const months = Math.max(1, Math.min(24, parseInt(req.query.months) || 6));
     const result = await computePL(req.user._id, { months });
@@ -19,7 +19,7 @@ router.get('/summary', auth, async (req, res) => {
 });
 
 // GET /api/v1/farmer-finance/expenses
-router.get('/expenses', auth, async (req, res) => {
+router.get('/expenses', requireRole('farmer', 'admin'), async (req, res) => {
   try {
     const expenses = await FarmerExpense.find({ user: req.user._id }).sort({ date: -1 });
     res.json(expenses);
@@ -30,7 +30,7 @@ router.get('/expenses', auth, async (req, res) => {
 });
 
 // POST /api/v1/farmer-finance/expenses  { category, amount, description, date }
-router.post('/expenses', auth, async (req, res) => {
+router.post('/expenses', requireRole('farmer', 'admin'), async (req, res) => {
   try {
     const { category, amount, description, date } = req.body;
     const numeric = Number(amount);
@@ -54,7 +54,7 @@ router.post('/expenses', auth, async (req, res) => {
 });
 
 // DELETE /api/v1/farmer-finance/expenses/:id
-router.delete('/expenses/:id', auth, async (req, res) => {
+router.delete('/expenses/:id', requireRole('farmer', 'admin'), async (req, res) => {
   try {
     const expense = await FarmerExpense.findOneAndDelete({ _id: req.params.id, user: req.user._id });
     if (!expense) return res.status(404).json({ message: 'Gharama haipatikani' });
