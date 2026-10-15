@@ -53,6 +53,24 @@ router.put('/:id/join', auth, async (req, res) => {
   }
 });
 
+// PUT /api/farmer-groups/:id/leave
+router.put('/:id/leave', auth, async (req, res) => {
+  try {
+    const group = await FarmerGroup.findById(req.params.id);
+    if (!group) return res.status(404).json({ message: 'Kikundi hiki hakipatikani' });
+    if (!group.members.includes(req.user._id)) {
+      return res.status(400).json({ message: 'Wewe si memberi wa kikundi hiki' });
+    }
+    group.members = group.members.filter(
+      (m) => m.toString() !== req.user._id.toString()
+    );
+    await group.save();
+    res.json(group);
+  } catch (error) {
+    res.status(500).json({ message: 'Hitilafu imetokea' });
+  }
+});
+
 // PUT /api/farmer-groups/:id — creator (or admin) only
 router.put('/:id', requireOwnershipOrAdmin(groupOwnerId), async (req, res) => {
   try {
