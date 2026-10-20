@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const AdviceArticle = require('../models/AdviceArticle');
 const Expert = require('../models/Expert');
-const { auth } = require('../middleware/auth');
+const { auth, optionalAuth } = require('../middleware/auth');
 const { requireRole, STAFF_ROLES } = require('../middleware/roleCheck');
 
 // Owner (author) or staff may edit/delete an article.
@@ -12,10 +12,18 @@ const canManageArticle = async (req) => {
   return !!(article && article.author && article.author.toString() === req.user._id.toString());
 };
 
-// GET /api/advice/articles
-router.get('/articles', async (req, res) => {
+// GET /api/advice/articles — public feed; `?mine=true` (auth) returns the
+// caller's own articles including drafts/under-review.
+router.get('/articles', optionalAuth, async (req, res) => {
   try {
-    const articles = await AdviceArticle.find({ $or: [{ status: 'approved' }, { status: { $exists: false } }] }).sort({ createdAt: -1 });
+    if (req.query.mine === 'true') {
+      if (!req.user) {
+        return res.status(401).json({ message: 'Usajili unahitajika' });
+      }
+      const mine = await AdviceArticle.find({ author: req.user._id }).sort({ createdAt: -1 });
+      return res.json(mine);
+    }
+    const articles = await AdviceArticle.find({ status: 'approved' }).sort({ createdAt: -1 });
     res.json(articles);
   } catch (error) {
     res.status(500).json({ message: 'Hitilafu imetokea' });

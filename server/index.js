@@ -146,6 +146,7 @@ app.use('/api/v1/farmer-groups', require('./routes/farmerGroups'));
 app.use('/api/v1/chat', require('./routes/chat'));
 app.use('/api/v1/contact', require('./routes/contact'));
 app.use('/api/v1/advice', require('./routes/advice'));
+app.use('/api/v1/questions', require('./routes/questions'));
 app.use('/api/v1/upload', require('./routes/upload'));
 app.use('/api/v1/admin', require('./routes/admin'));
 app.use('/api/v1/market-prices', require('./routes/marketPrices'));
