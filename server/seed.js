@@ -18,6 +18,8 @@ const MarketPrice = require('./models/MarketPrice');
 const Notification = require('./models/Notification');
 const Rating = require('./models/Rating');
 const WeatherConfig = require('./models/WeatherConfig');
+const { TransportProvider } = require('./models/Transport');
+const { Warehouse } = require('./models/Warehouse');
 const WeatherZone = require('./models/WeatherZone');
 const PlatformSetting = require('./models/PlatformSetting');
 const LandGuidance = require('./models/LandGuidance');
@@ -877,6 +879,23 @@ const seedDB = async () => {
       { cropName: 'Maharage', name: 'Angular Leaf Spot', symptoms: 'Mashaka ya pembe yenye kuta nzito kwenye majani', prevention: 'Tumia mbegu safi; epuka kunyunyizia jioni.', treatment: 'Ondoa majani yaliyoathirika; tumia dawa.' },
     ]);
     console.log('Data ya CropDisease imeundwa');
+
+    // Create transport providers
+    await TransportProvider.create([
+      { name: 'Katavi Express', phone: '+255 754 111 222', location: 'Mpanda', vehicleType: 'lorry', ratePerKm: 1500, vehiclePlate: 'T 123 ABC', description: 'Usafirishaji wa mazao mkoani Katavi', averageRating: 4.5, totalReviews: 12, available: true },
+      { name: 'Mpanda Logistics', phone: '+255 765 333 444', location: 'Mlele', vehicleType: 'pickup', ratePerKm: 1200, vehiclePlate: 'T 456 DEF', description: 'Huduma ya usafirishaji wa haraka', averageRating: 4.2, totalReviews: 8, available: true },
+      { name: 'Tanganyika Transport', phone: '+255 742 555 666', location: 'Nsimbo', vehicleType: 'truck', ratePerKm: 2000, vehiclePlate: 'T 789 GHI', description: 'Usafirishaji wa mizigo mikubwa', averageRating: 4.7, totalReviews: 15, available: true },
+      { name: 'Boda Boda Express', phone: '+255 712 777 888', location: 'Mpanda', vehicleType: 'motorcycle', ratePerKm: 800, vehiclePlate: 'MC 123', description: 'Usafirishaji wa haraka kwa mizigo midogo', averageRating: 4.0, totalReviews: 5, available: true },
+    ]);
+    console.log('Watoa huduma wa usafirishaji wameundwa');
+
+    // Create warehouses
+    await Warehouse.create([
+      { name: 'Ghala ya Mpanda', location: 'Mpanda Mjini', feePerBagPerMonth: 500, capacityBags: 500, available: true },
+      { name: 'Ghala ya Mlele', location: 'Mlele', feePerBagPerMonth: 400, capacityBags: 300, available: true },
+      { name: 'Ghala ya Nsimbo', location: 'Nsimbo', feePerBagPerMonth: 450, capacityBags: 400, available: true },
+    ]);
+    console.log('Ghala zimeundwa');
 
     console.log('\n✅ Seed imekamilika! Database imejazwa na data ya mfano.');
     console.log('\nAkaunti za majaribio:');

@@ -163,6 +163,9 @@ app.use('/api/v1/settings', require('./routes/settings'));
 app.use('/api/v1/input-products', require('./routes/inputProducts'));
 app.use('/api/v1/input-orders', require('./routes/inputOrders'));
 app.use('/api/v1/price-limits', require('./routes/priceLimits'));
+app.use('/api/v1/transport', require('./routes/transport'));
+app.use('/api/v1/warehouses', require('./routes/warehouses'));
+app.use('/api/v1/warehouse-bookings', require('./routes/warehouseBookings'));
 
 // Health check
 app.get('/api/v1/health', (req, res) => {
