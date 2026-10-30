@@ -103,6 +103,7 @@ router.post('/', requireRole('buyer', 'admin'), async (req, res) => {
       options: options || {},
       note: note || '',
       deliveryMethod: deliveryMethod || 'self',
+      pickupLocation: cropDoc.location || '',
       deliveryLocation: deliveryLocation || '',
       deliveryFee: Math.max(0, Number(deliveryFee) || 0),
       deliveryProviderName: deliveryProviderName || '',
@@ -217,6 +218,41 @@ router.post('/:id/reject', auth, async (req, res) => {
     res.json(order);
   } catch (error) {
     console.error('Reject order error:', error);
+    res.status(500).json({ message: 'Hitilafu imetokea' });
+  }
+});
+
+// POST /api/v1/orders/:id/receive — buyer confirms the goods arrived
+router.post('/:id/receive', auth, async (req, res) => {
+  try {
+    const order = await Order.findById(req.params.id);
+    if (!order) return res.status(404).json({ message: 'Agizo halipatikani' });
+
+    const isBuyer = String(order.buyer) === String(req.user._id);
+    const isAdmin = req.user.role === 'admin';
+    if (!isBuyer && !isAdmin) {
+      return res.status(403).json({ message: 'Huna ruhusa ya kuthibitisha agizo hili' });
+    }
+    if (!['approved', 'partially_approved', 'delivered'].includes(order.status)) {
+      return res.status(400).json({ message: `Agizo hili liko katika hali ya ${order.status}` });
+    }
+
+    order.status = 'completed';
+    order.respondedAt = new Date();
+    await order.save();
+
+    if (order.farmer) {
+      await notify(req, order.farmer, {
+        title: 'Mzigo Umepokelewa',
+        message: `${order.buyerName} amethibitisha kupokea ${order.approvedQuantity || order.requestedQuantity} ${order.unit || 'kg'} ya ${order.cropName}.`,
+        link: '/farmer',
+        metadata: { orderId: order._id, status: 'completed' },
+      });
+    }
+
+    res.json(order);
+  } catch (error) {
+    console.error('Receive order error:', error);
     res.status(500).json({ message: 'Hitilafu imetokea' });
   }
 });

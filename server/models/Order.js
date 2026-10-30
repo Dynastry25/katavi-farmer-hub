@@ -27,6 +27,7 @@ const orderSchema = new mongoose.Schema({
   options: { type: mongoose.Schema.Types.Mixed, default: {} },
   note: { type: String, default: '' },
   deliveryMethod: { type: String, default: 'self' },
+  pickupLocation: { type: String, default: '' },
   deliveryLocation: { type: String, default: '' },
   deliveryFee: { type: Number, default: 0 },
   deliveryProviderName: { type: String, default: '' },
