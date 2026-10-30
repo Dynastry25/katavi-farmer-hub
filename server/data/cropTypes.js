@@ -1,0 +1,48 @@
+// Default home-screen crop types (parity with the reference CATS list).
+module.exports = [
+  {
+    slug: 'cereals',
+    name: 'Nafaka',
+    nameEn: 'Grains',
+    icon: '🌾',
+    order: 1,
+    active: true,
+    image: 'https://res.cloudinary.com/avkq5b72/image/upload/v1793393112/katavi-ekilimo/crop-types/cereals.png',
+  },
+  {
+    slug: 'legumes',
+    name: 'Mikunde',
+    nameEn: 'Legumes',
+    icon: '🫘',
+    order: 2,
+    active: true,
+    image: 'https://res.cloudinary.com/avkq5b72/image/upload/v1793393154/katavi-ekilimo/crop-types/legumes.png',
+  },
+  {
+    slug: 'vegetables',
+    name: 'Mboga',
+    nameEn: 'Vegetables',
+    icon: '🥬',
+    order: 3,
+    active: true,
+    image: 'https://res.cloudinary.com/avkq5b72/image/upload/v1793393195/katavi-ekilimo/crop-types/vegetables.png',
+  },
+  {
+    slug: 'tubers',
+    name: 'Mizizi',
+    nameEn: 'Tubers',
+    icon: '🍠',
+    order: 4,
+    active: true,
+    image: 'https://res.cloudinary.com/avkq5b72/image/upload/v1793393236/katavi-ekilimo/crop-types/tubers.png',
+  },
+  {
+    slug: 'oilseeds',
+    name: 'Mafuta',
+    nameEn: 'Oilseeds',
+    icon: '🌻',
+    order: 5,
+    active: true,
+    image: 'https://res.cloudinary.com/avkq5b72/image/upload/v1793393276/katavi-ekilimo/crop-types/oilseeds.png',
+  },
+];

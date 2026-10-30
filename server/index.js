@@ -140,6 +140,7 @@ app.use('/api/v1/news', require('./routes/news'));
 app.use('/api/v1/videos', require('./routes/videos'));
 app.use('/api/v1/announcements', require('./routes/announcements'));
 app.use('/api/v1/offers', require('./routes/offers'));
+app.use('/api/v1/crop-types', require('./routes/cropTypes'));
 app.use('/api/v1/suppliers', require('./routes/suppliers'));
 app.use('/api/v1/loans', require('./routes/loans'));
 app.use('/api/v1/farmer-groups', require('./routes/farmerGroups'));
