@@ -8,6 +8,7 @@ const NewsArticle = require('../models/NewsArticle');
 const AdviceArticle = require('../models/AdviceArticle');
 const Supplier = require('../models/Supplier');
 const Notification = require('../models/Notification');
+const Broadcast = require('../models/Broadcast');
 const AuditLog = require('../models/AuditLog');
 const MarketPrice = require('../models/MarketPrice');
 const Rating = require('../models/Rating');
@@ -474,9 +475,69 @@ exports.getNotifications = async (req, res) => {
   }
 };
 
+const broadcastAudiences = ['all', 'farmer', 'buyer', 'expert', 'seller'];
+
+const serializeBroadcast = (broadcast) => ({
+  id: broadcast._id.toString(),
+  title: broadcast.title,
+  message: broadcast.message,
+  type: broadcast.type,
+  audience: broadcast.audience,
+  district: broadcast.district || '',
+  channels: broadcast.channels,
+  recipientCount: broadcast.recipientCount,
+  sentBy: broadcast.sentBy,
+  createdAt: broadcast.createdAt,
+  updatedAt: broadcast.updatedAt,
+});
+
+exports.getBroadcasts = async (req, res) => {
+  try {
+    const { page = 1, limit = 50 } = req.query;
+    const total = await Broadcast.countDocuments();
+    const broadcasts = await Broadcast.find()
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(parseInt(limit));
+
+    res.json({
+      broadcasts: broadcasts.map(serializeBroadcast),
+      total,
+      page: parseInt(page),
+      pages: Math.ceil(total / limit),
+    });
+  } catch (error) {
+    console.error('Admin list broadcasts error:', error);
+    res.status(500).json({ message: 'Hitilafu imetokea' });
+  }
+};
+
+exports.deleteBroadcast = async (req, res) => {
+  try {
+    const broadcast = await Broadcast.findById(req.params.id);
+    if (!broadcast) return res.status(404).json({ message: 'Push haipatikani' });
+
+    await broadcast.deleteOne();
+    await AuditLog.create({
+      user: req.user._id, userName: req.user.name, userRole: req.user.role,
+      action: 'delete_broadcast', category: 'system',
+      targetType: 'Broadcast', targetId: broadcast._id,
+      details: { title: broadcast.title, recipientCount: broadcast.recipientCount },
+      ipAddress: req.ip,
+    });
+
+    res.json({ message: 'Push imefutwa kwenye historia' });
+  } catch (error) {
+    console.error('Admin delete broadcast error:', error);
+    res.status(500).json({ message: 'Hitilafu imetokea' });
+  }
+};
+
 exports.broadcastNotification = async (req, res) => {
   try {
-    const { title, message, type, targetRole, targetDistrict, sendVia } = req.body;
+    const { title, message, type, targetDistrict, sendVia } = req.body;
+    const audienceInput = req.body.audience || req.body.targetRole || 'all';
+    const audience = broadcastAudiences.includes(audienceInput) ? audienceInput : 'all';
     const channels = Array.isArray(sendVia) && sendVia.length ? sendVia : ['in_app', 'sms'];
 
     if (!title || !message) {
@@ -484,7 +545,7 @@ exports.broadcastNotification = async (req, res) => {
     }
 
     const filter = {};
-    if (targetRole) filter.role = targetRole;
+    if (audience !== 'all') filter.role = audience;
     if (targetDistrict) filter.district = targetDistrict;
 
     const users = await User.find(filter).select('_id phone');
@@ -494,9 +555,21 @@ exports.broadcastNotification = async (req, res) => {
       return res.status(400).json({ message: 'Hakuna walengwa waliofaulisha vigezo' });
     }
 
+    const broadcast = await Broadcast.create({
+      title,
+      message,
+      type: type || 'system',
+      audience,
+      district: targetDistrict || '',
+      channels,
+      recipientCount: userIds.length,
+      sentBy: req.user._id,
+    });
+
     const { sendBulkNotifications } = require('../services/notification.service');
     const notifications = await sendBulkNotifications(userIds, {
       title, message, type: type || 'system',
+      metadata: { broadcastId: broadcast._id.toString(), targetRole: audience },
       sentVia: channels.filter(c => c !== 'sms'),
     });
 
@@ -518,13 +591,14 @@ exports.broadcastNotification = async (req, res) => {
     await AuditLog.create({
       user: req.user._id, userName: req.user.name, userRole: req.user.role,
       action: 'broadcast_notification', category: 'system',
-      details: { title, recipientCount: userIds.length, targetRole, targetDistrict, channels, sms: smsResult, push: pushResult },
+      details: { title, recipientCount: userIds.length, audience, targetDistrict, channels, sms: smsResult, push: pushResult },
       ipAddress: req.ip,
     });
 
     res.status(201).json({
       message: `Ujumbe umetumwa kwa watumiaji ${userIds.length}`,
       count: notifications.length,
+      broadcast: serializeBroadcast(broadcast),
       sms: smsResult ? { attempted: smsResult.attempted, successCount: smsResult.successCount, mock: true } : null,
       push: pushResult ? { attempted: pushResult.attempted, successCount: pushResult.successCount, mock: pushResult.successCount === 0 } : null,
     });

@@ -54,6 +54,8 @@ router.get('/ratings', requirePermission('admin.only'), ctrl.getRatings);
 
 router.get('/notifications', requirePermission('admin.only'), ctrl.getNotifications);
 router.post('/notifications/broadcast', requirePermission('admin.only'), ctrl.broadcastNotification);
+router.get('/broadcasts', requirePermission('admin.only'), ctrl.getBroadcasts);
+router.delete('/broadcasts/:id', requirePermission('admin.only'), ctrl.deleteBroadcast);
 
 router.get('/disputes', requirePermission('disputes.resolve'), ctrl.getDisputes);
 router.put('/disputes/:id/resolve', requirePermission('disputes.resolve'), ctrl.resolveDispute);
