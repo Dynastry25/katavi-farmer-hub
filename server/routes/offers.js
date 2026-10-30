@@ -12,6 +12,8 @@ const serialize = (o) => ({
   image: o.image,
   link: o.link,
   active: o.active,
+  audience: o.audience || 'all',
+  color: o.color || 'g',
   order: o.order,
   createdAt: o.createdAt,
 });
@@ -28,9 +30,21 @@ const log = (req, action, targetId) => AuditLog.create({
 });
 
 // Public: active promotional offers for the app home screen.
+// `?role=farmer|buyer|expert` filters by the reference `aud` audience.
 router.get('/', async (req, res) => {
   try {
-    const list = await Offer.find({ active: true })
+    const role = ['farmer', 'buyer', 'expert'].includes(req.query.role)
+      ? req.query.role
+      : '';
+    const filter = { active: true };
+    if (role) {
+      filter.$or = [
+        { audience: 'all' },
+        { audience: role },
+        { audience: { $exists: false } },
+      ];
+    }
+    const list = await Offer.find(filter)
       .sort({ order: 1, createdAt: -1 })
       .lean();
     res.json({ offers: list.map(serialize) });
@@ -53,7 +67,7 @@ router.get('/admin', requirePermission('content.manage'), async (req, res) => {
 
 router.post('/', requirePermission('content.manage'), async (req, res) => {
   try {
-    const { title, subtitle, emoji, image, link, active, order } = req.body;
+    const { title, subtitle, emoji, image, link, active, audience, color, order } = req.body;
     if (!title || !String(title).trim()) {
       return res.status(400).json({ message: 'Kichwa cha ofa kinahitajika' });
     }
@@ -64,6 +78,8 @@ router.post('/', requirePermission('content.manage'), async (req, res) => {
       image: String(image || '').slice(0, 1000),
       link: String(link || '/marketplace').slice(0, 300),
       active: active === undefined ? true : Boolean(active),
+      audience: ['all', 'farmer', 'buyer', 'expert'].includes(audience) ? audience : 'all',
+      color: ['g', 'o', 't', 'd', 'l', 'e'].includes(color) ? color : 'g',
       order: Number(order) || 0,
       createdBy: req.user._id,
     });
@@ -81,13 +97,19 @@ router.put('/:id', requirePermission('content.manage'), async (req, res) => {
     if (!offer) {
       return res.status(404).json({ message: 'Ofa haipatikani' });
     }
-    const { title, subtitle, emoji, image, link, active, order } = req.body;
+    const { title, subtitle, emoji, image, link, active, audience, color, order } = req.body;
     if (title !== undefined) offer.title = String(title).trim().slice(0, 160);
     if (subtitle !== undefined) offer.subtitle = String(subtitle).slice(0, 300);
     if (emoji !== undefined) offer.emoji = String(emoji).slice(0, 8);
     if (image !== undefined) offer.image = String(image).slice(0, 1000);
     if (link !== undefined) offer.link = String(link).slice(0, 300);
     if (active !== undefined) offer.active = Boolean(active);
+    if (audience !== undefined && ['all', 'farmer', 'buyer', 'expert'].includes(audience)) {
+      offer.audience = audience;
+    }
+    if (color !== undefined && ['g', 'o', 't', 'd', 'l', 'e'].includes(color)) {
+      offer.color = color;
+    }
     if (order !== undefined) offer.order = Number(order) || 0;
     await offer.save();
     await log(req, 'update_offer', offer._id);

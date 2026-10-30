@@ -13,6 +13,7 @@ const serialize = (a) => ({
   location: a.location,
   image: a.image,
   active: a.active,
+  audience: a.audience || 'all',
   order: a.order,
   createdAt: a.createdAt,
 });
@@ -29,9 +30,21 @@ const log = (req, action, targetId) => AuditLog.create({
 });
 
 // Public: active announcements for the mobile/web app.
+// `?role=farmer|buyer|expert` filters by the reference `aud` audience.
 router.get('/', async (req, res) => {
   try {
-    const list = await Announcement.find({ active: true })
+    const role = ['farmer', 'buyer', 'expert'].includes(req.query.role)
+      ? req.query.role
+      : '';
+    const filter = { active: true };
+    if (role) {
+      filter.$or = [
+        { audience: 'all' },
+        { audience: role },
+        { audience: { $exists: false } },
+      ];
+    }
+    const list = await Announcement.find(filter)
       .sort({ order: 1, createdAt: -1 })
       .lean();
     res.json({ announcements: list.map(serialize) });
@@ -56,7 +69,7 @@ router.get('/admin', requirePermission('content.manage'), async (req, res) => {
 
 router.post('/', requirePermission('content.manage'), async (req, res) => {
   try {
-    const { title, message, type, date, location, image, active, order } = req.body;
+    const { title, message, type, date, location, image, active, audience, order } = req.body;
     if (!title || !String(title).trim()) {
       return res.status(400).json({ message: 'Kichwa cha tangazo kinahitajika' });
     }
@@ -68,6 +81,7 @@ router.post('/', requirePermission('content.manage'), async (req, res) => {
       location: String(location || '').slice(0, 120),
       image: String(image || '').slice(0, 1000),
       active: active === undefined ? true : Boolean(active),
+      audience: ['all', 'farmer', 'buyer', 'expert'].includes(audience) ? audience : 'all',
       order: Number(order) || 0,
       createdBy: req.user._id,
     });
@@ -85,7 +99,7 @@ router.put('/:id', requirePermission('content.manage'), async (req, res) => {
     if (!announcement) {
       return res.status(404).json({ message: 'Tangazo halipatikani' });
     }
-    const { title, message, type, date, location, image, active, order } = req.body;
+    const { title, message, type, date, location, image, active, audience, order } = req.body;
     if (title !== undefined) announcement.title = String(title).trim().slice(0, 200);
     if (message !== undefined) announcement.message = String(message).slice(0, 2000);
     if (type !== undefined) announcement.type = type;
@@ -93,6 +107,9 @@ router.put('/:id', requirePermission('content.manage'), async (req, res) => {
     if (location !== undefined) announcement.location = String(location).slice(0, 120);
     if (image !== undefined) announcement.image = String(image).slice(0, 1000);
     if (active !== undefined) announcement.active = Boolean(active);
+    if (audience !== undefined && ['all', 'farmer', 'buyer', 'expert'].includes(audience)) {
+      announcement.audience = audience;
+    }
     if (order !== undefined) announcement.order = Number(order) || 0;
     await announcement.save();
     await log(req, 'update_announcement', announcement._id);

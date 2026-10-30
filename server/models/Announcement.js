@@ -14,6 +14,12 @@ const announcementSchema = new mongoose.Schema({
   },
   image: { type: String, default: '' },
   active: { type: Boolean, default: true },
+  // Reference `S.ann[].aud`: all | farmer | buyer | expert.
+  audience: {
+    type: String,
+    enum: ['all', 'farmer', 'buyer', 'expert'],
+    default: 'all',
+  },
   order: { type: Number, default: 0 },
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
 }, { timestamps: true });

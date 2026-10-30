@@ -9,6 +9,18 @@ const offerSchema = new mongoose.Schema({
   // In-app route (e.g. /marketplace, /inputs) or an external URL.
   link: { type: String, default: '/marketplace' },
   active: { type: Boolean, default: true },
+  // Reference `S.ban[].aud`: all | farmer | buyer | expert.
+  audience: {
+    type: String,
+    enum: ['all', 'farmer', 'buyer', 'expert'],
+    default: 'all',
+  },
+  // Reference card palette keys (green, orange, blue, blue-green, light green, earth).
+  color: {
+    type: String,
+    enum: ['g', 'o', 't', 'd', 'l', 'e'],
+    default: 'g',
+  },
   order: { type: Number, default: 0 },
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
 }, { timestamps: true });
