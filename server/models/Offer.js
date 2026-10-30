@@ -12,7 +12,7 @@ const offerSchema = new mongoose.Schema({
   // Reference `S.ban[].aud`: all | farmer | buyer | expert.
   audience: {
     type: String,
-    enum: ['all', 'farmer', 'buyer', 'expert'],
+    enum: ['all', 'farmer', 'buyer', 'expert', 'logistics'],
     default: 'all',
   },
   // Reference card palette keys (green, orange, blue, blue-green, light green, earth).

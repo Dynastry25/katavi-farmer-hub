@@ -33,7 +33,7 @@ const log = (req, action, targetId) => AuditLog.create({
 // `?role=farmer|buyer|expert` filters by the reference `aud` audience.
 router.get('/', async (req, res) => {
   try {
-    const role = ['farmer', 'buyer', 'expert'].includes(req.query.role)
+    const role = ['farmer', 'buyer', 'expert', 'logistics'].includes(req.query.role)
       ? req.query.role
       : '';
     const filter = { active: true };
@@ -81,7 +81,7 @@ router.post('/', requirePermission('content.manage'), async (req, res) => {
       location: String(location || '').slice(0, 120),
       image: String(image || '').slice(0, 1000),
       active: active === undefined ? true : Boolean(active),
-      audience: ['all', 'farmer', 'buyer', 'expert'].includes(audience) ? audience : 'all',
+      audience: ['all', 'farmer', 'buyer', 'expert', 'logistics'].includes(audience) ? audience : 'all',
       order: Number(order) || 0,
       createdBy: req.user._id,
     });
@@ -107,7 +107,7 @@ router.put('/:id', requirePermission('content.manage'), async (req, res) => {
     if (location !== undefined) announcement.location = String(location).slice(0, 120);
     if (image !== undefined) announcement.image = String(image).slice(0, 1000);
     if (active !== undefined) announcement.active = Boolean(active);
-    if (audience !== undefined && ['all', 'farmer', 'buyer', 'expert'].includes(audience)) {
+    if (audience !== undefined && ['all', 'farmer', 'buyer', 'expert', 'logistics'].includes(audience)) {
       announcement.audience = audience;
     }
     if (order !== undefined) announcement.order = Number(order) || 0;

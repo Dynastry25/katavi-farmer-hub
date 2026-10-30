@@ -20,6 +20,8 @@ const ROLE_PERMISSIONS = {
   'disputes.resolve': ['admin', 'support'],
   'reports.view': ['admin', 'finance_officer'],
   'weather.manage': ['admin'],
+  'logistics.view': ['admin', 'logistics'],
+  'logistics.manage': ['admin', 'logistics'],
   'admin.only': ['admin'],
 };
 

@@ -8,7 +8,7 @@ const { sendNotification } = require('../services/notification.service');
 const { sendSms } = require('../services/sms.service');
 
 const STAFF_ROLES = ['admin', 'support', 'content_moderator', 'finance_officer'];
-const PUBLIC_ROLES = ['farmer', 'buyer', 'seller', 'expert'];
+const PUBLIC_ROLES = ['farmer', 'buyer', 'seller', 'expert', 'logistics'];
 
 const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '30d' });

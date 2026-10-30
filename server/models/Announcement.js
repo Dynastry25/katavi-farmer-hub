@@ -17,7 +17,7 @@ const announcementSchema = new mongoose.Schema({
   // Reference `S.ann[].aud`: all | farmer | buyer | expert.
   audience: {
     type: String,
-    enum: ['all', 'farmer', 'buyer', 'expert'],
+    enum: ['all', 'farmer', 'buyer', 'expert', 'logistics'],
     default: 'all',
   },
   order: { type: Number, default: 0 },

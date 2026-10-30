@@ -102,7 +102,7 @@ exports.getUser = async (req, res) => {
 exports.updateUserRole = async (req, res) => {
   try {
     const { role } = req.body;
-    const validRoles = ['farmer', 'buyer', 'seller', 'expert', 'admin', 'support', 'content_moderator', 'finance_officer'];
+    const validRoles = ['farmer', 'buyer', 'seller', 'expert', 'logistics', 'admin', 'support', 'content_moderator', 'finance_officer'];
     if (!validRoles.includes(role)) {
       return res.status(400).json({ message: 'Jukumu siyo sahihi' });
     }
@@ -198,7 +198,7 @@ exports.createUser = async (req, res) => {
       return res.status(400).json({ message: 'Barua pepe hii tayari imesajiliwa' });
     }
 
-    const validRoles = ['farmer', 'buyer', 'seller', 'expert', 'admin', 'support', 'content_moderator', 'finance_officer'];
+    const validRoles = ['farmer', 'buyer', 'seller', 'expert', 'logistics', 'admin', 'support', 'content_moderator', 'finance_officer'];
     const userRole = validRoles.includes(role) ? role : 'farmer';
 
     const user = await User.create({
@@ -475,7 +475,7 @@ exports.getNotifications = async (req, res) => {
   }
 };
 
-const broadcastAudiences = ['all', 'farmer', 'buyer', 'expert', 'seller'];
+const broadcastAudiences = ['all', 'farmer', 'buyer', 'expert', 'seller', 'logistics'];
 
 const serializeBroadcast = (broadcast) => ({
   id: broadcast._id.toString(),
