@@ -15,6 +15,10 @@ const inputOrderSchema = new mongoose.Schema({
   buyerName: { type: String, required: true },
   supplier: { type: mongoose.Schema.Types.ObjectId, ref: 'Supplier', default: null },
   supplierName: { type: String, default: '' },
+  itemsTotal: { type: Number, default: 0 },
+  deliveryFee: { type: Number, default: 0 },
+  deliveryProviderName: { type: String, default: '' },
+  deliveryVehicleType: { type: String, default: '' },
   totalAmount: { type: Number, required: true, min: 0 },
   status: {
     type: String,

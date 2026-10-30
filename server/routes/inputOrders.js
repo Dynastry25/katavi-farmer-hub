@@ -43,13 +43,17 @@ router.get('/', auth, async (req, res) => {
 // POST /api/v1/input-orders — buyers/farmers place an input order (with payment initiation)
 router.post('/', requireRole('buyer', 'farmer', 'admin'), async (req, res) => {
   try {
-    const { items, deliveryMethod, deliveryLocation, contact, notes, paymentProvider, paymentPhone } = req.body;
+    const {
+      items, deliveryMethod, deliveryLocation, contact, notes,
+      paymentProvider, paymentPhone, deliveryFee, deliveryProviderName,
+      deliveryVehicleType,
+    } = req.body;
 
     if (!items || !items.length) {
       return res.status(400).json({ message: 'Weka angau bidhaa moja' });
     }
 
-    let totalAmount = 0;
+    let itemsTotal = 0;
     const validatedItems = [];
 
     for (const item of items) {
@@ -60,7 +64,7 @@ router.post('/', requireRole('buyer', 'farmer', 'admin'), async (req, res) => {
       }
 
       const lineTotal = product.price * item.quantity;
-      totalAmount += lineTotal;
+      itemsTotal += lineTotal;
       validatedItems.push({
         product: product._id,
         productName: product.name,
@@ -77,10 +81,17 @@ router.post('/', requireRole('buyer', 'farmer', 'admin'), async (req, res) => {
       });
     }
 
+    const fee = Math.max(0, Number(deliveryFee) || 0);
+    const totalAmount = itemsTotal + fee;
+
     const order = await InputOrder.create({
       items: validatedItems,
       buyer: req.user._id,
       buyerName: req.user.name,
+      itemsTotal,
+      deliveryFee: fee,
+      deliveryProviderName: deliveryProviderName || '',
+      deliveryVehicleType: deliveryVehicleType || '',
       totalAmount,
       deliveryMethod: deliveryMethod || 'pickup',
       deliveryLocation: deliveryLocation || '',

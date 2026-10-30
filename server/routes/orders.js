@@ -48,7 +48,11 @@ router.get('/', auth, async (req, res) => {
 // POST /api/orders - place an order (buyer) with atomic reservation
 router.post('/', requireRole('buyer', 'admin'), async (req, res) => {
   try {
-    const { crop, requestedQuantity, deliveryDate, contact, options, note } = req.body;
+    const {
+      crop, requestedQuantity, deliveryDate, contact, options, note,
+      deliveryMethod, deliveryLocation, deliveryFee, deliveryProviderName,
+      deliveryVehicleType,
+    } = req.body;
     const qty = Number(requestedQuantity);
 
     if (!crop || !qty || qty < 1) {
@@ -98,6 +102,11 @@ router.post('/', requireRole('buyer', 'admin'), async (req, res) => {
       contact: contact || '',
       options: options || {},
       note: note || '',
+      deliveryMethod: deliveryMethod || 'self',
+      deliveryLocation: deliveryLocation || '',
+      deliveryFee: Math.max(0, Number(deliveryFee) || 0),
+      deliveryProviderName: deliveryProviderName || '',
+      deliveryVehicleType: deliveryVehicleType || '',
       buyer: req.user._id,
       buyerName: req.user.name,
     });

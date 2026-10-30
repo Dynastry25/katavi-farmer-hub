@@ -1,4 +1,4 @@
-const PROVIDERS = ['M-Pesa', 'Tigo Pesa', 'Airtel Money'];
+const PROVIDERS = ['M-Pesa', 'Tigo Pesa', 'Airtel Money', 'HaloPesa'];
 
 const crypto = require('crypto');
 

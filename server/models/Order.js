@@ -26,6 +26,11 @@ const orderSchema = new mongoose.Schema({
   resolution: { type: String, default: '' },
   options: { type: mongoose.Schema.Types.Mixed, default: {} },
   note: { type: String, default: '' },
+  deliveryMethod: { type: String, default: 'self' },
+  deliveryLocation: { type: String, default: '' },
+  deliveryFee: { type: Number, default: 0 },
+  deliveryProviderName: { type: String, default: '' },
+  deliveryVehicleType: { type: String, default: '' },
 }, { timestamps: true });
 
 orderSchema.index({ status: 1, expiresAt: 1 });
