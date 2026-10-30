@@ -153,6 +153,7 @@ app.use('/api/v1/market-prices', require('./routes/marketPrices'));
 app.use('/api/v1/notifications', require('./routes/notifications'));
 app.use('/api/v1/ratings', require('./routes/ratings'));
 app.use('/api/v1/weather', require('./routes/weather'));
+app.use('/api/v1/maps', require('./routes/maps'));
 app.use('/api/v1/push', require('./routes/push'));
 app.use('/api/v1/payments', require('./routes/payments'));
 app.use('/api/v1/price-alerts', require('./routes/priceAlerts'));
