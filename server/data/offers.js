@@ -1,0 +1,58 @@
+// Default home-screen promotional offers ("Ofa kwa ajili yako").
+// Kept in one place so `seed.js` and `seed-offers.js` stay in sync.
+module.exports = [
+  {
+    title: 'Usafirishaji BURE',
+    subtitle: 'Kwa maagizo yote ndani ya Katavi.',
+    emoji: '🚚',
+    link: '/marketplace',
+    audience: 'all',
+    color: 'g',
+    order: 1,
+  },
+  {
+    title: 'Mkopo wa Pembejeo',
+    subtitle: 'TSh 1,200,000 · marejesho TSh 60,000 kwa wiki.',
+    emoji: '💰',
+    link: '/farmer/loans',
+    audience: 'farmer',
+    color: 'o',
+    order: 2,
+  },
+  {
+    title: 'Bei ya mahindi imepanda',
+    subtitle: 'TSh 850/kg Mpanda. Uza sasa kwa faida.',
+    emoji: '📈',
+    link: '/marketplace',
+    audience: 'all',
+    color: 't',
+    order: 3,
+  },
+  {
+    title: 'Kikundi cha Akiba',
+    subtitle: 'Weka akiba pamoja na ukope kwa urahisi.',
+    emoji: '👥',
+    link: '/farmer/groups',
+    audience: 'farmer',
+    color: 'l',
+    order: 4,
+  },
+  {
+    title: 'Mafunzo ya kilimo bora',
+    subtitle: 'Faida, uhifadhi wa mazao na elimu ya fedha.',
+    emoji: '📖',
+    link: '/learn',
+    audience: 'all',
+    color: 'd',
+    order: 5,
+  },
+  {
+    title: 'Mbegu na mbolea karibu nawe',
+    subtitle: 'Agro Duka, Mpanda. Agiza moja kwa moja.',
+    emoji: '🌱',
+    link: '/inputs',
+    audience: 'all',
+    color: 'e',
+    order: 6,
+  },
+];

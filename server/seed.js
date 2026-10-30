@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const dotenv = require('dotenv');
+const path = require('path');
 const User = require('./models/User');
 const Crop = require('./models/Crop');
 const NewsArticle = require('./models/NewsArticle');
@@ -12,6 +13,8 @@ const AdviceArticle = require('./models/AdviceArticle');
 const Video = require('./models/Video');
 const Expert = require('./models/Expert');
 const Announcement = require('./models/Announcement');
+const Offer = require('./models/Offer');
+const defaultOffers = require('./data/offers');
 const Conversation = require('./models/Conversation');
 const Message = require('./models/Message');
 const MarketPrice = require('./models/MarketPrice');
@@ -30,6 +33,7 @@ const InputOrder = require('./models/InputOrder');
 const WeatherSubscription = require('./models/WeatherSubscription');
 const PriceLimit = require('./models/PriceLimit');
 
+dotenv.config({ path: path.join(__dirname, '..', '.env') });
 dotenv.config();
 
 const seedDB = async () => {
@@ -50,6 +54,7 @@ const seedDB = async () => {
     await Video.deleteMany({});
     await Expert.deleteMany({});
     await Announcement.deleteMany({});
+    await Offer.deleteMany({});
     await Conversation.deleteMany({});
     await Message.deleteMany({});
     await MarketPrice.deleteMany({});
@@ -716,6 +721,13 @@ const seedDB = async () => {
     ]);
 
     console.log('Matangazo yameundwa');
+
+    // Home-screen promotional offers ("Ofa kwa ajili yako").
+    await Offer.create(
+      defaultOffers.map((offer) => ({ ...offer, createdBy: users[3]._id })),
+    );
+
+    console.log('Ofa za nyumbani zimeundwa');
 
     // Create sample conversations
     const conversations = await Conversation.create([

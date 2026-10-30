@@ -9,6 +9,7 @@
     "start": "node index.js",
     "dev": "node index.js",
     "seed": "node seed.js",
+    "seed:offers": "node seed-offers.js",
     "seed:admin": "node seed-admin.js",
     "build": "echo 'No build step required for Express backend'"
   },
