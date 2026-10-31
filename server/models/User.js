@@ -14,6 +14,7 @@ const userSchema = new mongoose.Schema({
   district: { type: String, default: '' },
   ward: { type: String, default: '' },
   village: { type: String, default: '' },
+  bio: { type: String, default: '' },
   idNumber: { type: String, default: '' },
   dateOfBirth: { type: String, default: '' },
   rating: { type: Number, default: 5.0 },
