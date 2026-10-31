@@ -852,6 +852,10 @@ exports.getSettings = async (req, res) => {
       bannerMessage: setting.bannerMessage,
       bannerImage: setting.bannerImage || '',
       bannerActive: setting.bannerActive,
+      appVersion: setting.appVersion || '',
+      appBuildNumber: setting.appBuildNumber || 0,
+      appApkUrl: setting.appApkUrl || '',
+      appReleaseNotes: setting.appReleaseNotes || '',
     });
   } catch (error) {
     console.error('Admin get settings error:', error);
@@ -861,7 +865,10 @@ exports.getSettings = async (req, res) => {
 
 exports.updateSettings = async (req, res) => {
   try {
-    const { commissionRate, featuredListingsEnabled, bannerMessage, bannerImage, bannerActive } = req.body;
+    const {
+      commissionRate, featuredListingsEnabled, bannerMessage, bannerImage, bannerActive,
+      appVersion, appBuildNumber, appApkUrl, appReleaseNotes,
+    } = req.body;
 
     let setting = await PlatformSetting.findOne({ key: 'platform' });
     if (!setting) {
@@ -879,6 +886,26 @@ exports.updateSettings = async (req, res) => {
     if (bannerMessage !== undefined) setting.bannerMessage = String(bannerMessage).slice(0, 500);
     if (bannerImage !== undefined) setting.bannerImage = String(bannerImage).slice(0, 1000);
     if (bannerActive !== undefined) setting.bannerActive = Boolean(bannerActive);
+    if (appVersion !== undefined) {
+      setting.appVersion = String(appVersion).trim().slice(0, 20);
+    }
+    if (appBuildNumber !== undefined) {
+      const build = Number(appBuildNumber);
+      if (!Number.isInteger(build) || build < 0) {
+        return res.status(400).json({ message: 'Namba ya toleo iwe namba kamili' });
+      }
+      setting.appBuildNumber = build;
+    }
+    if (appApkUrl !== undefined) {
+      const url = String(appApkUrl).trim();
+      if (url && !/^https?:\/\//i.test(url)) {
+        return res.status(400).json({ message: 'Kiungo cha APK si sahihi' });
+      }
+      setting.appApkUrl = url.slice(0, 1000);
+    }
+    if (appReleaseNotes !== undefined) {
+      setting.appReleaseNotes = String(appReleaseNotes).slice(0, 1000);
+    }
 
     setting.updatedBy = req.user._id;
     await setting.save();
@@ -891,6 +918,8 @@ exports.updateSettings = async (req, res) => {
         commissionRate: setting.commissionRate,
         featuredListingsEnabled: setting.featuredListingsEnabled,
         bannerActive: setting.bannerActive,
+        appVersion: setting.appVersion,
+        appBuildNumber: setting.appBuildNumber,
       },
       ipAddress: req.ip,
     });
@@ -903,6 +932,10 @@ exports.updateSettings = async (req, res) => {
         bannerMessage: setting.bannerMessage,
         bannerImage: setting.bannerImage || '',
         bannerActive: setting.bannerActive,
+        appVersion: setting.appVersion || '',
+        appBuildNumber: setting.appBuildNumber || 0,
+        appApkUrl: setting.appApkUrl || '',
+        appReleaseNotes: setting.appReleaseNotes || '',
       },
     });
   } catch (error) {

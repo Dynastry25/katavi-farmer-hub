@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const Conversation = require('../models/Conversation');
 const Message = require('../models/Message');
+const User = require('../models/User');
 const { auth } = require('../middleware/auth');
 
 // GET /api/chat/conversations
@@ -16,12 +17,39 @@ router.get('/conversations', auth, async (req, res) => {
   }
 });
 
+// GET /api/chat/contacts — active users from every role, excluding the caller.
+router.get('/contacts', auth, async (req, res) => {
+  try {
+    const users = await User.find({
+      _id: { $ne: req.user._id },
+      isActive: true,
+    })
+      .select('name role location profilePicture')
+      .sort({ name: 1 })
+      .limit(300);
+    res.json(users);
+  } catch (error) {
+    res.status(500).json({ message: 'Hitilafu imetokea' });
+  }
+});
+
 // POST /api/chat/conversations
 router.post('/conversations', auth, async (req, res) => {
   try {
+    const participants = [...new Set([...(req.body.participants || []), req.user._id])];
+
+    // Reuse an existing 1:1 thread with the same person instead of duplicating.
+    if (participants.length === 2) {
+      const existing = await Conversation.findOne({
+        participants: { $all: participants, $size: 2 },
+      });
+      if (existing) return res.json(existing);
+    }
+
     const conversation = await Conversation.create({
       ...req.body,
-      participants: [...(req.body.participants || []), req.user._id],
+      members: participants.length,
+      participants,
     });
     res.status(201).json(conversation);
   } catch (error) {

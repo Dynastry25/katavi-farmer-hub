@@ -21,4 +21,20 @@ router.get('/platform', async (req, res) => {
   }
 });
 
+// Latest published Android release for the in-app "check for updates" flow.
+router.get('/app-version', async (req, res) => {
+  try {
+    const setting = await PlatformSetting.findOne({ key: 'platform' });
+    res.json({
+      version: setting?.appVersion || '',
+      buildNumber: setting?.appBuildNumber || 0,
+      apkUrl: setting?.appApkUrl || '',
+      releaseNotes: setting?.appReleaseNotes || '',
+    });
+  } catch (error) {
+    console.error('App version error:', error);
+    res.status(500).json({ message: 'Hitilafu imetokea' });
+  }
+});
+
 module.exports = router;
