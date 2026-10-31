@@ -4,6 +4,7 @@ const { requirePermission } = require('../middleware/roleCheck');
 const ctrl = require('../controllers/admin.controller');
 const s = require('../controllers/adminShamba.controller');
 const upload = require('../middleware/upload');
+const uploadApk = require('../middleware/uploadApk');
 
 // ---- Shamba Assistant reference dataset (admin-curated) ----
 router.get('/shamba/land', requirePermission('content.manage'), s.getLandGuidance);
@@ -65,5 +66,19 @@ router.get('/audit-logs', requirePermission('admin.only'), ctrl.getAuditLogs);
 router.get('/settings', requirePermission('admin.only'), ctrl.getSettings);
 router.put('/settings', requirePermission('admin.only'), ctrl.updateSettings);
 router.post('/settings/banner-image', requirePermission('admin.only'), upload.single('image'), ctrl.uploadBannerImage);
+router.post(
+  '/settings/app-release',
+  requirePermission('admin.only'),
+  (req, res, next) => {
+    uploadApk.single('apk')(req, res, (error) => {
+      if (!error) return next();
+      const message = error.code === 'LIMIT_FILE_SIZE'
+        ? 'APK ni kubwa mno. Kiwango cha juu ni 150MB.'
+        : (error.message || 'Faili la APK halikubaliki');
+      return res.status(400).json({ message });
+    });
+  },
+  ctrl.publishAppRelease,
+);
 
 module.exports = router;

@@ -972,3 +972,89 @@ exports.uploadBannerImage = async (req, res) => {
     res.status(500).json({ message: 'Hitilafu imetokea' });
   }
 };
+
+// Publish a new Android release: either upload the APK (Cloudinary raw file) or
+// register a direct download URL, then store the release metadata that the
+// in-app "check for updates" flow reads from `/settings/app-version`.
+exports.publishAppRelease = async (req, res) => {
+  try {
+    const version = String(req.body.version || '').trim().slice(0, 20);
+    const build = Number(req.body.buildNumber);
+    const releaseNotes = String(req.body.releaseNotes || '').slice(0, 1000);
+    let apkUrl = String(req.body.apkUrl || '').trim();
+
+    if (!version) {
+      return res.status(400).json({ message: 'Weka namba ya toleo (mfano 0.2.0)' });
+    }
+    if (!Number.isInteger(build) || build < 1) {
+      return res.status(400).json({ message: 'Namba ya toleo iwe namba kamili kuanzia 1' });
+    }
+    if (!req.file && !apkUrl) {
+      return res.status(400).json({ message: 'Pakia faili la APK au weka kiungo cha kupakua' });
+    }
+    if (apkUrl && !/^https?:\/\//i.test(apkUrl)) {
+      return res.status(400).json({ message: 'Kiungo cha APK si sahihi' });
+    }
+
+    if (req.file) {
+      const cloudinary = require('../config/cloudinary');
+      const safeVersion = version.replace(/[^a-zA-Z0-9._-]/g, '-');
+      let result;
+      try {
+        result = await new Promise((resolve, reject) => {
+          const stream = cloudinary.uploader.upload_stream(
+            {
+              folder: 'katavi-ekilimo/app',
+              resource_type: 'raw',
+              public_id: `katavi-ekilimo-v${safeVersion}-b${build}.apk`,
+              overwrite: true,
+              invalidate: true,
+            },
+            (error, uploaded) => (error ? reject(error) : resolve(uploaded)),
+          );
+          stream.end(req.file.buffer);
+        });
+      } catch (uploadError) {
+        console.error('Cloudinary APK upload error:', uploadError);
+        return res.status(502).json({
+          message: 'Imeshindwa kupakia APK. Angalia ukubwa wa faili au jaribu tena.',
+        });
+      }
+      apkUrl = result.secure_url;
+    }
+
+    let setting = await PlatformSetting.findOne({ key: 'platform' });
+    if (!setting) setting = await PlatformSetting.create({ key: 'platform' });
+    setting.appVersion = version;
+    setting.appBuildNumber = build;
+    setting.appApkUrl = apkUrl.slice(0, 1000);
+    setting.appReleaseNotes = releaseNotes;
+    setting.updatedBy = req.user._id;
+    await setting.save();
+
+    await AuditLog.create({
+      user: req.user._id, userName: req.user.name, userRole: req.user.role,
+      action: 'publish_app_release', category: 'settings',
+      targetType: 'PlatformSetting', targetId: setting._id,
+      details: {
+        appVersion: setting.appVersion,
+        appBuildNumber: setting.appBuildNumber,
+        uploaded: Boolean(req.file),
+      },
+      ipAddress: req.ip,
+    });
+
+    res.status(201).json({
+      message: 'Toleo jipya la App limechapishwa',
+      settings: {
+        appVersion: setting.appVersion,
+        appBuildNumber: setting.appBuildNumber,
+        appApkUrl: setting.appApkUrl,
+        appReleaseNotes: setting.appReleaseNotes,
+      },
+    });
+  } catch (error) {
+    console.error('Admin publish app release error:', error);
+    res.status(500).json({ message: 'Hitilafu imetokea' });
+  }
+};
