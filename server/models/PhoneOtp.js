@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 
 const phoneOtpSchema = new mongoose.Schema({
   phone: { type: String, required: true, unique: true, trim: true },
-  purpose: { type: String, enum: ['register', 'login'], required: true },
+  purpose: { type: String, enum: ['register', 'login', 'reset'], required: true },
   role: { type: String, default: '' },
   codeHash: { type: String, required: true },
   expiresAt: { type: Date, required: true },

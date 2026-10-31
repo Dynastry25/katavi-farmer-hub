@@ -103,16 +103,39 @@ router.post('/register', async (req, res) => {
 // POST /api/auth/login
 router.post('/login', async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { password } = req.body;
+    const identifier = String(req.body.identifier || '').trim();
+    const emailInput = String(req.body.email || '').trim().toLowerCase();
+    const phoneInput = String(req.body.phone || '').trim();
 
-    const user = await User.findOne({ email });
+    // Accept a phone number or an email address in any of the legacy fields.
+    const candidates = [];
+    if (emailInput) candidates.push({ kind: 'email', value: emailInput });
+    if (identifier) {
+      candidates.push({
+        kind: identifier.includes('@') ? 'email' : 'phone',
+        value: identifier,
+      });
+    }
+    if (phoneInput) candidates.push({ kind: 'phone', value: phoneInput });
+
+    let user = null;
+    for (const candidate of candidates) {
+      if (candidate.kind === 'email') {
+        user = await User.findOne({ email: candidate.value.toLowerCase() });
+      } else {
+        user = await findUserByPhone(normalizePhone(candidate.value));
+      }
+      if (user) break;
+    }
+
     if (!user) {
-      return res.status(401).json({ message: 'Barua pepe au nenosiri siyo sahihi' });
+      return res.status(401).json({ message: 'Namba ya simu, barua pepe au nenosiri siyo sahihi' });
     }
 
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
-      return res.status(401).json({ message: 'Barua pepe au nenosiri siyo sahihi' });
+      return res.status(401).json({ message: 'Namba ya simu, barua pepe au nenosiri siyo sahihi' });
     }
 
     if (user.isActive === false) {
@@ -647,6 +670,80 @@ router.post('/phone/login/verify', async (req, res) => {
     res.json(publicUser(user, generateToken(user._id)));
   } catch (error) {
     console.error('Phone login verify error:', error);
+    res.status(500).json({ message: 'Hitilafu imetokea' });
+  }
+});
+
+// POST /api/v1/auth/phone/password/request
+router.post('/phone/password/request', async (req, res) => {
+  try {
+    const phone = normalizePhone(req.body.phone);
+    if (phoneTail(phone).length < 9) {
+      return res.status(400).json({ message: 'Weka namba ya simu sahihi.' });
+    }
+    const user = await findUserByPhone(phone);
+    if (!user) {
+      return res.status(404).json({
+        message: 'Hakuna akaunti yenye namba hii. Jisajili kwanza.',
+        code: 'PHONE_NOT_FOUND',
+      });
+    }
+    if (user.isActive === false) {
+      return res.status(403).json({ message: 'Akaunti yako imesimamishwa. Wasiliana na msimamizi.' });
+    }
+    const key = normalizePhone(user.phone);
+    const wait = await otpTooSoon(key);
+    if (wait) {
+      return res.status(429).json({
+        message: `Subiri sekunde ${wait} kabla ya kutuma tena.`,
+        retryAfter: wait,
+      });
+    }
+    const sms = await sendPhoneOtp({ phone: key, purpose: 'reset' });
+    res.json({
+      message: 'Namba ya kuthibitisha kubadilisha nenosiri imetumwa kwenye simu yako.',
+      phone: key,
+      mock: Boolean(sms?.mock),
+    });
+  } catch (error) {
+    console.error('Password reset request error:', error);
+    res.status(500).json({ message: 'Hitilafu imetokea' });
+  }
+});
+
+// POST /api/v1/auth/phone/password/reset
+router.post('/phone/password/reset', async (req, res) => {
+  try {
+    const phone = normalizePhone(req.body.phone);
+    const code = String(req.body.code || '').trim();
+    const password = String(req.body.password || '');
+
+    if (!code) return res.status(400).json({ message: 'Weka namba ya uthibitisho.' });
+    if (password.length < 6) {
+      return res.status(400).json({ message: 'Nenosiri liwe angalau herufi 6.' });
+    }
+
+    const user = await findUserByPhone(phone);
+    if (!user) return res.status(404).json({ message: 'Hakuna akaunti yenye namba hii.' });
+    if (user.isActive === false) {
+      return res.status(403).json({ message: 'Akaunti yako imesimamishwa.' });
+    }
+
+    const key = normalizePhone(user.phone);
+    const result = await checkOtp({ phone: key, code, purpose: 'reset' });
+    if (result.error) return res.status(400).json({ message: result.error });
+
+    user.password = password;
+    user.phoneVerified = true;
+    await user.save();
+    await PhoneOtp.deleteOne({ phone: key });
+
+    res.json({
+      message: 'Nenosiri limebadilishwa.',
+      ...publicUser(user, generateToken(user._id)),
+    });
+  } catch (error) {
+    console.error('Password reset error:', error);
     res.status(500).json({ message: 'Hitilafu imetokea' });
   }
 });
