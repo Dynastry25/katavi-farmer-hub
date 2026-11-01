@@ -4,6 +4,8 @@ const phoneOtpSchema = new mongoose.Schema({
   phone: { type: String, required: true, unique: true, trim: true },
   purpose: { type: String, enum: ['register', 'login', 'reset'], required: true },
   role: { type: String, default: '' },
+  // Email the same code was sent to (registration may supply one early).
+  email: { type: String, default: '', trim: true, lowercase: true },
   codeHash: { type: String, required: true },
   expiresAt: { type: Date, required: true },
   attempts: { type: Number, default: 0 },

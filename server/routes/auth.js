@@ -8,6 +8,7 @@ const PhoneOtp = require('../models/PhoneOtp');
 const { auth } = require('../middleware/auth');
 const { sendNotification } = require('../services/notification.service');
 const { sendSms } = require('../services/sms.service');
+const { sendOtpEmail, isDeliverableEmail } = require('../services/email.service');
 
 const STAFF_ROLES = ['admin', 'support', 'content_moderator', 'finance_officer'];
 const PUBLIC_ROLES = ['farmer', 'buyer', 'seller', 'expert', 'logistics'];
@@ -35,7 +36,13 @@ const sendTwoFactorCode = async (user) => {
     sentVia: ['in_app', 'sms'],
   });
   const smsResult = await sendSms(user.phone, `Katavi E-Kilimo: Namba yako ya 2FA ni ${code}. Inamalizika baada ya dakika 5.`);
-  return smsResult;
+  const emailResult = await sendOtpEmail({
+    to: user.email,
+    code,
+    purpose: '2fa',
+    phone: user.phone,
+  });
+  return { sms: smsResult, email: emailResult };
 };
 
 const publicUser = (user, token) => ({
@@ -144,8 +151,13 @@ router.post('/login', async (req, res) => {
 
     // 2FA flow for staff accounts with 2FA enabled
     if (STAFF_ROLES.includes(user.role) && user.twoFactorEnabled) {
-      await sendTwoFactorCode(user);
-      return res.status(200).json({ requiresTwoFactor: true, email: user.email, twoFactorEnabled: true });
+      const sent = await sendTwoFactorCode(user);
+      return res.status(200).json({
+        requiresTwoFactor: true,
+        email: user.email,
+        twoFactorEnabled: true,
+        emailSent: Boolean(sent.email?.success),
+      });
     }
 
     const token = generateToken(user._id);
@@ -206,8 +218,11 @@ router.post('/2fa/resend', async (req, res) => {
       return res.status(400).json({ message: 'Mtumiaji huyu hana 2FA' });
     }
 
-    await sendTwoFactorCode(user);
-    res.json({ message: 'Namba mpya ya 2FA imetumwa' });
+    const sent = await sendTwoFactorCode(user);
+    res.json({
+      message: 'Namba mpya ya 2FA imetumwa kwenye simu na barua pepe',
+      emailSent: Boolean(sent.email?.success),
+    });
   } catch (error) {
     console.error('2FA resend error:', error);
     res.status(500).json({ message: 'Hitilafu imetokea' });
@@ -335,6 +350,12 @@ router.post('/phone/send-otp', auth, async (req, res) => {
     await user.save();
 
     const smsResult = await sendSms(user.phone, `Katavi E-Kilimo: Namba ya uthibitisho wa simu ni ${code}. Inamalizika baada ya dakika 5.`);
+    const emailResult = await sendOtpEmail({
+      to: user.email,
+      code,
+      purpose: 'phone',
+      phone: user.phone,
+    });
     await sendNotification(user._id, {
       title: 'Uthibitisho wa Simu',
       message: `Namba yako ya uthibitisho ni: ${code}.`,
@@ -342,7 +363,11 @@ router.post('/phone/send-otp', auth, async (req, res) => {
       sentVia: ['in_app', 'sms'],
     });
 
-    res.json({ message: 'Namba ya uthibitisho imetumwa kwenye simu yako', mock: smsResult.mock || false });
+    res.json({
+      message: 'Namba ya uthibitisho imetumwa kwenye simu yako',
+      mock: smsResult.mock || false,
+      emailSent: Boolean(emailResult.success),
+    });
   } catch (error) {
     console.error('Phone OTP send error:', error);
     res.status(500).json({ message: 'Hitilafu imetokea' });
@@ -416,15 +441,17 @@ const issueRegistrationTicket = (phone) => jwt.sign(
   { expiresIn: '20m' },
 );
 
-const sendPhoneOtp = async ({ phone, purpose, role = '' }) => {
+const sendPhoneOtp = async ({ phone, purpose, role = '', email = '' }) => {
   const code = generatePhoneOtp();
   const now = new Date();
+  const emailAddress = isDeliverableEmail(email) ? String(email).trim().toLowerCase() : '';
   await PhoneOtp.findOneAndUpdate(
     { phone },
     {
       phone,
       purpose,
       role,
+      email: emailAddress,
       codeHash: await bcrypt.hash(code, 8),
       expiresAt: new Date(now.getTime() + OTP_TTL_MS),
       attempts: 0,
@@ -437,7 +464,8 @@ const sendPhoneOtp = async ({ phone, purpose, role = '' }) => {
     phone,
     `Katavi E-Kilimo: Namba yako ya uthibitisho ni ${code}. Inaisha baada ya dakika 5. Usimpe mtu.`,
   );
-  return sms;
+  const emailResult = await sendOtpEmail({ to: emailAddress, code, purpose, phone });
+  return { sms, email: emailResult };
 };
 
 const otpTooSoon = async (phone) => {
@@ -472,11 +500,15 @@ router.post('/phone/register/request', async (req, res) => {
   try {
     const phone = normalizePhone(req.body.phone);
     const role = String(req.body.role || 'farmer');
+    const email = String(req.body.email || '').trim().toLowerCase();
     if (phoneTail(phone).length < 9) {
       return res.status(400).json({ message: 'Weka namba ya simu sahihi.' });
     }
     if (!PUBLIC_ROLES.includes(role)) {
       return res.status(400).json({ message: 'Aina hii ya akaunti haijaruhusiwa.' });
+    }
+    if (email && !isDeliverableEmail(email)) {
+      return res.status(400).json({ message: 'Barua pepe si sahihi.' });
     }
     const existing = await findUserByPhone(phone);
     if (existing) {
@@ -492,11 +524,12 @@ router.post('/phone/register/request', async (req, res) => {
         retryAfter: wait,
       });
     }
-    const sms = await sendPhoneOtp({ phone, purpose: 'register', role });
+    const sent = await sendPhoneOtp({ phone, purpose: 'register', role, email });
     res.json({
       message: 'Namba ya uthibitisho imetumwa kwenye simu yako.',
       phone,
-      mock: Boolean(sms?.mock),
+      mock: Boolean(sent.sms?.mock),
+      emailSent: Boolean(sent.email?.success),
     });
   } catch (error) {
     console.error('Phone registration request error:', error);
@@ -573,7 +606,7 @@ router.post('/phone/register/complete', async (req, res) => {
     }
 
     const phoneDigits = phone.replace(/\D/g, '');
-    const email = emailInput || `${phoneDigits}@phone.katavi.tz`;
+    const email = emailInput || record.email || `${phoneDigits}@phone.katavi.tz`;
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return res.status(400).json({ message: 'Barua pepe si sahihi.' });
     }
@@ -627,11 +660,12 @@ router.post('/phone/login/request', async (req, res) => {
         retryAfter: wait,
       });
     }
-    const sms = await sendPhoneOtp({ phone: key, purpose: 'login' });
+    const sent = await sendPhoneOtp({ phone: key, purpose: 'login', email: user.email });
     res.json({
       message: 'Namba ya uthibitisho imetumwa kwenye simu yako.',
       phone: key,
-      mock: Boolean(sms?.mock),
+      mock: Boolean(sent.sms?.mock),
+      emailSent: Boolean(sent.email?.success),
     });
   } catch (error) {
     console.error('Phone login request error:', error);
@@ -699,11 +733,12 @@ router.post('/phone/password/request', async (req, res) => {
         retryAfter: wait,
       });
     }
-    const sms = await sendPhoneOtp({ phone: key, purpose: 'reset' });
+    const sent = await sendPhoneOtp({ phone: key, purpose: 'reset', email: user.email });
     res.json({
       message: 'Namba ya kuthibitisha kubadilisha nenosiri imetumwa kwenye simu yako.',
       phone: key,
-      mock: Boolean(sms?.mock),
+      mock: Boolean(sent.sms?.mock),
+      emailSent: Boolean(sent.email?.success),
     });
   } catch (error) {
     console.error('Password reset request error:', error);
