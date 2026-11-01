@@ -34,6 +34,23 @@ const approvalStockDelta = ({ requestedQuantity, approvedQuantity }) => {
   };
 };
 
+// Farmer approval defaults to the full requested quantity when the client
+// omits it (older app builds), and is clamped to what was requested.
+const resolveApprovedQuantity = ({ requestedQuantity, approvedQuantity }) => {
+  const requested = Number(requestedQuantity) || 0;
+  if (requested <= 0) return 0;
+  if (approvedQuantity === undefined || approvedQuantity === null || approvedQuantity === '') {
+    return requested;
+  }
+  const approved = Number(approvedQuantity) || 0;
+  if (approved < 1) return 0;
+  return Math.min(approved, requested);
+};
+
+// Only accepted orders can be handed over to the buyer.
+const canMarkDelivered = (status) =>
+  status === 'approved' || status === 'partially_approved';
+
 // The approval status after a (possibly partial) approval.
 const deriveApprovalStatus = ({ requestedQuantity, approvedQuantity }) => {
   const requested = Number(requestedQuantity) || 0;
@@ -73,6 +90,8 @@ module.exports = {
   hasSufficientStock,
   deriveCropStatus,
   approvalStockDelta,
+  resolveApprovedQuantity,
+  canMarkDelivered,
   deriveApprovalStatus,
   rejectionReservedRelease,
   remainderOffer,

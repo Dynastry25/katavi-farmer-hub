@@ -10,6 +10,8 @@ const {
   hasSufficientStock,
   deriveCropStatus,
   deriveApprovalStatus,
+  resolveApprovedQuantity,
+  canMarkDelivered,
   remainderOffer,
   hasOpenRemainder,
 } = require('../services/order.service');
@@ -140,11 +142,13 @@ router.post('/:id/approve', auth, async (req, res) => {
       return res.status(403).json({ message: 'Hujaruhusiwa kukubali agizo hili' });
     }
 
-    let approved = Number(req.body.approvedQuantity);
+    const approved = resolveApprovedQuantity({
+      requestedQuantity: order.requestedQuantity,
+      approvedQuantity: req.body.approvedQuantity,
+    });
     if (!approved || approved < 1) {
       return res.status(400).json({ message: 'Weka kiasi unachokubali' });
     }
-    approved = Math.min(approved, order.requestedQuantity);
 
     // Atomic guarded decrement of physical stock + release of the FULL reservation.
     const updated = await Crop.findOneAndUpdate(
@@ -253,6 +257,41 @@ router.post('/:id/receive', auth, async (req, res) => {
     res.json(order);
   } catch (error) {
     console.error('Receive order error:', error);
+    res.status(500).json({ message: 'Hitilafu imetokea' });
+  }
+});
+
+// POST /api/v1/orders/:id/deliver — farmer hands the goods over to the buyer
+router.post('/:id/deliver', auth, async (req, res) => {
+  try {
+    const order = await Order.findById(req.params.id);
+    if (!order) return res.status(404).json({ message: 'Agizo halipatikani' });
+
+    const isFarmer = String(order.farmer) === String(req.user._id);
+    const isAdmin = req.user.role === 'admin';
+    if (!isFarmer && !isAdmin) {
+      return res.status(403).json({ message: 'Huna ruhusa ya kuwasilisha agizo hili' });
+    }
+    if (!canMarkDelivered(order.status)) {
+      return res.status(400).json({ message: `Agizo hili liko katika hali ya ${order.status}` });
+    }
+
+    order.status = 'delivered';
+    order.respondedAt = new Date();
+    await order.save();
+
+    if (order.buyer) {
+      await notify(req, order.buyer, {
+        title: 'Mzigo Umefika',
+        message: `${order.farmerName} amewasilisha ${order.approvedQuantity || order.requestedQuantity} ${order.unit || 'kg'} ya ${order.cropName}. Thibitisha kupokea mzigo.`,
+        link: '/orders',
+        metadata: { orderId: order._id, status: 'delivered' },
+      });
+    }
+
+    res.json(order);
+  } catch (error) {
+    console.error('Deliver order error:', error);
     res.status(500).json({ message: 'Hitilafu imetokea' });
   }
 });
