@@ -134,7 +134,7 @@ router.post('/', requireRole('buyer', 'farmer', 'seller', 'admin'), async (req, 
       await notify(req, cropDoc.farmer, {
         title: 'Agizo Jipya',
         message: `${req.user.name} ametuma agizo la ${qty} ${cropDoc.unit || 'kg'} ya ${cropDoc.name}.`,
-        link: '/farmer',
+        link: '/farmer/orders',
         metadata: { orderId: order._id, cropId: cropDoc._id },
       });
     }
@@ -257,7 +257,7 @@ router.post('/:id/approve', auth, async (req, res) => {
       message: order.status === 'approved'
         ? `${order.farmerName} amekubali ${approved} ${order.unit || 'kg'} ya ${order.cropName}.`
         : `${order.farmerName} amekubali ${approved} kati ya ${order.requestedQuantity} ${order.unit || 'kg'} ya ${order.cropName}.`,
-      link: '/buyer',
+      link: '/buyer/orders',
       metadata: { orderId: order._id, status: order.status },
     });
 
@@ -292,7 +292,7 @@ router.post('/:id/reject', auth, async (req, res) => {
     await notify(req, order.buyer, {
       title: 'Agizo Limetengwa',
       message: `${order.farmerName} amekataa agizo la ${order.requestedQuantity} ${order.unit || 'kg'} ya ${order.cropName}.`,
-      link: '/buyer',
+      link: '/buyer/orders',
       metadata: { orderId: order._id, status: 'rejected' },
     });
 
@@ -331,7 +331,7 @@ router.post('/:id/receive', auth, async (req, res) => {
       await notify(req, order.farmer, {
         title: 'Mzigo Umepokelewa',
         message: `${order.buyerName} amethibitisha kupokea ${order.approvedQuantity || order.requestedQuantity} ${order.unit || 'kg'} ya ${order.cropName}.`,
-        link: '/farmer',
+        link: '/farmer/orders',
         metadata: { orderId: order._id, status: 'completed' },
       });
     }
@@ -475,7 +475,7 @@ router.post('/:id/remainder', auth, async (req, res) => {
       await notify(req, cropDoc.farmer, {
         title: 'Ombi la Ziada',
         message: `${req.user.name} ameomba ziada ya ${offer.offered} ${cropDoc.unit || 'kg'} ya ${cropDoc.name}.`,
-        link: '/farmer',
+        link: '/farmer/orders',
         metadata: { orderId: remainder._id, parentOrderId: order._id },
       });
     }
@@ -535,7 +535,7 @@ router.expirePendingOrders = async () => {
       title: 'Agizo Limeisha Muda',
       message: `Mkulima hakuweza kujibu kwa wakati, agizo la ${order.requestedQuantity} ${order.unit || 'kg'} ya ${order.cropName} limeisha muda. Hisa yako imetolewa.`,
       type: 'order',
-      link: '/buyer',
+      link: '/buyer/orders',
       metadata: { orderId: order._id, status: 'expired' },
     });
     released++;
@@ -577,12 +577,13 @@ router.post('/:id/dispute', auth, async (req, res) => {
     }
 
     // Notify the other party
-    const otherPartyId = String(order.buyer) === String(req.user._id) ? order.farmer : order.buyer;
-    const reporter = String(order.buyer) === String(req.user._id) ? 'Mnunuzi' : 'Mkulima';
+    const reporterIsBuyer = String(order.buyer) === String(req.user._id);
+    const otherPartyId = reporterIsBuyer ? order.farmer : order.buyer;
+    const reporter = reporterIsBuyer ? 'Mnunuzi' : 'Mkulima';
     await notify(req, otherPartyId, {
       title: 'Mgogoro Umefunguliwa',
       message: `${reporter} amefunguliwa mgogoro kwenye agizo la ${order.cropName}: ${reason}`,
-      link: '/farmer',
+      link: reporterIsBuyer ? '/farmer/orders' : '/buyer/orders',
       metadata: { orderId: order._id, status: 'disputed' },
     });
 
@@ -594,7 +595,7 @@ router.post('/:id/dispute', auth, async (req, res) => {
           title: 'Mgogoro Mpya',
           message: `Mgogoro mpya umefunguliwa: ${reason}. Agizo: ${order.cropName}`,
           type: 'dispute',
-          link: '/admin-dashboard',
+          link: '/admin/dashboard',
           metadata: { orderId: order._id, reason, reporter: req.user.name },
         });
       }
