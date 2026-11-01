@@ -2,12 +2,14 @@ const express = require('express');
 const router = express.Router();
 const Offer = require('../models/Offer');
 const AuditLog = require('../models/AuditLog');
+const { normalizeOfferTag } = require('../config/offerTags');
 const { requirePermission } = require('../middleware/roleCheck');
 
 const serialize = (o) => ({
   id: o._id,
   title: o.title,
   subtitle: o.subtitle,
+  tag: o.tag || '',
   emoji: o.emoji,
   image: o.image,
   link: o.link,
@@ -67,13 +69,14 @@ router.get('/admin', requirePermission('content.manage'), async (req, res) => {
 
 router.post('/', requirePermission('content.manage'), async (req, res) => {
   try {
-    const { title, subtitle, emoji, image, link, active, audience, color, order } = req.body;
+    const { title, subtitle, tag, emoji, image, link, active, audience, color, order } = req.body;
     if (!title || !String(title).trim()) {
       return res.status(400).json({ message: 'Kichwa cha ofa kinahitajika' });
     }
     const offer = await Offer.create({
       title: String(title).trim().slice(0, 160),
       subtitle: String(subtitle || '').slice(0, 300),
+      tag: normalizeOfferTag(tag),
       emoji: String(emoji || '🎁').slice(0, 8),
       image: String(image || '').slice(0, 1000),
       link: String(link || '/marketplace').slice(0, 300),
@@ -97,9 +100,10 @@ router.put('/:id', requirePermission('content.manage'), async (req, res) => {
     if (!offer) {
       return res.status(404).json({ message: 'Ofa haipatikani' });
     }
-    const { title, subtitle, emoji, image, link, active, audience, color, order } = req.body;
+    const { title, subtitle, tag, emoji, image, link, active, audience, color, order } = req.body;
     if (title !== undefined) offer.title = String(title).trim().slice(0, 160);
     if (subtitle !== undefined) offer.subtitle = String(subtitle).slice(0, 300);
+    if (tag !== undefined) offer.tag = normalizeOfferTag(tag);
     if (emoji !== undefined) offer.emoji = String(emoji).slice(0, 8);
     if (image !== undefined) offer.image = String(image).slice(0, 1000);
     if (link !== undefined) offer.link = String(link).slice(0, 300);

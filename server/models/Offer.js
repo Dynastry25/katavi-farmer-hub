@@ -1,9 +1,12 @@
 const mongoose = require('mongoose');
+const { OFFER_TAGS } = require('../config/offerTags');
 
 // Admin-managed promotional offers (ofa) rendered as home-screen deal cards.
 const offerSchema = new mongoose.Schema({
   title: { type: String, required: true },
   subtitle: { type: String, default: '' },
+  // Badge on the offer card: FREE, LOAN, PRICE UP or NEW.
+  tag: { type: String, enum: ['', ...OFFER_TAGS], default: '' },
   emoji: { type: String, default: '🎁' },
   image: { type: String, default: '' },
   // In-app route (e.g. /marketplace, /inputs) or an external URL.

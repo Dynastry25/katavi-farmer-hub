@@ -3,6 +3,7 @@
 module.exports = [
   {
     title: 'Usafirishaji BURE',
+    tag: 'free',
     subtitle: 'Kwa maagizo yote ndani ya Katavi.',
     emoji: '🚚',
     link: '/marketplace',
@@ -12,6 +13,7 @@ module.exports = [
   },
   {
     title: 'Mkopo wa Pembejeo',
+    tag: 'loan',
     subtitle: 'TSh 1,200,000 · marejesho TSh 60,000 kwa wiki.',
     emoji: '💰',
     link: '/farmer/loans',
@@ -21,6 +23,7 @@ module.exports = [
   },
   {
     title: 'Bei ya mahindi imepanda',
+    tag: 'price_up',
     subtitle: 'TSh 850/kg Mpanda. Uza sasa kwa faida.',
     emoji: '📈',
     link: '/marketplace',
@@ -30,6 +33,7 @@ module.exports = [
   },
   {
     title: 'Kikundi cha Akiba',
+    tag: 'new',
     subtitle: 'Weka akiba pamoja na ukope kwa urahisi.',
     emoji: '👥',
     link: '/farmer/groups',
@@ -39,6 +43,7 @@ module.exports = [
   },
   {
     title: 'Mafunzo ya kilimo bora',
+    tag: 'free',
     subtitle: 'Faida, uhifadhi wa mazao na elimu ya fedha.',
     emoji: '📖',
     link: '/learn',
