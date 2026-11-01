@@ -41,12 +41,16 @@ const notify = async (req, userId, { title, message, type = 'order', link = '', 
   pushLive(req, userId, { userId, title, message, type, link, metadata, read: false });
 };
 
-// GET /api/orders
+// GET /api/orders?view=buyer|farmer
 router.get('/', auth, async (req, res) => {
   try {
-    const orders = await Order.find({
-      $or: [{ buyer: req.user._id }, { farmer: req.user._id }]
-    })
+    const { view } = req.query;
+    const query = view === 'buyer'
+      ? { buyer: req.user._id }
+      : view === 'farmer'
+        ? { farmer: req.user._id }
+        : { $or: [{ buyer: req.user._id }, { farmer: req.user._id }] };
+    const orders = await Order.find(query)
       .sort({ createdAt: -1 })
       .lean();
     res.json(orders.map(withAmount));
@@ -55,8 +59,8 @@ router.get('/', auth, async (req, res) => {
   }
 });
 
-// POST /api/orders - place an order (buyer) with atomic reservation
-router.post('/', requireRole('buyer', 'admin'), async (req, res) => {
+// POST /api/orders - place an order (buyer or farmer buying another farm)
+router.post('/', requireRole('buyer', 'farmer', 'seller', 'admin'), async (req, res) => {
   try {
     const {
       crop, requestedQuantity, deliveryDate, contact, options, note,
@@ -71,6 +75,9 @@ router.post('/', requireRole('buyer', 'admin'), async (req, res) => {
 
     const cropDoc = await Crop.findById(crop);
     if (!cropDoc) return res.status(404).json({ message: 'Zao halipatikani' });
+    if (cropDoc.farmer && String(cropDoc.farmer) === String(req.user._id)) {
+      return res.status(400).json({ message: 'Hauwezi kuagiza zao lako mwenyewe' });
+    }
 
     const cropView = await ensureStockPersisted(Crop, cropDoc);
     cropDoc.stockQuantity = cropView.stockQuantity;
@@ -140,7 +147,7 @@ router.post('/', requireRole('buyer', 'admin'), async (req, res) => {
 });
 
 // POST /api/orders/pay - buyer pays for one or more live crop orders at once
-router.post('/pay', requireRole('buyer', 'admin'), async (req, res) => {
+router.post('/pay', requireRole('buyer', 'farmer', 'seller', 'admin'), async (req, res) => {
   try {
     const { orderIds, provider, phone } = req.body;
     const ids = Array.isArray(orderIds)
@@ -376,6 +383,14 @@ router.get('/:id', auth, async (req, res) => {
   try {
     const order = await Order.findById(req.params.id).lean();
     if (!order) return res.status(404).json({ message: 'Agizo halipatikani' });
+
+    const isParty = String(order.buyer) === String(req.user._id) ||
+      String(order.farmer) === String(req.user._id);
+    const isStaff = ['admin', 'support', 'content_moderator', 'finance_officer']
+      .includes(req.user.role);
+    if (!isParty && !isStaff) {
+      return res.status(403).json({ message: 'Huna ruhusa kuona agizo hili' });
+    }
 
     if (order.status === 'partially_approved') {
       const remainder = await Order.findOne({ parentOrder: order._id });

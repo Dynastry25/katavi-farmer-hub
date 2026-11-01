@@ -17,20 +17,39 @@ router.get('/my', auth, async (req, res) => {
   }
 });
 
-// GET /api/v1/input-orders — seller/staff sees all, buyer sees own
+// GET /api/v1/input-orders?view=buyer|seller
+// Staff sees all; everyone else sees orders they placed and orders for
+// products/suppliers they own.
 router.get('/', auth, async (req, res) => {
   try {
     const STAFF_ROLES = ['admin', 'support', 'content_moderator', 'finance_officer'];
+    const { view } = req.query;
 
     let query;
     if (STAFF_ROLES.includes(req.user.role)) {
       query = {};
-    } else if (req.user.role === 'seller') {
-      const Supplier = require('../models/Supplier');
-      const supplierIds = await Supplier.find({ owner: req.user._id }).distinct('_id');
-      query = { supplier: { $in: supplierIds } };
     } else {
-      query = { buyer: req.user._id };
+      const Supplier = require('../models/Supplier');
+      const ownedProducts = await InputProduct.find({ owner: req.user._id })
+        .distinct('_id');
+      const supplierIds = await Supplier.find({ owner: req.user._id })
+        .distinct('_id');
+
+      const sellerFilters = [];
+      if (ownedProducts.length) {
+        sellerFilters.push({ 'items.product': { $in: ownedProducts } });
+      }
+      if (supplierIds.length) {
+        sellerFilters.push({ supplier: { $in: supplierIds } });
+      }
+
+      if (view === 'buyer') {
+        query = { buyer: req.user._id };
+      } else if (view === 'seller') {
+        query = sellerFilters.length ? { $or: sellerFilters } : { _id: null };
+      } else {
+        query = { $or: [{ buyer: req.user._id }, ...sellerFilters] };
+      }
     }
 
     const orders = await InputOrder.find(query).sort({ createdAt: -1 });
@@ -41,7 +60,7 @@ router.get('/', auth, async (req, res) => {
 });
 
 // POST /api/v1/input-orders — buyers/farmers place an input order (with payment initiation)
-router.post('/', requireRole('buyer', 'farmer', 'admin'), async (req, res) => {
+router.post('/', requireRole('buyer', 'farmer', 'seller', 'admin'), async (req, res) => {
   try {
     const {
       items, deliveryMethod, deliveryLocation, contact, notes,
@@ -55,29 +74,40 @@ router.post('/', requireRole('buyer', 'farmer', 'admin'), async (req, res) => {
 
     let itemsTotal = 0;
     const validatedItems = [];
+    const reservations = [];
 
+    // Validate the whole cart before touching stock.
     for (const item of items) {
+      const quantity = Number(item.quantity);
       const product = await InputProduct.findById(item.product);
       if (!product) return res.status(400).json({ message: `Bidhaa ${item.productName || ''} haipatikani` });
-      if (product.stockQuantity < item.quantity) {
+      if (!Number.isFinite(quantity) || quantity < 1) {
+        return res.status(400).json({ message: `Kiasi cha ${product.name} si sahihi` });
+      }
+      if (product.owner && String(product.owner) === String(req.user._id)) {
+        return res.status(400).json({ message: `Hauwezi kununua ${product.name} yako mwenyewe` });
+      }
+      if (product.stockQuantity < quantity) {
         return res.status(400).json({ message: `Hisia ya ${product.name} haikutosha. Inapatikana: ${product.stockQuantity} ${product.unit}` });
       }
 
-      const lineTotal = product.price * item.quantity;
-      itemsTotal += lineTotal;
+      itemsTotal += product.price * quantity;
+      reservations.push({ product, quantity });
       validatedItems.push({
         product: product._id,
         productName: product.name,
-        quantity: item.quantity,
+        quantity,
         price: product.price,
         unit: product.unit,
         image: product.image || '',
       });
+    }
 
-      // Decrement stock
+    // Decrement stock only once every line is valid.
+    for (const { product, quantity } of reservations) {
       await InputProduct.findByIdAndUpdate(product._id, {
-        $inc: { stockQuantity: -item.quantity },
-        $set: product.stockQuantity - item.quantity <= 0 ? { status: 'out_of_stock' } : {},
+        $inc: { stockQuantity: -quantity },
+        $set: product.stockQuantity - quantity <= 0 ? { status: 'out_of_stock' } : {},
       });
     }
 
@@ -99,6 +129,24 @@ router.post('/', requireRole('buyer', 'farmer', 'admin'), async (req, res) => {
       notes: notes || '',
       paymentStatus: 'unpaid',
     });
+
+    // Notify the owners of the ordered products (farmers or sellers).
+    try {
+      const owners = await InputProduct.find({
+        _id: { $in: validatedItems.map((item) => item.product) },
+        owner: { $ne: null },
+      }).distinct('owner');
+      for (const ownerId of owners) {
+        if (String(ownerId) === String(req.user._id)) continue;
+        await sendNotification(ownerId, {
+          title: 'Agizo Jipya la Pembejeo',
+          message: `${req.user.name} ameagiza bidhaa kutoka duka lako.`,
+          type: 'order',
+          link: '/seller/dashboard',
+          metadata: { inputOrderId: order._id },
+        });
+      }
+    } catch (e) { /* best effort */ }
 
     // If payment provider selected, initiate payment
     let paymentResult = null;
@@ -140,8 +188,14 @@ router.put('/:id/status', auth, async (req, res) => {
 
     if (!STAFF_ROLES.includes(req.user.role)) {
       const Supplier = require('../models/Supplier');
-      const isOwner = await Supplier.exists({ _id: order.supplier, owner: req.user._id });
-      if (!isOwner) {
+      const ownsSupplier = order.supplier
+        ? await Supplier.exists({ _id: order.supplier, owner: req.user._id })
+        : false;
+      const productIds = order.items.map((item) => item.product);
+      const ownsProduct = productIds.length
+        ? await InputProduct.exists({ _id: { $in: productIds }, owner: req.user._id })
+        : false;
+      if (!ownsSupplier && !ownsProduct) {
         return res.status(403).json({ message: 'Huna ruhusa ya kusasisha agizo hili' });
       }
     }
