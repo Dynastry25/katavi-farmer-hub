@@ -1,4 +1,5 @@
 const express = require('express');
+const mongoose = require('mongoose');
 const router = express.Router();
 const Order = require('../models/Order');
 const Crop = require('../models/Crop');
@@ -12,13 +13,20 @@ const {
   deriveApprovalStatus,
   resolveApprovedQuantity,
   canMarkDelivered,
+  normalizePaymentMethod,
+  orderAmount,
+  canPayOrder,
   remainderOffer,
   hasOpenRemainder,
 } = require('../services/order.service');
 const { ensureStockPersisted } = require('../services/crop.stock.service');
+const { initiatePayment } = require('../services/payment.service');
 
 const EXPIRY_DAYS = 3;
 const expiryDate = () => new Date(Date.now() + EXPIRY_DAYS * 24 * 60 * 60 * 1000);
+
+// Lean documents skip schema virtuals, so compute the payable amount here.
+const withAmount = (order) => ({ ...order, totalAmount: orderAmount(order) });
 
 // Push a live notification to a user via Socket.io (best-effort).
 const pushLive = (req, userId, payload) => {
@@ -41,7 +49,7 @@ router.get('/', auth, async (req, res) => {
     })
       .sort({ createdAt: -1 })
       .lean();
-    res.json(orders);
+    res.json(orders.map(withAmount));
   } catch (error) {
     res.status(500).json({ message: 'Hitilafu imetokea' });
   }
@@ -53,7 +61,7 @@ router.post('/', requireRole('buyer', 'admin'), async (req, res) => {
     const {
       crop, requestedQuantity, deliveryDate, contact, options, note,
       deliveryMethod, deliveryLocation, deliveryFee, deliveryProviderName,
-      deliveryVehicleType,
+      deliveryVehicleType, paymentMethod,
     } = req.body;
     const qty = Number(requestedQuantity);
 
@@ -110,6 +118,7 @@ router.post('/', requireRole('buyer', 'admin'), async (req, res) => {
       deliveryFee: Math.max(0, Number(deliveryFee) || 0),
       deliveryProviderName: deliveryProviderName || '',
       deliveryVehicleType: deliveryVehicleType || '',
+      paymentMethod: normalizePaymentMethod(paymentMethod),
       buyer: req.user._id,
       buyerName: req.user.name,
     });
@@ -126,6 +135,67 @@ router.post('/', requireRole('buyer', 'admin'), async (req, res) => {
     res.status(201).json(order);
   } catch (error) {
     console.error('Create order error:', error);
+    res.status(500).json({ message: 'Hitilafu imetokea' });
+  }
+});
+
+// POST /api/orders/pay - buyer pays for one or more live crop orders at once
+router.post('/pay', requireRole('buyer', 'admin'), async (req, res) => {
+  try {
+    const { orderIds, provider, phone } = req.body;
+    const ids = Array.isArray(orderIds)
+      ? orderIds.filter((id) => mongoose.Types.ObjectId.isValid(id))
+      : [];
+    if (!ids.length) return res.status(400).json({ message: 'Chagua angalau agizo moja' });
+    if (!provider || !phone) {
+      return res.status(400).json({ message: 'Chagua mtoa huduma na namba ya simu' });
+    }
+
+    const orders = await Order.find({ _id: { $in: ids } });
+    if (orders.length !== ids.length) {
+      return res.status(404).json({ message: 'Baadhi ya maagizo hayapatikani' });
+    }
+    if (req.user.role !== 'admin') {
+      const foreign = orders.find((order) => String(order.buyer) !== String(req.user._id));
+      if (foreign) return res.status(403).json({ message: 'Huna ruhusa kulipia agizo hili' });
+    }
+    const blocked = orders.find((order) => !canPayOrder(order));
+    if (blocked) {
+      return res.status(400).json({
+        message: blocked.paymentStatus === 'paid'
+          ? 'Agizo limekwisha lipwa'
+          : `Agizo hili haliko kwenye hali ya kulipiwa (${blocked.status})`,
+      });
+    }
+
+    const amount = orders.reduce((sum, order) => sum + orderAmount(order), 0);
+    const result = await initiatePayment({
+      provider,
+      phone,
+      amount,
+      reference: `CROP-ORDERS-${orders.map((order) => order._id).join('-')}`,
+      customerName: req.user.name,
+    });
+    if (!result.success) {
+      return res.status(400).json({ message: result.error || 'Malipo hayakuanza' });
+    }
+
+    await Order.updateMany(
+      { _id: { $in: ids } },
+      {
+        $set: {
+          paymentStatus: 'processing',
+          paymentMethod: 'mm',
+          paymentProvider: provider,
+          paymentTransactionId: result.transactionId || '',
+        },
+      }
+    );
+
+    const updated = await Order.find({ _id: { $in: ids } }).lean();
+    res.json({ payment: result, amount, orders: updated.map(withAmount) });
+  } catch (error) {
+    console.error('Pay orders error:', error);
     res.status(500).json({ message: 'Hitilafu imetokea' });
   }
 });
@@ -243,6 +313,11 @@ router.post('/:id/receive', auth, async (req, res) => {
 
     order.status = 'completed';
     order.respondedAt = new Date();
+    // Receipt settles the payment: escrow releases and cash-on-delivery is paid.
+    if (order.paymentStatus !== 'paid' && order.paymentStatus !== 'refunded') {
+      order.paymentStatus = 'paid';
+      order.paidAt = new Date();
+    }
     await order.save();
 
     if (order.farmer) {
@@ -306,7 +381,7 @@ router.get('/:id', auth, async (req, res) => {
       const remainder = await Order.findOne({ parentOrder: order._id });
       order.remainderOrder = remainder || null;
     }
-    res.json(order);
+    res.json(withAmount(order));
   } catch (error) {
     res.status(500).json({ message: 'Hitilafu imetokea' });
   }
@@ -376,6 +451,7 @@ router.post('/:id/remainder', auth, async (req, res) => {
       status: 'pending',
       expiresAt: expiryDate(),
       parentOrder: order._id,
+      paymentMethod: order.paymentMethod || 'cod',
       buyer: req.user._id,
       buyerName: req.user.name,
     });
@@ -407,6 +483,9 @@ router.delete('/:id', auth, async (req, res) => {
   try {
     const order = await Order.findById(req.params.id);
     if (!order) return res.status(404).json({ message: 'Agizo halipatikani' });
+    if (['paid', 'processing'].includes(order.paymentStatus)) {
+      return res.status(400).json({ message: 'Agizo lililolipwa haliwezi kufutwa' });
+    }
 
     // Release any outstanding reservation before deleting.
     if (order.status === 'pending' && order.crop) {

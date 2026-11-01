@@ -51,6 +51,35 @@ const resolveApprovedQuantity = ({ requestedQuantity, approvedQuantity }) => {
 const canMarkDelivered = (status) =>
   status === 'approved' || status === 'partially_approved';
 
+// ── Payments ────────────────────────────────────────────────
+const PAYMENT_METHODS = ['mm', 'cod', 'bank'];
+const PAYABLE_STATUSES = ['pending', 'approved', 'partially_approved'];
+const SETTLED_STATUSES = ['approved', 'partially_approved', 'delivered', 'completed'];
+
+const normalizePaymentMethod = (method) =>
+  PAYMENT_METHODS.includes(method) ? method : 'cod';
+
+// Quantity the buyer pays for: the accepted quantity once the farmer responded,
+// otherwise what was requested (pending orders can be paid up-front).
+const payableQuantity = (order) => {
+  const approved = Number(order.approvedQuantity) || 0;
+  if (SETTLED_STATUSES.includes(order.status) && approved > 0) return approved;
+  return Number(order.requestedQuantity) || 0;
+};
+
+const orderAmount = (order) => {
+  const quantity = payableQuantity(order);
+  const price = Number(order.price) || 0;
+  const fee = Number(order.deliveryFee) || 0;
+  return Math.max(0, quantity * price + fee);
+};
+
+// An order can be paid while it is still live and not already settled.
+const canPayOrder = (order) =>
+  PAYABLE_STATUSES.includes(order.status) &&
+  order.paymentStatus !== 'paid' &&
+  order.paymentStatus !== 'processing';
+
 // The approval status after a (possibly partial) approval.
 const deriveApprovalStatus = ({ requestedQuantity, approvedQuantity }) => {
   const requested = Number(requestedQuantity) || 0;
@@ -92,6 +121,12 @@ module.exports = {
   approvalStockDelta,
   resolveApprovedQuantity,
   canMarkDelivered,
+  PAYMENT_METHODS,
+  PAYABLE_STATUSES,
+  normalizePaymentMethod,
+  payableQuantity,
+  orderAmount,
+  canPayOrder,
   deriveApprovalStatus,
   rejectionReservedRelease,
   remainderOffer,

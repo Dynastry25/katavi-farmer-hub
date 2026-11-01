@@ -32,7 +32,29 @@ const orderSchema = new mongoose.Schema({
   deliveryFee: { type: Number, default: 0 },
   deliveryProviderName: { type: String, default: '' },
   deliveryVehicleType: { type: String, default: '' },
+  paymentMethod: { type: String, enum: ['mm', 'cod', 'bank'], default: 'cod' },
+  paymentStatus: {
+    type: String,
+    enum: ['unpaid', 'processing', 'paid', 'failed', 'refunded'],
+    default: 'unpaid',
+  },
+  paymentProvider: { type: String, default: '' },
+  paymentTransactionId: { type: String, default: '' },
+  paidAt: { type: Date, default: null },
 }, { timestamps: true });
+
+// Amount payable by the buyer: accepted quantity × price + delivery fee.
+orderSchema.virtual('totalAmount').get(function () {
+  const approved = Number(this.approvedQuantity) || 0;
+  const settled = ['approved', 'partially_approved', 'delivered', 'completed'].includes(this.status);
+  const quantity = settled && approved > 0 ? approved : (Number(this.requestedQuantity) || 0);
+  const price = Number(this.price) || 0;
+  const fee = Number(this.deliveryFee) || 0;
+  return Math.max(0, quantity * price + fee);
+});
+
+orderSchema.set('toJSON', { virtuals: true });
+orderSchema.set('toObject', { virtuals: true });
 
 orderSchema.index({ status: 1, expiresAt: 1 });
 orderSchema.index({ parentOrder: 1 });
