@@ -32,6 +32,22 @@ const orderSchema = new mongoose.Schema({
   deliveryFee: { type: Number, default: 0 },
   deliveryProviderName: { type: String, default: '' },
   deliveryVehicleType: { type: String, default: '' },
+  deliveryProvider: { type: mongoose.Schema.Types.ObjectId, ref: 'TransportProvider', default: null },
+  // none: buyer collects · requested: waiting for the farmer's approval ·
+  // pending: farmer approved, waiting for the transport provider ·
+  // accepted / in_transit / delivered: carrier confirmed the job ·
+  // rejected / cancelled: no carrier will move this order.
+  deliveryStatus: {
+    type: String,
+    enum: ['none', 'requested', 'pending', 'accepted', 'in_transit', 'delivered', 'rejected', 'cancelled'],
+    default: 'none',
+  },
+  deliveryAcceptedAt: { type: Date, default: null },
+  deliveryRejectedReason: { type: String, default: '' },
+  // Last known carrier position, pushed by the logistics app while on the road.
+  deliveryLat: { type: Number, default: null },
+  deliveryLng: { type: Number, default: null },
+  deliveryLocationAt: { type: Date, default: null },
   paymentMethod: { type: String, enum: ['mm', 'cod', 'bank'], default: 'cod' },
   paymentStatus: {
     type: String,
@@ -58,5 +74,6 @@ orderSchema.set('toObject', { virtuals: true });
 
 orderSchema.index({ status: 1, expiresAt: 1 });
 orderSchema.index({ parentOrder: 1 });
+orderSchema.index({ deliveryProvider: 1, deliveryStatus: 1 });
 
 module.exports = mongoose.model('Order', orderSchema);
