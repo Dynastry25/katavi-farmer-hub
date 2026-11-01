@@ -5,6 +5,7 @@ const Conversation = require('../models/Conversation');
 const Message = require('../models/Message');
 const User = require('../models/User');
 const { auth } = require('../middleware/auth');
+const { pickConversationName } = require('../services/chatNaming.service');
 
 const PRESENCE_WINDOW_MS = 60 * 1000;
 const PRESENCE_TOUCH_MS = 20 * 1000;
@@ -79,6 +80,14 @@ router.get('/conversations', auth, async (req, res) => {
       ),
     ];
     const online = await onlineIds(peerIds);
+    const peerUsers = peerIds.length
+      ? await User.find({ _id: { $in: peerIds } })
+        .select('name')
+        .lean()
+      : [];
+    const peerNameById = new Map(
+      peerUsers.map((u) => [str(u._id), String(u.name || '').trim()])
+    );
 
     res.json(
       conversations.map((c) => {
@@ -86,8 +95,14 @@ router.get('/conversations', auth, async (req, res) => {
         const json = c.toObject({ flattenMaps: true });
         delete json.unreadBy;
         delete json.typingBy;
+        const peerNames = peers
+          .map((p) => peerNameById.get(str(p)) || '')
+          .filter(Boolean);
         return {
           ...json,
+          // The viewer always sees the other person's name, never their own.
+          name: pickConversationName({ storedName: json.name, peerNames }),
+          participantNames: peerNames,
           unread: c.unreadBy?.get(str(req.user._id)) || 0,
           online: peers.some((p) => online.has(str(p))),
           typing: isTypingFromOthers(c, req.user._id),
@@ -152,12 +167,21 @@ router.post('/conversations', auth, async (req, res) => {
       if (existing) return res.json(existing);
     }
 
+    // Keep names aligned with `participants`; the inbox rewrites them per
+    // viewer anyway, but new threads should not carry the creator's view.
+    const participantUsers = await User.find({ _id: { $in: participants } })
+      .select('name')
+      .lean();
+    const nameById = new Map(
+      participantUsers.map((u) => [str(u._id), String(u.name || '').trim()])
+    );
+
     const conversation = await Conversation.create({
       name: req.body.name || '',
       type: req.body.type || 'farmer',
       avatar: req.body.avatar || '💬',
       lastMessage: req.body.lastMessage || '',
-      participantNames: req.body.participantNames || [],
+      participantNames: participants.map((p) => nameById.get(str(p)) || ''),
       members: participants.length,
       participants,
     });
