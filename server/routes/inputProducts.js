@@ -50,14 +50,14 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// POST /api/v1/input-products — farmer/seller/staff creates input product
+// POST /api/v1/input-products — seller/staff creates input product
 router.post('/', auth, async (req, res) => {
   try {
-    const isSeller = req.user.role === 'seller' || req.user.role === 'farmer';
+    const isSeller = req.user.role === 'seller';
     const isStaff = STAFF_ROLES.includes(req.user.role);
 
     if (!isSeller && !isStaff) {
-      return res.status(403).json({ message: 'Wakulima na wauzaji pekee wanaweza kuunda bidhaa' });
+      return res.status(403).json({ message: 'Wauzaji pekee wanaweza kuunda bidhaa' });
     }
 
     const { name, category, price, unit, stockQuantity, description, usageInstructions, image, supplier, supplierName, location } = req.body;

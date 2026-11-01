@@ -60,7 +60,7 @@ router.get('/', auth, async (req, res) => {
 });
 
 // POST /api/v1/input-orders — buyers/farmers place an input order (with payment initiation)
-router.post('/', requireRole('buyer', 'farmer', 'seller', 'admin'), async (req, res) => {
+router.post('/', requireRole('buyer', 'farmer', 'admin'), async (req, res) => {
   try {
     const {
       items, deliveryMethod, deliveryLocation, contact, notes,
@@ -130,7 +130,7 @@ router.post('/', requireRole('buyer', 'farmer', 'seller', 'admin'), async (req, 
       paymentStatus: 'unpaid',
     });
 
-    // Notify the owners of the ordered products (farmers or sellers).
+    // Notify the owners of the ordered products.
     try {
       const owners = await InputProduct.find({
         _id: { $in: validatedItems.map((item) => item.product) },
