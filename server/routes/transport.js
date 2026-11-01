@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const mongoose = require('mongoose');
 const { auth } = require('../middleware/auth');
 const { requireRole } = require('../middleware/roleCheck');
 const { sendNotification } = require('../services/notification.service');
@@ -26,6 +27,7 @@ const providerFields = (body) => {
   if (body.location !== undefined) data.location = String(body.location).trim().slice(0, 120);
   if (body.vehicleType !== undefined) data.vehicleType = String(body.vehicleType).slice(0, 30);
   if (body.ratePerKm !== undefined) data.ratePerKm = numeric(body.ratePerKm, 0);
+  if (body.capacityKg !== undefined) data.capacityKg = numeric(body.capacityKg, 0);
   if (body.vehiclePlate !== undefined) data.vehiclePlate = String(body.vehiclePlate).trim().slice(0, 30);
   if (body.description !== undefined) data.description = String(body.description).trim().slice(0, 300);
   if (body.available !== undefined) data.available = Boolean(body.available);
@@ -44,7 +46,9 @@ const STATUS_MESSAGES = {
 // GET /api/v1/transport/providers
 router.get('/providers', async (req, res) => {
   try {
-    const providers = await TransportProvider.find().sort({ createdAt: -1 });
+    const filter = {};
+    if (req.query.available === 'true') filter.available = true;
+    const providers = await TransportProvider.find(filter).sort({ createdAt: -1 });
     res.json(providers);
   } catch (error) {
     console.error('Get transport providers error:', error);
@@ -52,14 +56,28 @@ router.get('/providers', async (req, res) => {
   }
 });
 
-// POST /api/v1/transport/providers — admin
-router.post('/providers', requireRole('admin'), async (req, res) => {
+// GET /api/v1/transport/providers/mine — vehicles registered by the caller.
+router.get('/providers/mine', requireRole('logistics', 'admin'), async (req, res) => {
+  try {
+    const providers = await TransportProvider.find({ owner: req.user._id }).sort({ createdAt: -1 });
+    res.json(providers);
+  } catch (error) {
+    console.error('Get my transport providers error:', error);
+    res.status(500).json({ message: 'Hitilafu imetokea' });
+  }
+});
+
+// POST /api/v1/transport/providers — logistics partner or admin
+router.post('/providers', requireRole('logistics', 'admin'), async (req, res) => {
   try {
     const data = providerFields(req.body);
     if (!data.name) {
       return res.status(400).json({ message: 'Jina la mtoa huduma linahitajika' });
     }
-    const provider = await TransportProvider.create(data);
+    if (!data.vehiclePlate) {
+      return res.status(400).json({ message: 'Namba ya gari (plate) inahitajika' });
+    }
+    const provider = await TransportProvider.create({ ...data, owner: req.user._id });
     res.status(201).json({ provider });
   } catch (error) {
     console.error('Create transport provider error:', error);
@@ -67,15 +85,20 @@ router.post('/providers', requireRole('admin'), async (req, res) => {
   }
 });
 
-// PATCH /api/v1/transport/providers/:id — admin
-router.patch('/providers/:id', requireRole('admin'), async (req, res) => {
+const canManageProvider = (provider, user) =>
+  user.role === 'admin' ||
+  (provider.owner && String(provider.owner) === String(user._id));
+
+// PATCH /api/v1/transport/providers/:id — owner or admin
+router.patch('/providers/:id', requireRole('logistics', 'admin'), async (req, res) => {
   try {
-    const provider = await TransportProvider.findByIdAndUpdate(
-      req.params.id,
-      { $set: providerFields(req.body) },
-      { new: true }
-    );
+    const provider = await TransportProvider.findById(req.params.id);
     if (!provider) return res.status(404).json({ message: 'Mtoa huduma hayupo' });
+    if (!canManageProvider(provider, req.user)) {
+      return res.status(403).json({ message: 'Huna ruhusa ya kubadilisha gari hili' });
+    }
+    Object.assign(provider, providerFields(req.body));
+    await provider.save();
     res.json({ provider });
   } catch (error) {
     console.error('Update transport provider error:', error);
@@ -83,11 +106,15 @@ router.patch('/providers/:id', requireRole('admin'), async (req, res) => {
   }
 });
 
-// DELETE /api/v1/transport/providers/:id — admin
-router.delete('/providers/:id', requireRole('admin'), async (req, res) => {
+// DELETE /api/v1/transport/providers/:id — owner or admin
+router.delete('/providers/:id', requireRole('logistics', 'admin'), async (req, res) => {
   try {
-    const deleted = await TransportProvider.findByIdAndDelete(req.params.id);
-    if (!deleted) return res.status(404).json({ message: 'Mtoa huduma hayupo' });
+    const provider = await TransportProvider.findById(req.params.id);
+    if (!provider) return res.status(404).json({ message: 'Mtoa huduma hayupo' });
+    if (!canManageProvider(provider, req.user)) {
+      return res.status(403).json({ message: 'Huna ruhusa ya kuondoa gari hili' });
+    }
+    await TransportProvider.deleteOne({ _id: provider._id });
     res.json({ message: 'Mtoa huduma ameondolewa' });
   } catch (error) {
     console.error('Delete transport provider error:', error);
@@ -172,7 +199,32 @@ router.get('/bookings', auth, async (req, res) => {
 // POST /api/v1/transport/bookings
 router.post('/bookings', auth, async (req, res) => {
   try {
-    const booking = await TransportBooking.create({ ...req.body, user: req.user._id });
+    const pickupLocation = String(req.body.pickupLocation || '').trim();
+    const dropoffLocation = String(req.body.dropoffLocation || '').trim();
+    if (!pickupLocation || !dropoffLocation) {
+      return res.status(400).json({ message: 'Chagua mahali pa kuchukua na kupeleka' });
+    }
+    if (!mongoose.isValidObjectId(req.body.transportProvider)) {
+      return res.status(400).json({ message: 'Chagua gari la kutumia' });
+    }
+    const provider = await TransportProvider.findById(req.body.transportProvider);
+    if (!provider) return res.status(404).json({ message: 'Gari hili halipo' });
+    if (provider.available === false) {
+      return res.status(400).json({ message: 'Gari hili halipatikani kwa sasa' });
+    }
+
+    const booking = await TransportBooking.create({
+      user: req.user._id,
+      transportProvider: provider._id,
+      transportProviderName: provider.name,
+      pickupLocation,
+      dropoffLocation,
+      distanceKm: numeric(req.body.distanceKm, 0),
+      ratePerKm: numeric(req.body.ratePerKm, provider.ratePerKm),
+      totalAmount: numeric(req.body.totalAmount, 0),
+      notes: String(req.body.notes || '').trim().slice(0, 300),
+      status: 'pending',
+    });
     res.status(201).json({ booking });
   } catch (error) {
     console.error('Create transport booking error:', error);
@@ -180,10 +232,18 @@ router.post('/bookings', auth, async (req, res) => {
   }
 });
 
-// GET /api/v1/transport/bookings/all — all requests (logistics / admin)
+// GET /api/v1/transport/bookings/all — requests for the caller's vehicles
+// (logistics), or everything for an admin.
 router.get('/bookings/all', requireRole('logistics', 'admin'), async (req, res) => {
   try {
-    const bookings = await TransportBooking.find()
+    let filter = {};
+    if (req.user.role !== 'admin') {
+      const owned = await TransportProvider.find({ owner: req.user._id })
+        .select('_id')
+        .lean();
+      filter = { transportProvider: { $in: owned.map((p) => p._id) } };
+    }
+    const bookings = await TransportBooking.find(filter)
       .populate('user', 'name phone location district')
       .sort({ createdAt: -1 });
     res.json({ bookings });
@@ -214,6 +274,13 @@ router.patch('/bookings/:id/status', requireRole('logistics', 'admin'), async (r
 
     const booking = await TransportBooking.findById(req.params.id);
     if (!booking) return res.status(404).json({ message: 'Ombi halipo' });
+
+    if (req.user.role !== 'admin') {
+      const provider = await TransportProvider.findById(booking.transportProvider);
+      if (!provider || !provider.owner || String(provider.owner) !== String(req.user._id)) {
+        return res.status(403).json({ message: 'Ombi hili si la gari lako' });
+      }
+    }
 
     booking.status = status;
     await booking.save();

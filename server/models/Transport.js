@@ -2,11 +2,13 @@ const mongoose = require('mongoose');
 const { Schema } = mongoose;
 
 const TransportProviderSchema = new Schema({
+  owner: { type: Schema.Types.ObjectId, ref: 'User', default: null },
   name: { type: String, required: true },
   phone: { type: String, default: '' },
   location: { type: String, default: '' },
   vehicleType: { type: String, default: 'lorry' },
   ratePerKm: { type: Number, default: 0 },
+  capacityKg: { type: Number, default: 0 },
   vehiclePlate: { type: String, default: '' },
   description: { type: String, default: '' },
   averageRating: { type: Number, default: 0 },

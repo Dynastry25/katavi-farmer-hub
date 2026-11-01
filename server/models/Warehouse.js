@@ -2,8 +2,11 @@ const mongoose = require('mongoose');
 const { Schema } = mongoose;
 
 const WarehouseSchema = new Schema({
+  owner: { type: Schema.Types.ObjectId, ref: 'User', default: null },
   name: { type: String, required: true },
   location: { type: String, default: '' },
+  sizeSqm: { type: Number, default: 0 },
+  feePerBagPerDay: { type: Number, default: 0 },
   feePerBagPerMonth: { type: Number, default: 0 },
   capacityBags: { type: Number, default: 0 },
   available: { type: Boolean, default: true },
@@ -15,6 +18,7 @@ const StorageBookingSchema = new Schema({
   warehouseName: { type: String, default: '' },
   bags: { type: Number, default: 0 },
   months: { type: Number, default: 0 },
+  days: { type: Number, default: 0 },
   totalFee: { type: Number, default: 0 },
   status: { type: String, default: 'active' },
 }, { timestamps: true });
