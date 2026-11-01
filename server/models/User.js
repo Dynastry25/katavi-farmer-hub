@@ -28,6 +28,7 @@ const userSchema = new mongoose.Schema({
   phoneVerified: { type: Boolean, default: false },
   phoneOtpHash: { type: String, default: '' },
   phoneOtpExpires: { type: Date, default: null },
+  lastSeen: { type: Date, default: null },
   farmSize: { type: String, default: '' },
   farmLocation: { type: String, default: '' },
   crops: [{ type: String }],
