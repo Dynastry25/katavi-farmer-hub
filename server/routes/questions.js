@@ -1,8 +1,13 @@
 const express = require('express');
 const router = express.Router();
 const Question = require('../models/Question');
+const User = require('../models/User');
 const { auth, optionalAuth } = require('../middleware/auth');
 const { requireRole } = require('../middleware/roleCheck');
+const {
+  sendNotification,
+  sendBulkNotifications,
+} = require('../services/notification.service');
 
 // Roles allowed to answer farmer questions.
 const ANSWER_ROLES = ['expert', 'admin', 'content_moderator', 'support'];
@@ -61,6 +66,23 @@ router.post('/', auth, async (req, res) => {
       asker: req.user._id,
       askerName: req.user.name,
     });
+
+    const experts = await User.find({ role: 'expert', isActive: true })
+      .select('_id')
+      .lean();
+    if (experts.length) {
+      await sendBulkNotifications(
+        experts.map((expert) => expert._id),
+        {
+          title: 'Swali Jipya la Mkulima',
+          message: `${question.askerName || 'Mkulima'}: ${question.title}`,
+          type: 'chat',
+          link: '/qa',
+          metadata: { questionId: String(question._id) },
+        }
+      );
+    }
+
     res.status(201).json(question);
   } catch (error) {
     res.status(500).json({ message: 'Hitilafu imetokea' });
@@ -85,6 +107,17 @@ router.post('/:id/answers', requireRole(...ANSWER_ROLES), async (req, res) => {
     });
     question.status = 'answered';
     await question.save();
+
+    if (question.asker && String(question.asker) !== String(req.user._id)) {
+      await sendNotification(question.asker, {
+        title: 'Jibu la Swali Lako',
+        message: `${req.user.name}: ${question.title}`,
+        type: 'chat',
+        link: `/question/${question._id}`,
+        metadata: { questionId: String(question._id) },
+      });
+    }
+
     res.status(201).json(question);
   } catch (error) {
     res.status(500).json({ message: 'Hitilafu imetokea' });

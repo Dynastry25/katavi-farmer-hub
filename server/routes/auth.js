@@ -4,6 +4,7 @@ const router = express.Router();
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const User = require('../models/User');
+const Expert = require('../models/Expert');
 const PhoneOtp = require('../models/PhoneOtp');
 const { auth } = require('../middleware/auth');
 const { sendNotification } = require('../services/notification.service');
@@ -12,6 +13,21 @@ const { sendOtpEmail, isDeliverableEmail } = require('../services/email.service'
 
 const STAFF_ROLES = ['admin', 'support', 'content_moderator', 'finance_officer'];
 const PUBLIC_ROLES = ['farmer', 'buyer', 'seller', 'expert', 'logistics'];
+
+// Experts must show up in `/advice/experts` right after signing up, not only
+// after an admin creates their public profile by hand.
+const ensureExpertProfile = async (user) => {
+  if (user.role !== 'expert') return null;
+  const existing = await Expert.findOne({ user: user._id });
+  if (existing) return existing;
+  return Expert.create({
+    user: user._id,
+    name: user.name,
+    specialization: user.expertise || 'Ushauri wa kilimo',
+    experience: user.experience || '',
+    image: user.profilePicture || '',
+  });
+};
 
 const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '30d' });
@@ -97,6 +113,8 @@ router.post('/register', async (req, res) => {
       expertise, experience,
       registrationDate: new Date().toISOString(),
     });
+
+    await ensureExpertProfile(user);
 
     const token = generateToken(user._id);
 
@@ -628,6 +646,8 @@ router.post('/phone/register/complete', async (req, res) => {
       bio: String(bio || '').trim(),
       registrationDate: new Date().toISOString(),
     });
+
+    await ensureExpertProfile(user);
 
     await PhoneOtp.deleteOne({ phone });
 
