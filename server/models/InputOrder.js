@@ -45,6 +45,8 @@ const inputOrderSchema = new mongoose.Schema({
   refundReference: { type: String, default: '' },
   receivedAt: { type: Date, default: null },
   respondedAt: { type: Date, default: null },
+  cancelReason: { type: String, default: '' },
+  cancelledAt: { type: Date, default: null },
   deliveryMethod: { type: String, enum: ['pickup', 'delivery'], default: 'pickup' },
   pickupLocation: { type: String, default: '' },
   deliveryLocation: { type: String, default: '' },

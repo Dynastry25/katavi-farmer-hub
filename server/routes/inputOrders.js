@@ -348,7 +348,9 @@ router.put('/:id/status', auth, async (req, res) => {
     const order = await InputOrder.findById(req.params.id);
     if (!order) return res.status(404).json({ message: 'Agizo halipatikani' });
 
-    if (!STAFF_ROLES.includes(req.user.role)) {
+    const isStaff = STAFF_ROLES.includes(req.user.role);
+    const isBuyer = String(order.buyer) === String(req.user._id);
+    if (!isStaff && !isBuyer) {
       const Supplier = require('../models/Supplier');
       const ownsSupplier = order.supplier
         ? await Supplier.exists({ _id: order.supplier, owner: req.user._id })
@@ -360,6 +362,10 @@ router.put('/:id/status', auth, async (req, res) => {
       if (!ownsSupplier && !ownsProduct) {
         return res.status(403).json({ message: 'Huna ruhusa ya kusasisha agizo hili' });
       }
+    }
+    // The buyer's only write is withdrawing the order before it ships.
+    if (isBuyer && status !== 'cancelled') {
+      return res.status(403).json({ message: 'Mnunuzi anaweza tu kughairi agizo hili' });
     }
 
     if (!canTransitionInputOrder(order.status, status)) {
@@ -375,12 +381,25 @@ router.put('/:id/status', auth, async (req, res) => {
       });
     }
 
+    if (!isStaff && status === 'cancelled' &&
+        ['accepted', 'in_transit'].includes(order.deliveryStatus)) {
+      return res.status(400).json({
+        message: 'Mzigo uko kwa mtoa usafiri; huwezi kughairi. Wasiliana na msaada.',
+      });
+    }
+
+    const reason = String(req.body.reason || '').trim().slice(0, 200);
+    const previousDeliveryStatus = order.deliveryStatus;
+
     if (status === 'cancelled') {
+      order.cancelReason = reason;
+      order.cancelledAt = new Date();
       // Restore stock
       for (const item of order.items) {
         await InputProduct.findByIdAndUpdate(item.product, { $inc: { stockQuantity: item.quantity }, $set: { status: 'available' } });
       }
-      if (isDelivery(order) && order.deliveryProvider) {
+      if (isDelivery(order) &&
+          !['delivered', 'rejected', 'cancelled'].includes(previousDeliveryStatus)) {
         order.deliveryStatus = 'cancelled';
       }
     }
@@ -392,7 +411,9 @@ router.put('/:id/status', auth, async (req, res) => {
       await refundPaidOrder({
         order,
         kind: 'input',
-        reason: 'Agizo la pembejeo limeghairiwa',
+        reason: reason
+          ? `Agizo la pembejeo limeghairiwa: ${reason}`
+          : 'Agizo la pembejeo limeghairiwa',
       });
     }
     if (status === 'confirmed' && isDelivery(order) &&
@@ -406,13 +427,36 @@ router.put('/:id/status', auth, async (req, res) => {
     }
     await order.save();
 
-    await sendNotification(order.buyer, {
-      title: 'Sasisha ya Agizo la Pembejeo',
-      message: `Agizo lako la pembejeo: ${STATUS_LABELS[status] || status}`,
-      type: 'order',
-      link: '/buyer/orders?tab=inputs',
-      metadata: { inputOrderId: order._id, status },
-    });
+    if (status === 'cancelled' && isBuyer) {
+      // The seller must stop preparing goods the buyer just withdrew.
+      await notifyInputSellers(order, {
+        title: 'Agizo la Pembejeo Limeghairiwa',
+        message: `${order.buyerName} ameghairi agizo la pembejeo.` +
+          (reason ? ` Sababu: ${reason}.` : ''),
+        link: '/seller/dashboard',
+        metadata: { status },
+      });
+    } else {
+      await sendNotification(order.buyer, {
+        title: 'Sasisha ya Agizo la Pembejeo',
+        message: `Agizo lako la pembejeo: ${STATUS_LABELS[status] || status}` +
+          (status === 'cancelled' && reason ? `. Sababu: ${reason}` : ''),
+        type: 'order',
+        link: '/buyer/orders?tab=inputs',
+        metadata: { inputOrderId: order._id, status },
+      });
+    }
+
+    if (status === 'cancelled' &&
+        ['requested', 'pending', 'accepted', 'in_transit']
+          .includes(previousDeliveryStatus)) {
+      await notifyInputCarrier(order, {
+        title: 'Kazi ya Usafiri Imefutwa',
+        message: `Agizo la pembejeo limeghairiwa. ` +
+          `Usichukue mzigo ${order.pickupLocation || 'Mpanda'}.`,
+        metadata: { deliveryStatus: 'cancelled' },
+      });
+    }
 
     if (status === 'confirmed' && order.deliveryStatus === 'pending') {
       await notifyInputCarrier(order, {
