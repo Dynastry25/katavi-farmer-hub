@@ -1010,7 +1010,8 @@ router.post('/:id/dispute', auth, async (req, res) => {
 
     order.disputeFromStatus = order.status;
     order.status = 'disputed';
-    order.resolution = `[${reason}] ${description || ''}`;
+    order.disputeReason = `[${reason}] ${description || ''}`.trim();
+    order.resolution = '';
     order.respondedAt = new Date();
     await order.save();
 
@@ -1033,7 +1034,7 @@ router.post('/:id/dispute', auth, async (req, res) => {
           title: 'Mgogoro Mpya',
           message: `Mgogoro mpya umefunguliwa: ${reason}. Agizo: ${order.cropName}`,
           type: 'dispute',
-          link: '/admin/dashboard',
+          link: '/admin/disputes',
           metadata: { orderId: order._id, reason, reporter: req.user.name },
         });
       }

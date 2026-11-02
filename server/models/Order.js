@@ -24,6 +24,9 @@ const orderSchema = new mongoose.Schema({
   deliveryDate: { type: String, default: '' },
   contact: { type: String, default: '' },
   resolution: { type: String, default: '' },
+  // What the buyer/farmer reported when the dispute was opened; kept separate
+  // from `resolution`, which holds the admin's decision.
+  disputeReason: { type: String, default: '' },
   // Status the order had when the dispute opened, so resolution can tell
   // whether stock was still reserved or already deducted.
   disputeFromStatus: { type: String, default: '' },

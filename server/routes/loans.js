@@ -44,16 +44,52 @@ router.post('/apply', requireRole('farmer', 'admin'), async (req, res) => {
   }
 });
 
-// PUT /api/loans/applications/:id — owner (or staff) only
+// Fields only staff may change: the decision and the repayment ledger.
+const STAFF_ONLY_FIELDS = ['status', 'repaymentStatus', 'remaining', 'nextPayment', 'repayments'];
+// Fields an owner may still correct while the application is awaiting a decision.
+const OWNER_EDITABLE_FIELDS = ['loan', 'loanName', 'amount'];
+
+// PUT /api/v1/loans/applications/:id — owner (limited fields) or staff only
 router.put('/applications/:id', auth, async (req, res) => {
   try {
     const existing = await LoanApplication.findById(req.params.id);
     if (!existing) return res.status(404).json({ message: 'Ombi hili halipatikani' });
+    const isStaff = STAFF_ROLES.includes(req.user.role);
     const isOwner = existing.user && existing.user.toString() === req.user._id.toString();
-    if (!isOwner && !STAFF_ROLES.includes(req.user.role)) {
+    if (!isOwner && !isStaff) {
       return res.status(403).json({ message: 'Huna ruhusa ya kubadilisha ombi hili' });
     }
-    const application = await LoanApplication.findByIdAndUpdate(req.params.id, req.body, { new: true });
+
+    const body = req.body || {};
+    const updates = {};
+    if (isStaff) {
+      for (const [key, value] of Object.entries(body)) {
+        if (key === 'user' || key === '_id') continue;
+        updates[key] = value;
+      }
+    } else {
+      if (existing.status !== 'pending') {
+        return res.status(403).json({ message: 'Ombi lililoanza kushughulikiwa haliwezi kuhaririwa' });
+      }
+      const blocked = Object.keys(body).filter((key) => !OWNER_EDITABLE_FIELDS.includes(key));
+      if (blocked.length) {
+        return res.status(403).json({
+          message: `Hali ya ombi na rekodi za malipo hurekebishwa na wakala tu (${blocked.join(', ')})`,
+        });
+      }
+      for (const key of OWNER_EDITABLE_FIELDS) {
+        if (body[key] !== undefined) updates[key] = body[key];
+      }
+    }
+
+    if (!Object.keys(updates).length) {
+      return res.status(400).json({ message: 'Hakuna mabadiliko yaliyotolewa' });
+    }
+
+    const application = await LoanApplication.findByIdAndUpdate(req.params.id, updates, {
+      new: true,
+      runValidators: true,
+    });
     res.json(application);
   } catch (error) {
     res.status(500).json({ message: 'Hitilafu imetokea' });

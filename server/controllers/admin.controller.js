@@ -850,9 +850,11 @@ exports.resolveDispute = async (req, res) => {
 
     try {
       const { sendNotification } = require('../services/notification.service');
-      const message = status === 'cancelled'
+      const reason = String(resolution || '').trim();
+      const outcome = status === 'cancelled'
         ? `Mgogoro wa agizo la ${order.cropName} umetatuliwa: agizo limeghairiwa.`
         : `Mgogoro wa agizo la ${order.cropName} umetatuliwa: agizo limekamilika.`;
+      const message = reason ? `${outcome} Uamuzi: ${reason}` : outcome;
       if (order.buyer) {
         await sendNotification(order.buyer, {
           title: 'Mgogoro Umetatuliwa',
