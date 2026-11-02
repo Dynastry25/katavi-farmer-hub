@@ -38,13 +38,34 @@ const inputOrderSchema = new mongoose.Schema({
   paymentTransactionId: { type: String, default: '' },
   paymentProvider: { type: String, default: '' },
   receivedAt: { type: Date, default: null },
+  respondedAt: { type: Date, default: null },
   deliveryMethod: { type: String, enum: ['pickup', 'delivery'], default: 'pickup' },
+  pickupLocation: { type: String, default: '' },
   deliveryLocation: { type: String, default: '' },
+  deliveryProvider: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'TransportProvider',
+    default: null,
+  },
+  // requested: seller has not confirmed yet · pending: carrier may accept ·
+  // accepted / in_transit / delivered: carrier moved the job forward ·
+  // rejected / cancelled: nobody is moving the goods.
+  deliveryStatus: {
+    type: String,
+    enum: ['none', 'requested', 'pending', 'accepted', 'in_transit', 'delivered', 'rejected', 'cancelled'],
+    default: 'none',
+  },
+  deliveryAcceptedAt: { type: Date, default: null },
+  deliveryRejectedReason: { type: String, default: '' },
+  deliveryLat: { type: Number, default: null },
+  deliveryLng: { type: Number, default: null },
+  deliveryLocationAt: { type: Date, default: null },
   contact: { type: String, default: '' },
   notes: { type: String, default: '' },
 }, { timestamps: true });
 
 inputOrderSchema.index({ buyer: 1, createdAt: -1 });
 inputOrderSchema.index({ status: 1 });
+inputOrderSchema.index({ deliveryProvider: 1, deliveryStatus: 1 });
 
 module.exports = mongoose.model('InputOrder', inputOrderSchema);

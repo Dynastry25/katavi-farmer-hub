@@ -1,7 +1,9 @@
 const express = require('express');
+const mongoose = require('mongoose');
 const router = express.Router();
 const InputOrder = require('../models/InputOrder');
 const InputProduct = require('../models/InputProduct');
+const { TransportProvider } = require('../models/Transport');
 const { auth } = require('../middleware/auth');
 const { requireRole } = require('../middleware/roleCheck');
 const { sendNotification } = require('../services/notification.service');
@@ -12,12 +14,68 @@ const {
   inputPaymentMethod,
 } = require('../services/inputOrder.service');
 
+const STAFF_ROLES = ['admin', 'support', 'content_moderator', 'finance_officer'];
+
 const STATUS_LABELS = {
   pending: 'Imetumwa',
   confirmed: 'Imethibitishwa',
   shipped: 'Imesafirishwa',
   delivered: 'Imefikishwa',
   cancelled: 'Imeghairiwa',
+};
+
+const isDelivery = (order) => order.deliveryMethod === 'delivery';
+
+// The logistics user who registered the carrier vehicle (or an admin).
+const isInputOrderCarrier = async (order, user) => {
+  if (user.role === 'admin') return true;
+  if (!order.deliveryProvider) return false;
+  const provider = await TransportProvider.findById(order.deliveryProvider)
+    .select('owner')
+    .lean();
+  return Boolean(provider && provider.owner &&
+    String(provider.owner) === String(user._id));
+};
+
+// Owners of the products in this order, excluding the buyer.
+const inputSellerIds = async (order) => {
+  const owners = await InputProduct.find({
+    _id: { $in: order.items.map((item) => item.product) },
+    owner: { $ne: null },
+  }).distinct('owner');
+  return owners.filter((id) => String(id) !== String(order.buyer));
+};
+
+const notifyInputSellers = async (order, payload) => {
+  try {
+    for (const ownerId of await inputSellerIds(order)) {
+      await sendNotification(ownerId, {
+        ...payload,
+        type: 'order',
+        metadata: { ...(payload.metadata || {}), inputOrderId: order._id },
+      });
+    }
+  } catch (e) { /* best effort */ }
+};
+
+const notifyInputCarrier = async (order, payload) => {
+  try {
+    if (!order.deliveryProvider) return;
+    const provider = await TransportProvider.findById(order.deliveryProvider)
+      .select('owner')
+      .lean();
+    if (!provider || !provider.owner) return;
+    await sendNotification(provider.owner, {
+      ...payload,
+      type: 'order',
+      link: '/logistics?tab=orders',
+      metadata: {
+        ...(payload.metadata || {}),
+        inputOrderId: order._id,
+        kind: 'input_delivery_request',
+      },
+    });
+  } catch (e) { /* best effort */ }
 };
 
 // GET /api/v1/input-orders/my
@@ -72,15 +130,36 @@ router.get('/', auth, async (req, res) => {
   }
 });
 
-// GET /api/v1/input-orders/:id — buyer, product owner or staff
+// GET /api/v1/input-orders/transport/requests — input delivery jobs for the
+// vehicles registered by the caller.
+router.get('/transport/requests', requireRole('logistics', 'admin'), async (req, res) => {
+  try {
+    const filter = {
+      deliveryStatus: { $in: ['pending', 'accepted', 'in_transit', 'delivered', 'rejected'] },
+    };
+    if (req.user.role !== 'admin') {
+      const owned = await TransportProvider.find({ owner: req.user._id })
+        .select('_id')
+        .lean();
+      filter.deliveryProvider = { $in: owned.map((provider) => provider._id) };
+    }
+    const orders = await InputOrder.find(filter).sort({ createdAt: -1 }).limit(100).lean();
+    res.json(orders);
+  } catch (error) {
+    console.error('Get input transport requests error:', error);
+    res.status(500).json({ message: 'Hitilafu imetokea' });
+  }
+});
+
+// GET /api/v1/input-orders/:id — buyer, product owner, carrier or staff
 router.get('/:id', auth, async (req, res) => {
   try {
-    const STAFF_ROLES = ['admin', 'support', 'content_moderator', 'finance_officer'];
     const order = await InputOrder.findById(req.params.id);
     if (!order) return res.status(404).json({ message: 'Agizo halipatikani' });
 
     const isBuyer = String(order.buyer) === String(req.user._id);
-    if (!isBuyer && !STAFF_ROLES.includes(req.user.role)) {
+    if (!isBuyer && !STAFF_ROLES.includes(req.user.role) &&
+        !(await isInputOrderCarrier(order, req.user))) {
       const Supplier = require('../models/Supplier');
       const productIds = order.items.map((item) => item.product);
       const ownsProduct = productIds.length
@@ -106,11 +185,26 @@ router.post('/', requireRole('buyer', 'farmer', 'admin'), async (req, res) => {
     const {
       items, deliveryMethod, deliveryLocation, contact, notes,
       paymentMethod, paymentProvider, paymentPhone, deliveryFee,
-      deliveryProviderName, deliveryVehicleType,
+      deliveryProviderName, deliveryVehicleType, deliveryProvider,
     } = req.body;
 
     if (!items || !items.length) {
       return res.status(400).json({ message: 'Weka angau bidhaa moja' });
+    }
+
+    const method = deliveryMethod === 'delivery' ? 'delivery' : 'pickup';
+    let provider = null;
+    if (method === 'delivery') {
+      if (!deliveryProvider || !mongoose.isValidObjectId(deliveryProvider)) {
+        return res.status(400).json({ message: 'Chagua mtoa huduma wa usafiri' });
+      }
+      provider = await TransportProvider.findById(deliveryProvider);
+      if (!provider) {
+        return res.status(404).json({ message: 'Mtoa huduma wa usafiri hayupo' });
+      }
+      if (provider.available === false) {
+        return res.status(400).json({ message: 'Gari hili halipatikani kwa sasa' });
+      }
     }
 
     let itemsTotal = 0;
@@ -179,10 +273,13 @@ router.post('/', requireRole('buyer', 'farmer', 'admin'), async (req, res) => {
       buyerName: req.user.name,
       itemsTotal,
       deliveryFee: fee,
-      deliveryProviderName: deliveryProviderName || '',
-      deliveryVehicleType: deliveryVehicleType || '',
+      deliveryProvider: provider ? provider._id : null,
+      deliveryProviderName: provider ? provider.name : (deliveryProviderName || ''),
+      deliveryVehicleType: provider ? provider.vehicleType : (deliveryVehicleType || ''),
+      deliveryStatus: provider ? 'requested' : 'none',
       totalAmount,
-      deliveryMethod: deliveryMethod || 'pickup',
+      deliveryMethod: method,
+      pickupLocation: reservations[0]?.product.location || '',
       deliveryLocation: deliveryLocation || '',
       contact: contact || req.user.phone,
       notes: notes || '',
@@ -236,7 +333,6 @@ router.post('/', requireRole('buyer', 'farmer', 'admin'), async (req, res) => {
 // PUT /api/v1/input-orders/:id/status — seller/staff updates order status
 router.put('/:id/status', auth, async (req, res) => {
   try {
-    const STAFF_ROLES = ['admin', 'support', 'content_moderator', 'finance_officer'];
     const { status } = req.body;
     if (!isInputStatus(status)) {
       return res.status(400).json({ message: 'Hali ya agizo siyo sahihi' });
@@ -273,9 +369,21 @@ router.put('/:id/status', auth, async (req, res) => {
       if (['processing', 'paid'].includes(order.paymentStatus)) {
         order.paymentStatus = 'refunded';
       }
+      if (isDelivery(order) && order.deliveryProvider) {
+        order.deliveryStatus = 'cancelled';
+      }
     }
 
     order.status = status;
+    if (status === 'confirmed' && isDelivery(order) &&
+        order.deliveryProvider && order.deliveryStatus === 'requested') {
+      // The seller accepted the order, so the carrier can now take the job.
+      order.deliveryStatus = 'pending';
+    }
+    if (status === 'delivered' && isDelivery(order) &&
+        order.deliveryStatus !== 'rejected') {
+      order.deliveryStatus = 'delivered';
+    }
     await order.save();
 
     await sendNotification(order.buyer, {
@@ -286,9 +394,191 @@ router.put('/:id/status', auth, async (req, res) => {
       metadata: { inputOrderId: order._id, status },
     });
 
+    if (status === 'confirmed' && order.deliveryStatus === 'pending') {
+      await notifyInputCarrier(order, {
+        title: 'Ombi la Usafiri',
+        message: `${order.buyerName} ameagiza pembejeo. ${order.pickupLocation || 'Mpanda'} → ${order.deliveryLocation || 'Mpanda'}.`,
+      });
+    }
+
     res.json(order);
   } catch (error) {
     console.error('Update input order status error:', error);
+    res.status(500).json({ message: 'Hitilafu imetokea' });
+  }
+});
+
+// PATCH /api/v1/input-orders/:id/transport/accept — carrier takes the job
+router.patch('/:id/transport/accept', requireRole('logistics', 'admin'), async (req, res) => {
+  try {
+    const order = await InputOrder.findById(req.params.id);
+    if (!order || !order.deliveryProvider) {
+      return res.status(404).json({ message: 'Ombi la usafiri halipo' });
+    }
+    if (!(await isInputOrderCarrier(order, req.user))) {
+      return res.status(403).json({ message: 'Ombi hili si la gari lako' });
+    }
+    if (order.deliveryStatus !== 'pending') {
+      return res.status(400).json({ message: `Ombi hili liko katika hali ya ${order.deliveryStatus}` });
+    }
+
+    order.deliveryStatus = 'accepted';
+    order.deliveryAcceptedAt = new Date();
+    await order.save();
+
+    const route = `${order.pickupLocation || 'Mpanda'} → ${order.deliveryLocation || 'Mpanda'}`;
+    await sendNotification(order.buyer, {
+      title: 'Usafiri Umekubaliwa',
+      message: `${order.deliveryProviderName || 'Mtoa usafiri'} atapeleka pembejeo zako (${route}). Fuatilia gari kwenye ramani.`,
+      type: 'order',
+      link: '/buyer/orders?tab=inputs',
+      metadata: { inputOrderId: order._id, deliveryStatus: 'accepted' },
+    });
+    await notifyInputSellers(order, {
+      title: 'Mtoa Usafiri Amekubali',
+      message: `${order.deliveryProviderName || 'Mtoa usafiri'} atachukua pembejeo za agizo la ${order.buyerName} (${route}).`,
+      link: '/seller/dashboard',
+      metadata: { deliveryStatus: 'accepted' },
+    });
+
+    res.json(order);
+  } catch (error) {
+    console.error('Accept input transport request error:', error);
+    res.status(500).json({ message: 'Hitilafu imetokea' });
+  }
+});
+
+// PATCH /api/v1/input-orders/:id/transport/reject — carrier declines the job
+router.patch('/:id/transport/reject', requireRole('logistics', 'admin'), async (req, res) => {
+  try {
+    const order = await InputOrder.findById(req.params.id);
+    if (!order || !order.deliveryProvider) {
+      return res.status(404).json({ message: 'Ombi la usafiri halipo' });
+    }
+    if (!(await isInputOrderCarrier(order, req.user))) {
+      return res.status(403).json({ message: 'Ombi hili si la gari lako' });
+    }
+    if (order.deliveryStatus !== 'pending') {
+      return res.status(400).json({ message: `Ombi hili liko katika hali ya ${order.deliveryStatus}` });
+    }
+
+    const reason = String(req.body.reason || '').trim().slice(0, 200);
+    order.deliveryStatus = 'rejected';
+    order.deliveryRejectedReason = reason;
+    // Nobody is moving the goods, so the buyer must not be charged the fee.
+    order.deliveryFee = 0;
+    order.totalAmount = order.itemsTotal;
+    await order.save();
+
+    await sendNotification(order.buyer, {
+      title: 'Usafiri Umekataliwa',
+      message: `${order.deliveryProviderName || 'Mtoa usafiri'} hawezi kupeleka pembejeo zako. Unaweza kuchukua mzigo mwenyewe ${order.pickupLocation || 'Mpanda'}.`,
+      type: 'order',
+      link: '/buyer/orders?tab=inputs',
+      metadata: { inputOrderId: order._id, deliveryStatus: 'rejected' },
+    });
+    await notifyInputSellers(order, {
+      title: 'Usafiri Umekataliwa',
+      message: `${order.deliveryProviderName || 'Mtoa usafiri'} amekataa kupeleka pembejeo za agizo la ${order.buyerName}.`,
+      link: '/seller/dashboard',
+      metadata: { deliveryStatus: 'rejected' },
+    });
+
+    res.json(order);
+  } catch (error) {
+    console.error('Reject input transport request error:', error);
+    res.status(500).json({ message: 'Hitilafu imetokea' });
+  }
+});
+
+// PATCH /api/v1/input-orders/:id/transport/status — carrier starts or completes
+router.patch('/:id/transport/status', requireRole('logistics', 'admin'), async (req, res) => {
+  try {
+    const { status } = req.body;
+    if (!['in_transit', 'delivered'].includes(status)) {
+      return res.status(400).json({ message: 'Hali ya usafiri si sahihi' });
+    }
+    const order = await InputOrder.findById(req.params.id);
+    if (!order || !order.deliveryProvider) {
+      return res.status(404).json({ message: 'Ombi la usafiri halipo' });
+    }
+    if (!(await isInputOrderCarrier(order, req.user))) {
+      return res.status(403).json({ message: 'Ombi hili si la gari lako' });
+    }
+    if (status === 'in_transit' && order.deliveryStatus !== 'accepted') {
+      return res.status(400).json({ message: 'Kubali ombi kwanza kabla ya kuanza safari' });
+    }
+    if (status === 'delivered' &&
+        !['accepted', 'in_transit'].includes(order.deliveryStatus)) {
+      return res.status(400).json({ message: `Ombi hili liko katika hali ya ${order.deliveryStatus}` });
+    }
+
+    order.deliveryStatus = status;
+    if (status === 'in_transit' && order.status === 'confirmed') {
+      order.status = 'shipped';
+    }
+    if (status === 'delivered') {
+      order.status = 'delivered';
+    }
+    order.respondedAt = new Date();
+    await order.save();
+
+    await sendNotification(order.buyer, {
+      title: status === 'delivered' ? 'Mzigo Umefika' : 'Mzigo Uko Njiani',
+      message: status === 'delivered'
+        ? `${order.deliveryProviderName || 'Mtoa usafiri'} amewasilisha pembejeo zako. Thibitisha kupokea mzigo.`
+        : `${order.deliveryProviderName || 'Mtoa usafiri'} ameanza safari kuelekea ${order.deliveryLocation || 'Mpanda'}.`,
+      type: 'order',
+      link: '/buyer/orders?tab=inputs',
+      metadata: { inputOrderId: order._id, deliveryStatus: status },
+    });
+    if (status === 'delivered') {
+      await notifyInputSellers(order, {
+        title: 'Mzigo Umewasilishwa',
+        message: `${order.deliveryProviderName || 'Mtoa usafiri'} amewasilisha pembejeo za agizo la ${order.buyerName}.`,
+        link: '/seller/dashboard',
+        metadata: { deliveryStatus: status },
+      });
+    }
+
+    res.json(order);
+  } catch (error) {
+    console.error('Update input transport status error:', error);
+    res.status(500).json({ message: 'Hitilafu imetokea' });
+  }
+});
+
+// PATCH /api/v1/input-orders/:id/transport/location — carrier pushes its GPS
+router.patch('/:id/transport/location', requireRole('logistics', 'admin'), async (req, res) => {
+  try {
+    const lat = Number(req.body.lat);
+    const lng = Number(req.body.lng);
+    if (!Number.isFinite(lat) || !Number.isFinite(lng) ||
+        lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+      return res.status(400).json({ message: 'Kuratibu si sahihi' });
+    }
+    const order = await InputOrder.findById(req.params.id)
+      .select('deliveryProvider deliveryStatus');
+    if (!order || !order.deliveryProvider) {
+      return res.status(404).json({ message: 'Ombi la usafiri halipo' });
+    }
+    if (!(await isInputOrderCarrier(order, req.user))) {
+      return res.status(403).json({ message: 'Ombi hili si la gari lako' });
+    }
+    if (!['accepted', 'in_transit'].includes(order.deliveryStatus)) {
+      return res.status(400).json({ message: 'Usafiri haujaanza' });
+    }
+
+    order.deliveryLat = lat;
+    order.deliveryLng = lng;
+    order.deliveryLocationAt = new Date();
+    await order.save();
+
+    res.json({
+      location: { lat, lng, at: order.deliveryLocationAt },
+    });
+  } catch (error) {
+    console.error('Update input transport location error:', error);
     res.status(500).json({ message: 'Hitilafu imetokea' });
   }
 });
