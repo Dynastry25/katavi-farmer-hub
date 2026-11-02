@@ -1,4 +1,5 @@
 const express = require('express');
+const mongoose = require('mongoose');
 const router = express.Router();
 const Rating = require('../models/Rating');
 const Order = require('../models/Order');
@@ -6,13 +7,22 @@ const Crop = require('../models/Crop');
 const User = require('../models/User');
 const InputOrder = require('../models/InputOrder');
 const InputProduct = require('../models/InputProduct');
+const { TransportProvider } = require('../models/Transport');
 const { auth, optionalAuth } = require('../middleware/auth');
 
-const recalcAggregate = async ({ ratedUser, ratedProduct }) => {
+// Aggregations do not cast strings to ObjectId like find() does.
+const toObjectId = (value) => {
+  if (!value) return value;
+  return mongoose.isValidObjectId(value)
+    ? new mongoose.Types.ObjectId(String(value))
+    : value;
+};
+
+const recalcAggregate = async ({ ratedUser, ratedProduct, ratedTransportProvider }) => {
   if (ratedProduct) {
     try {
       const [agg] = await Rating.aggregate([
-        { $match: { ratedProduct } },
+        { $match: { ratedProduct: toObjectId(ratedProduct) } },
         { $group: { _id: null, avg: { $avg: '$rating' }, count: { $sum: 1 } } },
       ]);
       if (agg) {
@@ -30,7 +40,7 @@ const recalcAggregate = async ({ ratedUser, ratedProduct }) => {
   if (ratedUser) {
     try {
       const [agg] = await Rating.aggregate([
-        { $match: { ratedUser } },
+        { $match: { ratedUser: toObjectId(ratedUser) } },
         { $group: { _id: null, avg: { $avg: '$rating' }, count: { $sum: 1 } } },
       ]);
       if (agg) {
@@ -40,6 +50,22 @@ const recalcAggregate = async ({ ratedUser, ratedProduct }) => {
       console.error('Recalc user rating error:', err);
     }
   }
+  if (ratedTransportProvider) {
+    try {
+      const [agg] = await Rating.aggregate([
+        { $match: { ratedTransportProvider: toObjectId(ratedTransportProvider) } },
+        { $group: { _id: null, avg: { $avg: '$rating' }, count: { $sum: 1 } } },
+      ]);
+      if (agg) {
+        await TransportProvider.findByIdAndUpdate(ratedTransportProvider, {
+          averageRating: Math.round(agg.avg * 10) / 10,
+          totalReviews: agg.count,
+        });
+      }
+    } catch (err) {
+      console.error('Recalc transport rating error:', err);
+    }
+  }
 };
 
 // POST /api/v1/ratings - toa ukadiriaji
@@ -47,20 +73,24 @@ router.post('/', auth, async (req, res) => {
   try {
     const {
       ratedUser, ratedProduct, ratedOrder, ratedInputOrder,
-      rating, comment, type,
+      ratedTransportProvider, rating, comment, type,
     } = req.body;
 
     if (!rating || isNaN(rating) || rating < 1 || rating > 5) {
       return res.status(400).json({ message: 'Ukadiriaji lazima uwe kati ya 1 na 5' });
     }
 
-    let target = {
+    const target = {
       ratedUser: ratedUser || null,
       ratedProduct: ratedProduct || null,
+      ratedTransportProvider: null,
       ratedOrder: null,
       ratedInputOrder: null,
       type: type || 'buyer_to_farmer',
     };
+    let raterIsBuyer = false;
+    let orderDelivered = false;
+    let deliveryProviderId = null;
 
     if (ratedOrder) {
       const order = await Order.findById(ratedOrder);
@@ -72,6 +102,11 @@ router.post('/', auth, async (req, res) => {
       if (!isBuyer && !isFarmer) {
         return res.status(403).json({ message: 'Huna ruhusa ya kukadiria agizo hili' });
       }
+      raterIsBuyer = Boolean(isBuyer);
+      orderDelivered = ['delivered', 'completed'].includes(order.status);
+      deliveryProviderId = order.deliveryProvider
+        ? String(order.deliveryProvider)
+        : null;
       target.ratedUser = isBuyer ? order.farmer : order.buyer;
       target.type = isBuyer ? 'buyer_to_farmer' : 'farmer_to_buyer';
       target.ratedOrder = order._id;
@@ -92,12 +127,22 @@ router.post('/', auth, async (req, res) => {
       if (!isBuyer && !isSeller) {
         return res.status(403).json({ message: 'Huna ruhusa ya kukadiria agizo hili' });
       }
+      raterIsBuyer = isBuyer;
+      orderDelivered = order.status === 'delivered';
+      deliveryProviderId = order.deliveryProvider
+        ? String(order.deliveryProvider)
+        : null;
       if (isBuyer) {
         const product = await InputProduct.findById(productIds[0])
           .select('owner')
           .lean();
         target.ratedUser = product?.owner || null;
         target.type = 'buyer_to_seller';
+        // A single product keeps the product average meaningful; a mixed cart
+        // is rated through its seller only.
+        const distinctProducts = [...new Set(productIds.map(String))];
+        target.ratedProduct =
+          distinctProducts.length === 1 ? distinctProducts[0] : null;
       } else {
         target.ratedUser = order.buyer;
         target.type = 'seller_to_buyer';
@@ -105,7 +150,31 @@ router.post('/', auth, async (req, res) => {
       target.ratedInputOrder = order._id;
     }
 
-    if (!target.ratedUser && !target.ratedProduct) {
+    if (ratedTransportProvider) {
+      if (!target.ratedOrder && !target.ratedInputOrder) {
+        return res.status(400).json({ message: 'Taja agizo la usafirishaji' });
+      }
+      if (!deliveryProviderId ||
+          String(ratedTransportProvider) !== deliveryProviderId) {
+        return res.status(400).json({ message: 'Msafirishaji huyu si wa agizo hili' });
+      }
+      const provider = await TransportProvider.findById(deliveryProviderId);
+      if (!provider) {
+        return res.status(404).json({ message: 'Mtoa huduma wa usafiri hayupo' });
+      }
+      target.ratedUser = null;
+      target.ratedProduct = null;
+      target.ratedTransportProvider = provider._id;
+      target.type = raterIsBuyer ? 'buyer_to_carrier' : 'seller_to_carrier';
+    }
+
+    if (!orderDelivered && (target.ratedOrder || target.ratedInputOrder)) {
+      return res.status(400).json({
+        message: 'Thibitisha kuwa umepokea mzigo kwanza kabla ya kukadiria',
+      });
+    }
+
+    if (!target.ratedUser && !target.ratedProduct && !target.ratedTransportProvider) {
       return res.status(400).json({ message: 'Taja mtu au bidhaa utakayokadiria' });
     }
 
@@ -113,11 +182,20 @@ router.post('/', auth, async (req, res) => {
       return res.status(400).json({ message: 'Huwezi kujikadiria mwenyewe' });
     }
 
-    const existingQuery = target.ratedOrder
-      ? { rater: req.user._id, ratedOrder: target.ratedOrder }
-      : target.ratedInputOrder
-        ? { rater: req.user._id, ratedInputOrder: target.ratedInputOrder }
-        : { rater: req.user._id, ratedUser: target.ratedUser, ratedProduct: target.ratedProduct, type: target.type };
+    const existingQuery = target.ratedOrder || target.ratedInputOrder
+      ? {
+          rater: req.user._id,
+          ratedOrder: target.ratedOrder,
+          ratedInputOrder: target.ratedInputOrder,
+          ratedTransportProvider: target.ratedTransportProvider,
+          type: target.type,
+        }
+      : {
+          rater: req.user._id,
+          ratedUser: target.ratedUser,
+          ratedProduct: target.ratedProduct,
+          type: target.type,
+        };
     const existing = await Rating.findOne(existingQuery);
     if (existing) {
       return res.status(400).json({ message: 'Umeshakadiria kitu hiki' });
@@ -128,6 +206,7 @@ router.post('/', auth, async (req, res) => {
       raterName: req.user.name,
       ratedUser: target.ratedUser,
       ratedProduct: target.ratedProduct,
+      ratedTransportProvider: target.ratedTransportProvider,
       ratedOrder: target.ratedOrder,
       ratedInputOrder: target.ratedInputOrder,
       rating: parseInt(rating),
@@ -135,7 +214,11 @@ router.post('/', auth, async (req, res) => {
       type: target.type,
     });
 
-    await recalcAggregate({ ratedUser: target.ratedUser, ratedProduct: target.ratedProduct });
+    await recalcAggregate({
+      ratedUser: target.ratedUser,
+      ratedProduct: target.ratedProduct,
+      ratedTransportProvider: target.ratedTransportProvider,
+    });
 
     res.status(201).json(created);
   } catch (error) {
@@ -172,11 +255,18 @@ router.get('/user/:id', optionalAuth, async (req, res) => {
 router.get('/summary/:targetType/:targetId', optionalAuth, async (req, res) => {
   try {
     const { targetType, targetId } = req.params;
+    if (!mongoose.isValidObjectId(targetId)) {
+      return res.status(400).json({ message: 'Kitambulisho si sahihi' });
+    }
+    // Aggregations do not cast strings to ObjectId like find() does.
+    const id = new mongoose.Types.ObjectId(targetId);
     let match = {};
     if (targetType === 'user') {
-      match = { ratedUser: targetId };
+      match = { ratedUser: id };
     } else if (targetType === 'product') {
-      match = { ratedProduct: targetId };
+      match = { ratedProduct: id };
+    } else if (targetType === 'transport') {
+      match = { ratedTransportProvider: id };
     } else {
       return res.status(400).json({ message: 'Type isiyo sahihi' });
     }
