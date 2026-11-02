@@ -2,11 +2,12 @@ const express = require('express');
 const router = express.Router();
 const { auth } = require('../middleware/auth');
 const PriceAlert = require('../models/PriceAlert');
+const { literalRegex } = require('../utils/safeRegex');
 
 // GET /api/v1/price-alerts/my
 router.get('/my', auth, async (req, res) => {
   try {
-    const alerts = await PriceAlert.find({ user: req.user._id }).sort({ createdAt: -1 });
+    const alerts = await PriceAlert.find({ user: req.user._id }).sort({ createdAt: -1 }).limit(50).lean();
     res.json(alerts);
   } catch (error) {
     console.error('Get my price alerts error:', error);
@@ -20,7 +21,8 @@ router.post('/', auth, async (req, res) => {
     const { crop, thresholdPct } = req.body;
     if (!crop) return res.status(400).json({ message: 'Jina la zao linahitajika' });
     const threshold = Number(thresholdPct) || 10;
-    const cropMatch = new RegExp(`^${String(crop).trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i');
+    const cropMatch = literalRegex(crop);
+    if (!cropMatch) return res.status(400).json({ message: 'Jina la zao linahitajika' });
 
     const existing = await PriceAlert.findOne({ user: req.user._id, crop: cropMatch });
     if (existing) {

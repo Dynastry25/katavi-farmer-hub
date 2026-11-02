@@ -46,6 +46,7 @@ router.get('/', async (req, res) => {
     }
     const list = await Announcement.find(filter)
       .sort({ order: 1, createdAt: -1 })
+      .limit(100)
       .lean();
     res.json({ announcements: list.map(serialize) });
   } catch (error) {
@@ -59,6 +60,7 @@ router.get('/admin', requirePermission('content.manage'), async (req, res) => {
   try {
     const list = await Announcement.find()
       .sort({ order: 1, createdAt: -1 })
+      .limit(100)
       .lean();
     res.json({ announcements: list.map(serialize) });
   } catch (error) {

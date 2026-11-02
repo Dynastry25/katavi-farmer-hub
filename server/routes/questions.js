@@ -8,6 +8,7 @@ const {
   sendNotification,
   sendBulkNotifications,
 } = require('../services/notification.service');
+const { searchRegex } = require('../utils/safeRegex');
 
 // Roles allowed to answer farmer questions.
 const ANSWER_ROLES = ['expert', 'admin', 'content_moderator', 'support'];
@@ -24,9 +25,11 @@ router.get('/', optionalAuth, async (req, res) => {
       filter.asker = req.user._id;
     }
     if (search) {
+      const searchFilter = searchRegex(search);
+      if (!searchFilter) return res.json([]);
       filter.$or = [
-        { title: { $regex: search, $options: 'i' } },
-        { body: { $regex: search, $options: 'i' } },
+        { title: searchFilter },
+        { body: searchFilter },
       ];
     }
     const questions = await Question.find(filter).sort({ createdAt: -1 }).limit(200);
@@ -69,6 +72,7 @@ router.post('/', auth, async (req, res) => {
 
     const experts = await User.find({ role: 'expert', isActive: true })
       .select('_id')
+      .limit(200)
       .lean();
     if (experts.length) {
       await sendBulkNotifications(

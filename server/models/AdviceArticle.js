@@ -13,4 +13,7 @@ const adviceArticleSchema = new mongoose.Schema({
   authorName: { type: String, default: '' },
 }, { timestamps: true });
 
+adviceArticleSchema.index({ status: 1, createdAt: -1 });
+adviceArticleSchema.index({ author: 1, createdAt: -1 });
+
 module.exports = mongoose.model('AdviceArticle', adviceArticleSchema);

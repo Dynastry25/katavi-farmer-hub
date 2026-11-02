@@ -13,4 +13,7 @@ const productSchema = new mongoose.Schema({
   status: { type: String, enum: ['available', 'sold'], default: 'available' },
 }, { timestamps: true });
 
+productSchema.index({ createdAt: -1 });
+productSchema.index({ farmer: 1, createdAt: -1 });
+
 module.exports = mongoose.model('Product', productSchema);

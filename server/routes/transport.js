@@ -82,7 +82,7 @@ router.get('/providers', async (req, res) => {
   try {
     const filter = {};
     if (req.query.available === 'true') filter.available = true;
-    const providers = await TransportProvider.find(filter).sort({ createdAt: -1 });
+    const providers = await TransportProvider.find(filter).sort({ createdAt: -1 }).limit(200).lean();
     res.json(providers);
   } catch (error) {
     console.error('Get transport providers error:', error);
@@ -93,7 +93,7 @@ router.get('/providers', async (req, res) => {
 // GET /api/v1/transport/providers/mine — vehicles registered by the caller.
 router.get('/providers/mine', requireRole('logistics', 'admin'), async (req, res) => {
   try {
-    const providers = await TransportProvider.find({ owner: req.user._id }).sort({ createdAt: -1 });
+    const providers = await TransportProvider.find({ owner: req.user._id }).sort({ createdAt: -1 }).limit(100).lean();
     res.json(providers);
   } catch (error) {
     console.error('Get my transport providers error:', error);
@@ -222,7 +222,7 @@ router.post('/rates/reset', requireRole('admin'), async (req, res) => {
 // GET /api/v1/transport/bookings
 router.get('/bookings', auth, async (req, res) => {
   try {
-    const bookings = await TransportBooking.find({ user: req.user._id }).sort({ createdAt: -1 });
+    const bookings = await TransportBooking.find({ user: req.user._id }).sort({ createdAt: -1 }).limit(100).lean();
     res.json({ bookings });
   } catch (error) {
     console.error('Get transport bookings error:', error);
@@ -300,7 +300,8 @@ router.get('/bookings/all', requireRole('logistics', 'admin'), async (req, res) 
     }
     const bookings = await TransportBooking.find(filter)
       .populate('user', 'name phone location district')
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .limit(200);
     res.json({ bookings });
   } catch (error) {
     console.error('Get all transport bookings error:', error);

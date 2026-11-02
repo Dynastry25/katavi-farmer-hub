@@ -21,7 +21,7 @@ router.get('/summary', requireRole('farmer', 'admin'), async (req, res) => {
 // GET /api/v1/farmer-finance/expenses
 router.get('/expenses', requireRole('farmer', 'admin'), async (req, res) => {
   try {
-    const expenses = await FarmerExpense.find({ user: req.user._id }).sort({ date: -1 });
+    const expenses = await FarmerExpense.find({ user: req.user._id }).sort({ date: -1 }).limit(500).lean();
     res.json(expenses);
   } catch (error) {
     console.error('List expenses error:', error);

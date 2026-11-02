@@ -6,11 +6,12 @@ const { requireRole, requireOwnershipOrAdmin } = require('../middleware/roleChec
 const upload = require('../middleware/upload');
 const cloudinary = require('../config/cloudinary');
 const { normalizeStock, ensureStockPersisted } = require('../services/crop.stock.service');
+const { searchRegex, literalRegex } = require('../utils/safeRegex');
 
 const uploadToCloudinary = (file) => {
   return new Promise((resolve, reject) => {
     const stream = cloudinary.uploader.upload_stream(
-      { folder: 'katavi-ekilimo', resource_type: 'image', transformation: [{ width: 800, height: 800, crop: 'limit' }] },
+      { folder: 'katavi-ekilimo', resource_type: 'image', allowed_formats: ['jpg', 'jpeg', 'png', 'gif', 'webp'], transformation: [{ width: 800, height: 800, crop: 'limit' }] },
       (error, result) => { if (error) reject(error); else resolve(result); }
     );
     stream.end(file.buffer);
@@ -25,7 +26,9 @@ const cropOwnerId = async (req) => {
 
 const validatePriceLimit = async ({ name, price }) => {
   if (!name || price == null || isNaN(price)) return null;
-  const limit = await require('../models/PriceLimit').findOne({ cropName: new RegExp(`^${name.trim()}$`, 'i'), active: true });
+  const cropName = literalRegex(name);
+  if (!cropName) return null;
+  const limit = await require('../models/PriceLimit').findOne({ cropName, active: true });
   if (!limit) return null;
   if (price < limit.minPrice || price > limit.maxPrice) {
     return `Umeweka bei ya ${name} kwa shilingi ${price}. Wanunuzi tunapendekeza bei iwe kati ya TZS ${limit.minPrice.toLocaleString()} na TZS ${limit.maxPrice.toLocaleString()} kwa ${limit.unit} ili kudhibiti mfumuko wa bei.`;
@@ -51,11 +54,12 @@ router.get('/', optionalAuth, async (req, res) => {
 
     if (category && category !== 'all') query.category = category;
     if (location && location !== 'all') query.location = location;
-    if (search) {
+    const searchFilter = searchRegex(search);
+    if (searchFilter) {
       query.$or = [
-        { name: { $regex: search, $options: 'i' } },
-        { description: { $regex: search, $options: 'i' } },
-        { farmerName: { $regex: search, $options: 'i' } },
+        { name: searchFilter },
+        { description: searchFilter },
+        { farmerName: searchFilter },
       ];
     }
 
@@ -65,7 +69,7 @@ router.get('/', optionalAuth, async (req, res) => {
     if (sort === 'name') sortObj = { name: 1 };
     if (sort === 'rating') sortObj = { rating: -1 };
 
-    const crops = await Crop.find(query).sort(sortObj);
+    const crops = await Crop.find(query).sort(sortObj).limit(300);
     const out = [];
     for (const crop of crops) {
       const view = await ensureStockPersisted(Crop, crop);
@@ -99,7 +103,14 @@ router.post('/', requireRole('farmer', 'admin'), async (req, res) => {
     const unit = ['kg', 'gunia', 'debe', 'tani'].includes(req.body.unit) ? req.body.unit : 'kg';
     const stockQuantity = Math.max(0, Number(req.body.stockQuantity) || Number(req.body.quantity) || 0);
     const crop = await Crop.create({
-      ...req.body,
+      name: req.body.name,
+      category: req.body.category,
+      price: req.body.price,
+      description: req.body.description,
+      image: req.body.image,
+      location: req.body.location,
+      harvestDate: req.body.harvestDate,
+      fallback: req.body.fallback,
       unit,
       stockQuantity,
       quantity: `${stockQuantity} ${unit}`,

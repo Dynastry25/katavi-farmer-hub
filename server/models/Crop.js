@@ -20,4 +20,8 @@ const cropSchema = new mongoose.Schema({
   harvestDate: { type: String, default: '' },
 }, { timestamps: true });
 
+cropSchema.index({ status: 1, createdAt: -1 });
+cropSchema.index({ category: 1, status: 1 });
+cropSchema.index({ farmer: 1, createdAt: -1 });
+
 module.exports = mongoose.model('Crop', cropSchema);

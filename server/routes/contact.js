@@ -8,7 +8,7 @@ const INQUIRY_TYPES = ['general', 'support', 'payment', 'account', 'other'];
 // GET /api/contact — support inbox (staff only)
 router.get('/', requireRole(...STAFF_ROLES), async (req, res) => {
   try {
-    const messages = await ContactMessage.find().sort({ createdAt: -1 });
+    const messages = await ContactMessage.find().sort({ createdAt: -1 }).limit(200).lean();
     res.json(messages);
   } catch (error) {
     res.status(500).json({ message: 'Hitilafu imetokea' });

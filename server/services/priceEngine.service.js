@@ -1,6 +1,7 @@
 const MarketPrice = require('../models/MarketPrice');
 const Crop = require('../models/Crop');
 const Order = require('../models/Order');
+const { searchRegex } = require('../utils/safeRegex');
 
 const calculateAveragePrice = async (cropName, region, days = 30) => {
   const startDate = new Date();
@@ -29,8 +30,10 @@ const calculateAveragePrice = async (cropName, region, days = 30) => {
 };
 
 const updateAverageFromTransactions = async (cropName, region) => {
+  const cropFilter = searchRegex(cropName);
+  if (!cropFilter) return null;
   const recentOrders = await Order.find({
-    cropName: new RegExp(cropName, 'i'),
+    cropName: cropFilter,
     status: 'completed',
   }).sort({ createdAt: -1 }).limit(50);
 

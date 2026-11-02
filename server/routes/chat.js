@@ -58,7 +58,7 @@ router.get('/conversations', auth, async (req, res) => {
 
     const conversations = await Conversation.find({
       participants: req.user._id,
-    }).sort({ updatedAt: -1 });
+    }).sort({ updatedAt: -1 }).limit(200);
 
     if (conversations.length === 0) return res.json([]);
 
@@ -222,9 +222,13 @@ router.get('/conversations/:id/messages', auth, async (req, res) => {
       { $set: { [`unreadBy.${str(req.user._id)}`]: 0 } }
     );
 
+    // Only the newest messages are returned so a long thread cannot exhaust
+    // memory; they are reversed back to chronological order for the client.
     const messages = await Message.find({ conversation: conversation._id })
-      .sort({ createdAt: 1 })
+      .sort({ createdAt: -1 })
+      .limit(300)
       .lean();
+    messages.reverse();
 
     res.json(
       messages.map((m) => ({

@@ -73,6 +73,7 @@ router.get('/', auth, async (req, res) => {
         : { $or: [{ buyer: req.user._id }, { farmer: req.user._id }] };
     const orders = await Order.find(query)
       .sort({ createdAt: -1 })
+      .limit(500)
       .lean();
     res.json(orders.map(withAmount));
   } catch (error) {
@@ -1053,7 +1054,7 @@ router.get('/disputes/my', auth, async (req, res) => {
     const disputes = await Order.find({
       $or: [{ buyer: req.user._id }, { farmer: req.user._id }],
       status: 'disputed',
-    }).sort({ createdAt: -1 });
+    }).sort({ createdAt: -1 }).limit(100).lean();
     res.json(disputes);
   } catch (error) {
     res.status(500).json({ message: 'Hitilafu imetokea' });

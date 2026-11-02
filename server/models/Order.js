@@ -85,7 +85,10 @@ orderSchema.set('toJSON', { virtuals: true });
 orderSchema.set('toObject', { virtuals: true });
 
 orderSchema.index({ status: 1, expiresAt: 1 });
+orderSchema.index({ status: 1, createdAt: -1 });
+orderSchema.index({ buyer: 1, createdAt: -1 });
+orderSchema.index({ farmer: 1, createdAt: -1 });
 orderSchema.index({ parentOrder: 1 });
-orderSchema.index({ deliveryProvider: 1, deliveryStatus: 1 });
+orderSchema.index({ deliveryProvider: 1, deliveryStatus: 1, createdAt: -1 });
 
 module.exports = mongoose.model('Order', orderSchema);

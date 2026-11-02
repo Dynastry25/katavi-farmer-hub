@@ -20,10 +20,10 @@ router.get('/articles', optionalAuth, async (req, res) => {
       if (!req.user) {
         return res.status(401).json({ message: 'Usajili unahitajika' });
       }
-      const mine = await AdviceArticle.find({ author: req.user._id }).sort({ createdAt: -1 });
+      const mine = await AdviceArticle.find({ author: req.user._id }).sort({ createdAt: -1 }).limit(100).lean();
       return res.json(mine);
     }
-    const articles = await AdviceArticle.find({ status: 'approved' }).sort({ createdAt: -1 });
+    const articles = await AdviceArticle.find({ status: 'approved' }).sort({ createdAt: -1 }).limit(100).lean();
     res.json(articles);
   } catch (error) {
     res.status(500).json({ message: 'Hitilafu imetokea' });
@@ -36,7 +36,7 @@ router.get('/experts', async (req, res) => {
     const experts = await Expert.find().populate(
       'user',
       'name profilePicture location district'
-    );
+    ).limit(100).lean();
     res.json(experts);
   } catch (error) {
     res.status(500).json({ message: 'Hitilafu imetokea' });

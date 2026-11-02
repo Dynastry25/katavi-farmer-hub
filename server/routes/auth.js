@@ -10,6 +10,7 @@ const { auth } = require('../middleware/auth');
 const { sendNotification } = require('../services/notification.service');
 const { sendSms } = require('../services/sms.service');
 const { sendOtpEmail, isDeliverableEmail } = require('../services/email.service');
+const { loginLimiter, otpLimiter } = require('../middleware/rateLimits');
 
 const STAFF_ROLES = ['admin', 'support', 'content_moderator', 'finance_officer'];
 const PUBLIC_ROLES = ['farmer', 'buyer', 'seller', 'expert', 'logistics'];
@@ -99,13 +100,28 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ message: 'Aina hii ya akaunti haijaruhusiwa kujiandikisha' });
     }
 
-    const existingUser = await User.findOne({ email });
+    const cleanEmail = String(email || '').trim().toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail) || cleanEmail.length > 254) {
+      return res.status(400).json({ message: 'Barua pepe si sahihi' });
+    }
+    if (typeof password !== 'string' || password.length < 6 || password.length > 128) {
+      return res.status(400).json({ message: 'Nenosiri liwe kati ya herufi 6 na 128' });
+    }
+    if (!String(name || '').trim()) {
+      return res.status(400).json({ message: 'Jina kamili linahitajika' });
+    }
+
+    const existingUser = await User.findOne({ email: cleanEmail });
     if (existingUser) {
       return res.status(400).json({ message: 'Barua pepe hii tayari imesajiliwa' });
     }
 
     const user = await User.create({
-      name, email, phone, password, role,
+      name: String(name).trim().slice(0, 120),
+      email: cleanEmail,
+      phone: String(phone || '').trim().slice(0, 30),
+      password,
+      role,
       location: district,
       district, ward, village, idNumber, dateOfBirth,
       farmSize, farmLocation, crops,
@@ -126,12 +142,12 @@ router.post('/register', async (req, res) => {
 });
 
 // POST /api/auth/login
-router.post('/login', async (req, res) => {
+router.post('/login', loginLimiter, async (req, res) => {
   try {
-    const { password } = req.body;
-    const identifier = String(req.body.identifier || '').trim();
-    const emailInput = String(req.body.email || '').trim().toLowerCase();
-    const phoneInput = String(req.body.phone || '').trim();
+    const password = typeof req.body.password === 'string' ? req.body.password : '';
+    const identifier = String(req.body.identifier || '').trim().slice(0, 120);
+    const emailInput = String(req.body.email || '').trim().toLowerCase().slice(0, 254);
+    const phoneInput = String(req.body.phone || '').trim().slice(0, 30);
 
     // Accept a phone number or an email address in any of the legacy fields.
     const candidates = [];
@@ -188,7 +204,7 @@ router.post('/login', async (req, res) => {
 });
 
 // POST /api/auth/2fa/verify — complete login with the 6-digit code
-router.post('/2fa/verify', async (req, res) => {
+router.post('/2fa/verify', otpLimiter, async (req, res) => {
   try {
     const { email, code } = req.body;
     if (!email || !code) {
@@ -226,7 +242,7 @@ router.post('/2fa/verify', async (req, res) => {
 });
 
 // POST /api/auth/2fa/resend — send a fresh 2FA code
-router.post('/2fa/resend', async (req, res) => {
+router.post('/2fa/resend', otpLimiter, async (req, res) => {
   try {
     const { email } = req.body;
     if (!email) return res.status(400).json({ message: 'Barua pepe inahitajika' });
@@ -356,7 +372,7 @@ router.put('/profile', auth, async (req, res) => {
 const generatePhoneOtp = () => String(Math.floor(100000 + Math.random() * 900000));
 
 // POST /api/v1/auth/phone/send-otp
-router.post('/phone/send-otp', auth, async (req, res) => {
+router.post('/phone/send-otp', auth, otpLimiter, async (req, res) => {
   try {
     const user = await User.findById(req.user._id);
     if (!user) return res.status(404).json({ message: 'Mtumiaji haupatikani' });
@@ -393,7 +409,7 @@ router.post('/phone/send-otp', auth, async (req, res) => {
 });
 
 // POST /api/v1/auth/phone/verify
-router.post('/phone/verify', auth, async (req, res) => {
+router.post('/phone/verify', auth, otpLimiter, async (req, res) => {
   try {
     const { code } = req.body;
     if (!code) return res.status(400).json({ message: 'Namba ya uthibitisho inahitajika' });
@@ -514,7 +530,7 @@ const checkOtp = async ({ phone, code, purpose }) => {
 };
 
 // POST /api/v1/auth/phone/register/request
-router.post('/phone/register/request', async (req, res) => {
+router.post('/phone/register/request', otpLimiter, async (req, res) => {
   try {
     const phone = normalizePhone(req.body.phone);
     const role = String(req.body.role || 'farmer');
@@ -556,7 +572,7 @@ router.post('/phone/register/request', async (req, res) => {
 });
 
 // POST /api/v1/auth/phone/register/verify
-router.post('/phone/register/verify', async (req, res) => {
+router.post('/phone/register/verify', otpLimiter, async (req, res) => {
   try {
     const phone = normalizePhone(req.body.phone);
     const code = String(req.body.code || '').trim();
@@ -659,7 +675,7 @@ router.post('/phone/register/complete', async (req, res) => {
 });
 
 // POST /api/v1/auth/phone/login/request
-router.post('/phone/login/request', async (req, res) => {
+router.post('/phone/login/request', otpLimiter, async (req, res) => {
   try {
     const phone = normalizePhone(req.body.phone);
     const user = await findUserByPhone(phone);
@@ -694,7 +710,7 @@ router.post('/phone/login/request', async (req, res) => {
 });
 
 // POST /api/v1/auth/phone/login/verify
-router.post('/phone/login/verify', async (req, res) => {
+router.post('/phone/login/verify', otpLimiter, async (req, res) => {
   try {
     const phone = normalizePhone(req.body.phone);
     const code = String(req.body.code || '').trim();
@@ -729,7 +745,7 @@ router.post('/phone/login/verify', async (req, res) => {
 });
 
 // POST /api/v1/auth/phone/password/request
-router.post('/phone/password/request', async (req, res) => {
+router.post('/phone/password/request', otpLimiter, async (req, res) => {
   try {
     const phone = normalizePhone(req.body.phone);
     if (phoneTail(phone).length < 9) {
@@ -767,7 +783,7 @@ router.post('/phone/password/request', async (req, res) => {
 });
 
 // POST /api/v1/auth/phone/password/reset
-router.post('/phone/password/reset', async (req, res) => {
+router.post('/phone/password/reset', otpLimiter, async (req, res) => {
   try {
     const phone = normalizePhone(req.body.phone);
     const code = String(req.body.code || '').trim();

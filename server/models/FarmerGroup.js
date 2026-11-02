@@ -17,4 +17,7 @@ const farmerGroupSchema = new mongoose.Schema({
   createdDate: { type: String, default: () => new Date().toISOString().split('T')[0] },
 }, { timestamps: true });
 
+farmerGroupSchema.index({ createdAt: -1 });
+farmerGroupSchema.index({ members: 1 });
+
 module.exports = mongoose.model('FarmerGroup', farmerGroupSchema);

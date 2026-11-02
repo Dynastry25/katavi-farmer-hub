@@ -8,7 +8,7 @@ const STAFF_ROLES = ['admin', 'support', 'finance_officer'];
 // GET /api/v1/price-limits — public listing
 router.get('/', async (req, res) => {
   try {
-    const limits = await PriceLimit.find({ active: true }).sort({ cropName: 1 });
+    const limits = await PriceLimit.find({ active: true }).sort({ cropName: 1 }).limit(200).lean();
     res.json(limits);
   } catch (error) {
     res.status(500).json({ message: 'Hitilafu imetokea' });
@@ -21,7 +21,7 @@ router.get('/all', auth, async (req, res) => {
     if (!STAFF_ROLES.includes(req.user.role)) {
       return res.status(403).json({ message: 'Huna ruhusa' });
     }
-    const limits = await PriceLimit.find().sort({ cropName: 1 });
+    const limits = await PriceLimit.find().sort({ cropName: 1 }).limit(200).lean();
     res.json(limits);
   } catch (error) {
     res.status(500).json({ message: 'Hitilafu imetokea' });

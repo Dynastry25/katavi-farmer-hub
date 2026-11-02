@@ -16,8 +16,9 @@ const PlatformSetting = require('../models/PlatformSetting');
 const { refundPaidOrder } = require('../services/paymentFlow.service');
 const { restoreOrderStock } = require('../services/order.stock.service');
 const { orderAmount } = require('../services/order.service');
+const { searchRegex } = require('../utils/safeRegex');
+const { pagination } = require('../utils/pagination');
 
-const escapeRegex = (value) => String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const SWAHILI_MONTHS = ['Jan', 'Feb', 'Mac', 'Apr', 'Mei', 'Jun', 'Jul', 'Ago', 'Sep', 'Okt', 'Nov', 'Des'];
 
 exports.getStats = async (req, res) => {
@@ -46,14 +47,17 @@ exports.getStats = async (req, res) => {
       months.push({ label: SWAHILI_MONTHS[d.getMonth()], start: d });
     }
     const monthlyUsers = [];
-    for (let i = 0; i < months.length; i++) {
-      const start = months[i].start;
-      const end = i + 1 < months.length ? months[i + 1].start : new Date();
-      const count = await User.countDocuments({ createdAt: { $gte: start, $lt: end } });
-      monthlyUsers.push({ month: months[i].label, users: count });
-    }
+    const monthlyCounts = await Promise.all(
+      months.map((month, i) => {
+        const end = i + 1 < months.length ? months[i + 1].start : new Date();
+        return User.countDocuments({ createdAt: { $gte: month.start, $lt: end } });
+      })
+    );
+    months.forEach((month, i) => {
+      monthlyUsers.push({ month: month.label, users: monthlyCounts[i] });
+    });
 
-    const recentUsers = await User.find().select('-password').sort({ createdAt: -1 }).limit(6);
+    const recentUsers = await User.find().select('-password').sort({ createdAt: -1 }).limit(6).lean();
 
     const [valuedOrders, activeDisputes, pendingLoans] = await Promise.all([
       Order.find({ status: { $nin: ['rejected', 'cancelled', 'expired'] } })
@@ -79,28 +83,31 @@ exports.getStats = async (req, res) => {
 
 exports.getUsers = async (req, res) => {
   try {
-    const { role, search, page = 1, limit = 20 } = req.query;
+    const { role, search } = req.query;
+    const { page, limit, skip } = pagination(req.query);
     const filter = {};
     if (role && role !== 'all') filter.role = role;
     if (search) {
-      const term = escapeRegex(String(search).trim());
-      if (term) {
-        filter.$or = [
-          { name: { $regex: term, $options: 'i' } },
-          { email: { $regex: term, $options: 'i' } },
-          { phone: { $regex: term, $options: 'i' } },
-        ];
+      const term = searchRegex(search);
+      if (!term) {
+        return res.json({ users: [], total: 0, page, pages: 0 });
       }
+      filter.$or = [
+        { name: term },
+        { email: term },
+        { phone: term },
+      ];
     }
 
     const total = await User.countDocuments(filter);
     const users = await User.find(filter)
       .select('-password')
       .sort({ createdAt: -1 })
-      .skip((page - 1) * limit)
-      .limit(parseInt(limit));
+      .skip(skip)
+      .limit(limit)
+      .lean();
 
-    res.json({ users, total, page: parseInt(page), pages: Math.ceil(total / limit) });
+    res.json({ users, total, page, pages: Math.ceil(total / limit) });
   } catch (error) {
     console.error('Admin list users error:', error);
     res.status(500).json({ message: 'Hitilafu imetokea' });
@@ -283,7 +290,8 @@ exports.suspendUser = async (req, res) => {
 
 exports.getCrops = async (req, res) => {
   try {
-    const { status, category, page = 1, limit = 20 } = req.query;
+    const { status, category } = req.query;
+    const { page, limit, skip } = pagination(req.query);
     const filter = {};
     if (status && status !== 'all') filter.status = status;
     if (category && category !== 'all') filter.category = category;
@@ -291,10 +299,11 @@ exports.getCrops = async (req, res) => {
     const total = await Crop.countDocuments(filter);
     const crops = await Crop.find(filter)
       .sort({ createdAt: -1 })
-      .skip((page - 1) * limit)
-      .limit(parseInt(limit));
+      .skip(skip)
+      .limit(limit)
+      .lean();
 
-    res.json({ crops, total, page: parseInt(page), pages: Math.ceil(total / limit) });
+    res.json({ crops, total, page, pages: Math.ceil(total / limit) });
   } catch (error) {
     console.error('Admin list crops error:', error);
     res.status(500).json({ message: 'Hitilafu imetokea' });
@@ -331,18 +340,26 @@ exports.moderateCrop = async (req, res) => {
 
 exports.getMarketPrices = async (req, res) => {
   try {
-    const { cropName, region, page = 1, limit = 20 } = req.query;
+    const { cropName, region } = req.query;
+    const { page, limit, skip } = pagination(req.query);
     const filter = {};
-    if (cropName) filter.cropName = new RegExp(escapeRegex(cropName), 'i');
+    if (cropName) {
+      const term = searchRegex(cropName);
+      if (!term) {
+        return res.json({ prices: [], total: 0, page, pages: 0 });
+      }
+      filter.cropName = term;
+    }
     if (region) filter.region = region;
 
     const total = await MarketPrice.countDocuments(filter);
     const prices = await MarketPrice.find(filter)
       .sort({ dateRecorded: -1 })
-      .skip((page - 1) * limit)
-      .limit(parseInt(limit));
+      .skip(skip)
+      .limit(limit)
+      .lean();
 
-    res.json({ prices, total, page: parseInt(page), pages: Math.ceil(total / limit) });
+    res.json({ prices, total, page, pages: Math.ceil(total / limit) });
   } catch (error) {
     console.error('Admin list market prices error:', error);
     res.status(500).json({ message: 'Hitilafu imetokea' });
@@ -432,7 +449,8 @@ exports.deleteMarketPrice = async (req, res) => {
 
 exports.getLoanApplications = async (req, res) => {
   try {
-    const { status, page = 1, limit = 20 } = req.query;
+    const { status } = req.query;
+    const { page, limit, skip } = pagination(req.query);
     const filter = {};
     if (status && status !== 'all') filter.status = status;
 
@@ -440,10 +458,11 @@ exports.getLoanApplications = async (req, res) => {
     const applications = await LoanApplication.find(filter)
       .populate('user', 'name email phone creditScore trustScore isVerified')
       .sort({ createdAt: -1 })
-      .skip((page - 1) * limit)
-      .limit(parseInt(limit));
+      .skip(skip)
+      .limit(limit)
+      .lean();
 
-    res.json({ applications, total, page: parseInt(page), pages: Math.ceil(total / limit) });
+    res.json({ applications, total, page, pages: Math.ceil(total / limit) });
   } catch (error) {
     console.error('Admin list loan applications error:', error);
     res.status(500).json({ message: 'Hitilafu imetokea' });
@@ -489,7 +508,8 @@ exports.moderateLoan = async (req, res) => {
 
 exports.getAuditLogs = async (req, res) => {
   try {
-    const { category, user, page = 1, limit = 20 } = req.query;
+    const { category, user } = req.query;
+    const { page, limit, skip } = pagination(req.query);
     const filter = {};
     if (category && category !== 'all') filter.category = category;
     if (user) filter.user = user;
@@ -498,10 +518,11 @@ exports.getAuditLogs = async (req, res) => {
     const logs = await AuditLog.find(filter)
       .populate('user', 'name email role')
       .sort({ createdAt: -1 })
-      .skip((page - 1) * limit)
-      .limit(parseInt(limit));
+      .skip(skip)
+      .limit(limit)
+      .lean();
 
-    res.json({ logs, total, page: parseInt(page), pages: Math.ceil(total / limit) });
+    res.json({ logs, total, page, pages: Math.ceil(total / limit) });
   } catch (error) {
     console.error('Admin audit logs error:', error);
     res.status(500).json({ message: 'Hitilafu imetokea' });
@@ -510,15 +531,16 @@ exports.getAuditLogs = async (req, res) => {
 
 exports.getNotifications = async (req, res) => {
   try {
-    const { page = 1, limit = 20 } = req.query;
+    const { page, limit, skip } = pagination(req.query);
     const total = await Notification.countDocuments();
     const notifications = await Notification.find()
       .populate('user', 'name role')
       .sort({ createdAt: -1 })
-      .skip((page - 1) * limit)
-      .limit(parseInt(limit));
+      .skip(skip)
+      .limit(limit)
+      .lean();
 
-    res.json({ notifications, total, page: parseInt(page), pages: Math.ceil(total / limit) });
+    res.json({ notifications, total, page, pages: Math.ceil(total / limit) });
   } catch (error) {
     console.error('Admin list notifications error:', error);
     res.status(500).json({ message: 'Hitilafu imetokea' });
@@ -543,17 +565,18 @@ const serializeBroadcast = (broadcast) => ({
 
 exports.getBroadcasts = async (req, res) => {
   try {
-    const { page = 1, limit = 50 } = req.query;
+    const { page, limit, skip } = pagination(req.query, { defaultLimit: 50 });
     const total = await Broadcast.countDocuments();
     const broadcasts = await Broadcast.find()
       .sort({ createdAt: -1 })
-      .skip((page - 1) * limit)
-      .limit(parseInt(limit));
+      .skip(skip)
+      .limit(limit)
+      .lean();
 
     res.json({
       broadcasts: broadcasts.map(serializeBroadcast),
       total,
-      page: parseInt(page),
+      page,
       pages: Math.ceil(total / limit),
     });
   } catch (error) {
@@ -667,7 +690,8 @@ exports.broadcastNotification = async (req, res) => {
 
 exports.getDisputes = async (req, res) => {
   try {
-    const { status, page = 1, limit = 20 } = req.query;
+    const { status } = req.query;
+    const { page, limit, skip } = pagination(req.query);
     const statuses = ['disputed', 'cancelled'];
     const query = {
       status: statuses.includes(status) ? status : { $in: statuses },
@@ -678,10 +702,11 @@ exports.getDisputes = async (req, res) => {
       .populate('buyer', 'name email phone')
       .populate('farmer', 'name email phone')
       .sort({ createdAt: -1 })
-      .skip((page - 1) * limit)
-      .limit(parseInt(limit));
+      .skip(skip)
+      .limit(limit)
+      .lean();
 
-    res.json({ disputes, total, page: parseInt(page), pages: Math.ceil(total / limit) });
+    res.json({ disputes, total, page, pages: Math.ceil(total / limit) });
   } catch (error) {
     console.error('Admin disputes error:', error);
     res.status(500).json({ message: 'Hitilafu imetokea' });
@@ -690,15 +715,16 @@ exports.getDisputes = async (req, res) => {
 
 exports.getGroups = async (req, res) => {
   try {
-    const { page = 1, limit = 20 } = req.query;
+    const { page, limit, skip } = pagination(req.query);
     const total = await FarmerGroup.countDocuments();
     const groups = await FarmerGroup.find()
       .populate('createdBy', 'name')
       .sort({ createdAt: -1 })
-      .skip((page - 1) * limit)
-      .limit(parseInt(limit));
+      .skip(skip)
+      .limit(limit)
+      .lean();
 
-    res.json({ groups, total, page: parseInt(page), pages: Math.ceil(total / limit) });
+    res.json({ groups, total, page, pages: Math.ceil(total / limit) });
   } catch (error) {
     console.error('Admin groups error:', error);
     res.status(500).json({ message: 'Hitilafu imetokea' });
@@ -707,16 +733,17 @@ exports.getGroups = async (req, res) => {
 
 exports.getRatings = async (req, res) => {
   try {
-    const { page = 1, limit = 20 } = req.query;
+    const { page, limit, skip } = pagination(req.query);
     const total = await Rating.countDocuments();
     const ratings = await Rating.find()
       .populate('rater', 'name role')
       .populate('ratedUser', 'name')
       .sort({ createdAt: -1 })
-      .skip((page - 1) * limit)
-      .limit(parseInt(limit));
+      .skip(skip)
+      .limit(limit)
+      .lean();
 
-    res.json({ ratings, total, page: parseInt(page), pages: Math.ceil(total / limit) });
+    res.json({ ratings, total, page, pages: Math.ceil(total / limit) });
   } catch (error) {
     console.error('Admin ratings error:', error);
     res.status(500).json({ message: 'Hitilafu imetokea' });
@@ -748,14 +775,15 @@ exports.verifyUser = async (req, res) => {
 
 exports.getAdvice = async (req, res) => {
   try {
-    const { status, page = 1, limit = 20 } = req.query;
+    const { status } = req.query;
+    const { page, limit, skip } = pagination(req.query);
     const filter = {};
     if (status && status !== 'all') filter.status = status;
 
     const total = await AdviceArticle.countDocuments(filter);
-    const articles = await AdviceArticle.find(filter).sort({ createdAt: -1 }).skip((page - 1) * limit).limit(parseInt(limit));
+    const articles = await AdviceArticle.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).lean();
 
-    res.json({ articles, total, page: parseInt(page), pages: Math.ceil(total / limit) });
+    res.json({ articles, total, page, pages: Math.ceil(total / limit) });
   } catch (error) {
     console.error('Admin list advice error:', error);
     res.status(500).json({ message: 'Hitilafu imetokea' });
@@ -792,14 +820,15 @@ exports.moderateAdvice = async (req, res) => {
 
 exports.getNewsAdmin = async (req, res) => {
   try {
-    const { status, page = 1, limit = 20 } = req.query;
+    const { status } = req.query;
+    const { page, limit, skip } = pagination(req.query);
     const filter = {};
     if (status && status !== 'all') filter.status = status;
 
     const total = await NewsArticle.countDocuments(filter);
-    const articles = await NewsArticle.find(filter).sort({ createdAt: -1 }).skip((page - 1) * limit).limit(parseInt(limit));
+    const articles = await NewsArticle.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).lean();
 
-    res.json({ news: articles, total, page: parseInt(page), pages: Math.ceil(total / limit) });
+    res.json({ news: articles, total, page, pages: Math.ceil(total / limit) });
   } catch (error) {
     console.error('Admin list news error:', error);
     res.status(500).json({ message: 'Hitilafu imetokea' });

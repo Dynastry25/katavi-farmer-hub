@@ -86,7 +86,7 @@ const notifyInputCarrier = async (order, payload) => {
 // GET /api/v1/input-orders/my
 router.get('/my', auth, async (req, res) => {
   try {
-    const orders = await InputOrder.find({ buyer: req.user._id }).sort({ createdAt: -1 });
+    const orders = await InputOrder.find({ buyer: req.user._id }).sort({ createdAt: -1 }).limit(300).lean();
     res.json(orders);
   } catch (error) {
     res.status(500).json({ message: 'Hitilafu imetokea' });
@@ -128,7 +128,7 @@ router.get('/', auth, async (req, res) => {
       }
     }
 
-    const orders = await InputOrder.find(query).sort({ createdAt: -1 });
+    const orders = await InputOrder.find(query).sort({ createdAt: -1 }).limit(300).lean();
     res.json(orders);
   } catch (error) {
     res.status(500).json({ message: 'Hitilafu imetokea' });

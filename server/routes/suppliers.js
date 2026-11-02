@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const Supplier = require('../models/Supplier');
 const { auth } = require('../middleware/auth');
+const { searchRegex } = require('../utils/safeRegex');
 
 const STAFF_ROLES = ['admin', 'support', 'content_moderator', 'finance_officer'];
 
@@ -12,12 +13,14 @@ router.get('/', async (req, res) => {
     let query = {};
     if (category && category !== 'all') query.category = category;
     if (search) {
+      const searchFilter = searchRegex(search);
+      if (!searchFilter) return res.json([]);
       query.$or = [
-        { name: { $regex: search, $options: 'i' } },
-        { products: { $regex: search, $options: 'i' } },
+        { name: searchFilter },
+        { products: searchFilter },
       ];
     }
-    const suppliers = await Supplier.find(query).sort({ rating: -1 });
+    const suppliers = await Supplier.find(query).sort({ rating: -1 }).limit(200);
     res.json(suppliers);
   } catch (error) {
     res.status(500).json({ message: 'Hitilafu imetokea' });
@@ -112,8 +115,16 @@ router.put('/:id', auth, async (req, res) => {
       return res.status(403).json({ message: 'Huna ruhusa ya kuhariri wasifu huu' });
     }
 
-    const supplier = await Supplier.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    const supplier = await Supplier.findById(req.params.id);
     if (!supplier) return res.status(404).json({ message: 'Msambazaji huyu haupatikani' });
+    const allowed = [
+      'name', 'category', 'location', 'products', 'contact', 'email',
+      'description', 'delivery', 'verified', 'rating',
+    ];
+    allowed.forEach(field => {
+      if (req.body[field] !== undefined) supplier[field] = req.body[field];
+    });
+    await supplier.save();
     res.json(supplier);
   } catch (error) {
     res.status(500).json({ message: 'Hitilafu imetokea' });

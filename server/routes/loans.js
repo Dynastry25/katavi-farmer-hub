@@ -9,7 +9,7 @@ const { requireRole, STAFF_ROLES } = require('../middleware/roleCheck');
 // GET /api/loans
 router.get('/', async (req, res) => {
   try {
-    const loans = await Loan.find().sort({ createdAt: -1 });
+    const loans = await Loan.find().sort({ createdAt: -1 }).limit(100).lean();
     res.json(loans);
   } catch (error) {
     res.status(500).json({ message: 'Hitilafu imetokea' });
@@ -19,7 +19,7 @@ router.get('/', async (req, res) => {
 // GET /api/loans/my
 router.get('/my', auth, async (req, res) => {
   try {
-    const applications = await LoanApplication.find({ user: req.user._id }).sort({ createdAt: -1 });
+    const applications = await LoanApplication.find({ user: req.user._id }).sort({ createdAt: -1 }).limit(100).lean();
     res.json(applications);
   } catch (error) {
     res.status(500).json({ message: 'Hitilafu imetokea' });

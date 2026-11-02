@@ -14,4 +14,7 @@ const supplierSchema = new mongoose.Schema({
   owner: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
 }, { timestamps: true });
 
+supplierSchema.index({ owner: 1 });
+supplierSchema.index({ category: 1, rating: -1 });
+
 module.exports = mongoose.model('Supplier', supplierSchema);

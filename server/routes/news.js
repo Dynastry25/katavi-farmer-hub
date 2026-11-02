@@ -9,7 +9,7 @@ router.get('/', async (req, res) => {
     const { category } = req.query;
     let query = { $or: [{ status: 'approved' }, { status: { $exists: false } }] };
     if (category && category !== 'all') query.category = category;
-    const articles = await NewsArticle.find(query).sort({ createdAt: -1 });
+    const articles = await NewsArticle.find(query).sort({ createdAt: -1 }).limit(100).lean();
     res.json(articles);
   } catch (error) {
     res.status(500).json({ message: 'Hitilafu imetokea' });

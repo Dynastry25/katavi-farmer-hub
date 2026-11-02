@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const InputProduct = require('../models/InputProduct');
 const { auth, optionalAuth } = require('../middleware/auth');
+const { searchRegex } = require('../utils/safeRegex');
 
 const STAFF_ROLES = ['admin', 'support', 'content_moderator', 'finance_officer'];
 
@@ -18,10 +19,12 @@ router.get('/', async (req, res) => {
       if (maxPrice) query.price.$lte = Number(maxPrice);
     }
     if (search) {
+      const searchFilter = searchRegex(search);
+      if (!searchFilter) return res.json([]);
       query.$or = [
-        { name: { $regex: search, $options: 'i' } },
-        { description: { $regex: search, $options: 'i' } },
-        { supplierName: { $regex: search, $options: 'i' } },
+        { name: searchFilter },
+        { description: searchFilter },
+        { supplierName: searchFilter },
       ];
     }
 
@@ -125,7 +128,7 @@ router.delete('/:id', auth, async (req, res) => {
 // GET /api/v1/input-products/my — seller's own products
 router.get('/my/products', auth, async (req, res) => {
   try {
-    const products = await InputProduct.find({ owner: req.user._id }).sort({ createdAt: -1 });
+    const products = await InputProduct.find({ owner: req.user._id }).sort({ createdAt: -1 }).limit(200).lean();
     res.json(products);
   } catch (error) {
     res.status(500).json({ message: 'Hitilafu imetokea' });

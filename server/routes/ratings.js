@@ -237,7 +237,7 @@ router.post('/', auth, async (req, res) => {
 // GET /api/v1/ratings/my - ukadiriaji nilioutoa
 router.get('/my', auth, async (req, res) => {
   try {
-    const ratings = await Rating.find({ rater: req.user._id }).sort({ createdAt: -1 });
+    const ratings = await Rating.find({ rater: req.user._id }).sort({ createdAt: -1 }).limit(200).lean();
     res.json(ratings);
   } catch (error) {
     res.status(500).json({ message: 'Hitilafu imetokea' });

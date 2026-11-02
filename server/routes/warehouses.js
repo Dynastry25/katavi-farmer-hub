@@ -48,7 +48,7 @@ const canManageWarehouse = (warehouse, user) =>
 // GET /api/v1/warehouses — public list of storage spaces.
 router.get('/', async (req, res) => {
   try {
-    const warehouses = await Warehouse.find().sort({ createdAt: -1 });
+    const warehouses = await Warehouse.find().sort({ createdAt: -1 }).limit(200).lean();
     res.json(warehouses);
   } catch (error) {
     console.error('Get warehouses error:', error);
@@ -59,7 +59,7 @@ router.get('/', async (req, res) => {
 // GET /api/v1/warehouses/mine — warehouses registered by the caller.
 router.get('/mine', requireRole('logistics', 'admin'), async (req, res) => {
   try {
-    const warehouses = await Warehouse.find({ owner: req.user._id }).sort({ createdAt: -1 });
+    const warehouses = await Warehouse.find({ owner: req.user._id }).sort({ createdAt: -1 }).limit(100).lean();
     res.json(warehouses);
   } catch (error) {
     console.error('Get my warehouses error:', error);
@@ -127,7 +127,7 @@ router.delete('/:id', requireRole('logistics', 'admin'), async (req, res) => {
 // GET /api/v1/warehouses/bookings — the caller's own storage requests.
 router.get('/bookings', auth, async (req, res) => {
   try {
-    const bookings = await StorageBooking.find({ user: req.user._id }).sort({ createdAt: -1 });
+    const bookings = await StorageBooking.find({ user: req.user._id }).sort({ createdAt: -1 }).limit(100).lean();
     res.json({ bookings });
   } catch (error) {
     console.error('Get storage bookings error:', error);
@@ -148,7 +148,9 @@ router.get('/bookings/all', requireRole('logistics', 'admin'), async (req, res) 
     }
     const bookings = await StorageBooking.find(filter)
       .populate('user', 'name phone location district')
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .limit(200)
+      .lean();
     res.json({ bookings });
   } catch (error) {
     console.error('Get all storage bookings error:', error);

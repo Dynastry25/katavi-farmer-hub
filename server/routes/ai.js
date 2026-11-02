@@ -2,6 +2,9 @@ const express = require('express');
 const router = express.Router();
 const { auth } = require('../middleware/auth');
 const User = require('../models/User');
+const { assertPublicUrl, fetchPublicBuffer } = require('../utils/safeUrl');
+
+const MAX_DATA_URL_BYTES = 5 * 1024 * 1024;
 
 const MOCK_DISEASES = [
   {
@@ -79,10 +82,8 @@ async function fetchImageBase64(imageUrl) {
     if (m) return { mimeType: m[1], base64: m[2] };
     throw new Error('Data URL isiyo sahihi');
   }
-  const res = await fetch(imageUrl);
-  if (!res.ok) throw new Error(`Imeshindwa kupakua picha: HTTP ${res.status}`);
-  const buf = Buffer.from(await res.arrayBuffer());
-  return { mimeType: res.headers.get('content-type') || 'image/jpeg', base64: buf.toString('base64') };
+  const { buffer, contentType } = await fetchPublicBuffer(imageUrl);
+  return { mimeType: contentType, base64: buffer.toString('base64') };
 }
 
 async function visionViaOpenRouter(imageUrl, cropHint) {
@@ -169,9 +170,31 @@ async function visionViaGeneric(imageUrl, cropHint) {
 
 router.post('/crop-detect', auth, async (req, res) => {
   try {
-    const { imageUrl, cropHint } = req.body;
+    const imageUrl = typeof req.body.imageUrl === 'string' ? req.body.imageUrl : '';
+    const cropHint = typeof req.body.cropHint === 'string'
+      ? req.body.cropHint.trim().slice(0, 100)
+      : '';
     if (!imageUrl) {
       return res.status(400).json({ message: 'URL ya picha inahitajika (pakia picha kwanza kwenye /upload)' });
+    }
+
+    // Remote images are fetched by the server, so only public hosts are allowed;
+    // otherwise the URL could point at localhost or the cloud metadata service.
+    if (imageUrl.startsWith('data:')) {
+      const match = imageUrl.match(/^data:([^;]+);base64,(.+)$/);
+      if (!match || !match[1].startsWith('image/')) {
+        return res.status(400).json({ message: 'Picha si sahihi' });
+      }
+      const decodedBytes = Math.floor((match[2].length * 3) / 4);
+      if (decodedBytes > MAX_DATA_URL_BYTES) {
+        return res.status(413).json({ message: 'Picha ni kubwa mno' });
+      }
+    } else {
+      try {
+        await assertPublicUrl(imageUrl);
+      } catch {
+        return res.status(400).json({ message: 'URL ya picha si sahihi' });
+      }
     }
 
     const hasOpenAI = process.env.VISION_API_URL && process.env.VISION_API_KEY;

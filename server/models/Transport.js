@@ -16,6 +16,9 @@ const TransportProviderSchema = new Schema({
   available: { type: Boolean, default: true },
 }, { timestamps: true });
 
+TransportProviderSchema.index({ owner: 1 });
+TransportProviderSchema.index({ available: 1, createdAt: -1 });
+
 const TransportBookingSchema = new Schema({
   user: { type: Schema.Types.ObjectId, ref: 'User', required: true },
   transportProvider: { type: Schema.Types.ObjectId, ref: 'TransportProvider' },
@@ -28,6 +31,9 @@ const TransportBookingSchema = new Schema({
   status: { type: String, default: 'pending' },
   notes: { type: String, default: '' },
 }, { timestamps: true });
+
+TransportBookingSchema.index({ user: 1, createdAt: -1 });
+TransportBookingSchema.index({ transportProvider: 1, status: 1, createdAt: -1 });
 
 module.exports = {
   TransportProvider: mongoose.model('TransportProvider', TransportProviderSchema),

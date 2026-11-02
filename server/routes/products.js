@@ -27,7 +27,7 @@ const productFields = (body) => {
 // GET /api/products
 router.get('/', async (req, res) => {
   try {
-    const products = await Product.find().sort({ createdAt: -1 });
+    const products = await Product.find().sort({ createdAt: -1 }).limit(200).lean();
     res.json(products);
   } catch (error) {
     res.status(500).json({ message: 'Hitilafu imetokea' });
@@ -37,7 +37,7 @@ router.get('/', async (req, res) => {
 // GET /api/products/my
 router.get('/my', auth, async (req, res) => {
   try {
-    const products = await Product.find({ farmer: req.user._id }).sort({ createdAt: -1 });
+    const products = await Product.find({ farmer: req.user._id }).sort({ createdAt: -1 }).limit(200).lean();
     res.json(products);
   } catch (error) {
     res.status(500).json({ message: 'Hitilafu imetokea' });

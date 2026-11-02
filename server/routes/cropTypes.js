@@ -40,6 +40,7 @@ router.get('/', async (req, res) => {
   try {
     const list = await CropType.find({ active: true })
       .sort({ order: 1, createdAt: 1 })
+      .limit(100)
       .lean();
     res.json({ cropTypes: list.map(serialize) });
   } catch (error) {
@@ -51,7 +52,7 @@ router.get('/', async (req, res) => {
 // Admin: every crop type, including inactive ones.
 router.get('/admin', requirePermission('content.manage'), async (req, res) => {
   try {
-    const list = await CropType.find().sort({ order: 1, createdAt: 1 }).lean();
+    const list = await CropType.find().sort({ order: 1, createdAt: 1 }).limit(300).lean();
     res.json({ cropTypes: list.map(serialize) });
   } catch (error) {
     console.error('Admin crop types list error:', error);

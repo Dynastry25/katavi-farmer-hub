@@ -18,4 +18,7 @@ const loanApplicationSchema = new mongoose.Schema({
   }],
 }, { timestamps: true });
 
+loanApplicationSchema.index({ user: 1, createdAt: -1 });
+loanApplicationSchema.index({ status: 1, createdAt: -1 });
+
 module.exports = mongoose.model('LoanApplication', loanApplicationSchema);

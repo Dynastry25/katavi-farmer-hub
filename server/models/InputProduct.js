@@ -25,6 +25,7 @@ const inputProductSchema = new mongoose.Schema({
 
 inputProductSchema.index({ name: 'text', description: 'text' });
 inputProductSchema.index({ category: 1, status: 1 });
-inputProductSchema.index({ owner: 1 });
+inputProductSchema.index({ status: 1, createdAt: -1 });
+inputProductSchema.index({ owner: 1, createdAt: -1 });
 
 module.exports = mongoose.model('InputProduct', inputProductSchema);

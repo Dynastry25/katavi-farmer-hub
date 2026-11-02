@@ -12,7 +12,7 @@ const numeric = (value, fallback) => {
 // GET /api/v1/warehouse-bookings
 router.get('/', auth, async (req, res) => {
   try {
-    const bookings = await StorageBooking.find({ user: req.user._id }).sort({ createdAt: -1 });
+    const bookings = await StorageBooking.find({ user: req.user._id }).sort({ createdAt: -1 }).limit(100).lean();
     res.json({ bookings });
   } catch (error) {
     console.error('Get storage bookings error:', error);

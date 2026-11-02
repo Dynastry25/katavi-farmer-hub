@@ -48,6 +48,7 @@ router.get('/', async (req, res) => {
     }
     const list = await Offer.find(filter)
       .sort({ order: 1, createdAt: -1 })
+      .limit(100)
       .lean();
     res.json({ offers: list.map(serialize) });
   } catch (error) {
@@ -59,7 +60,7 @@ router.get('/', async (req, res) => {
 // Admin: every offer, including inactive ones.
 router.get('/admin', requirePermission('content.manage'), async (req, res) => {
   try {
-    const list = await Offer.find().sort({ order: 1, createdAt: -1 }).lean();
+    const list = await Offer.find().sort({ order: 1, createdAt: -1 }).limit(100).lean();
     res.json({ offers: list.map(serialize) });
   } catch (error) {
     console.error('Admin offers list error:', error);

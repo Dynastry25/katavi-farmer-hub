@@ -14,6 +14,7 @@ router.get('/', async (req, res) => {
   try {
     const groups = await FarmerGroup.find()
       .sort({ createdAt: -1 })
+      .limit(100)
       .populate('members', 'name location');
     res.json(groups);
   } catch (error) {
@@ -25,7 +26,11 @@ router.get('/', async (req, res) => {
 router.post('/', requireRole('farmer', 'admin'), async (req, res) => {
   try {
     const group = await FarmerGroup.create({
-      ...req.body,
+      name: req.body.name,
+      description: req.body.description,
+      location: req.body.location,
+      cropType: req.body.cropType,
+      maxMembers: req.body.maxMembers,
       createdBy: req.user._id,
       creatorName: req.user.name,
       members: [req.user._id],
@@ -104,8 +109,13 @@ router.put('/:id/budget', auth, async (req, res) => {
 // PUT /api/farmer-groups/:id — creator (or admin) only
 router.put('/:id', requireOwnershipOrAdmin(groupOwnerId), async (req, res) => {
   try {
-    const group = await FarmerGroup.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    const group = await FarmerGroup.findById(req.params.id);
     if (!group) return res.status(404).json({ message: 'Kikundi hiki hakipatikani' });
+    const allowed = ['name', 'description', 'location', 'cropType', 'maxMembers'];
+    allowed.forEach((field) => {
+      if (req.body[field] !== undefined) group[field] = req.body[field];
+    });
+    await group.save();
     res.json(group);
   } catch (error) {
     res.status(500).json({ message: 'Hitilafu imetokea' });

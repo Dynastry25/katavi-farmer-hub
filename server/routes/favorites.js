@@ -8,7 +8,7 @@ const Crop = require('../models/Crop');
 // GET /api/v1/favorites/ids — crop ids favourited by the signed-in user.
 router.get('/ids', auth, async (req, res) => {
   try {
-    const favs = await Favorite.find({ user: req.user._id }).select('crop').lean();
+    const favs = await Favorite.find({ user: req.user._id }).select('crop').limit(500).lean();
     res.json({ ids: favs.map((f) => String(f.crop)) });
   } catch (error) {
     console.error('Get favourite ids error:', error);
@@ -21,6 +21,7 @@ router.get('/', auth, async (req, res) => {
   try {
     const favs = await Favorite.find({ user: req.user._id })
       .sort({ createdAt: -1 })
+      .limit(200)
       .populate('crop');
     const crops = favs.map((f) => f.crop).filter(Boolean);
     res.json({ favorites: crops });

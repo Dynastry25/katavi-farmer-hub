@@ -19,4 +19,8 @@ const questionSchema = new mongoose.Schema({
   answers: [answerSchema],
 }, { timestamps: true });
 
+questionSchema.index({ status: 1, createdAt: -1 });
+questionSchema.index({ asker: 1, createdAt: -1 });
+questionSchema.index({ category: 1, createdAt: -1 });
+
 module.exports = mongoose.model('Question', questionSchema);

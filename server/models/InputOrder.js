@@ -75,6 +75,8 @@ const inputOrderSchema = new mongoose.Schema({
 inputOrderSchema.index({ buyer: 1, createdAt: -1 });
 inputOrderSchema.index({ status: 1 });
 inputOrderSchema.index({ status: 1, expiresAt: 1 });
-inputOrderSchema.index({ deliveryProvider: 1, deliveryStatus: 1 });
+inputOrderSchema.index({ deliveryProvider: 1, deliveryStatus: 1, createdAt: -1 });
+inputOrderSchema.index({ 'items.product': 1, createdAt: -1 });
+inputOrderSchema.index({ supplier: 1, createdAt: -1 });
 
 module.exports = mongoose.model('InputOrder', inputOrderSchema);
