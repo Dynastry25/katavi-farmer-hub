@@ -1,4 +1,4 @@
-const INPUT_STATUSES = ['pending', 'confirmed', 'shipped', 'delivered', 'cancelled'];
+const INPUT_STATUSES = ['pending', 'confirmed', 'shipped', 'delivered', 'cancelled', 'expired'];
 
 // Sellers advance an order one step at a time; cancelling is only possible
 // before the goods leave the shop.
@@ -8,6 +8,7 @@ const INPUT_TRANSITIONS = {
   shipped: ['delivered'],
   delivered: [],
   cancelled: [],
+  expired: [],
 };
 
 const isInputStatus = (status) => INPUT_STATUSES.includes(status);

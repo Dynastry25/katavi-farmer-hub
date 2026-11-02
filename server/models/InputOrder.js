@@ -22,9 +22,10 @@ const inputOrderSchema = new mongoose.Schema({
   totalAmount: { type: Number, required: true, min: 0 },
   status: {
     type: String,
-    enum: ['pending', 'confirmed', 'shipped', 'delivered', 'cancelled'],
+    enum: ['pending', 'confirmed', 'shipped', 'delivered', 'cancelled', 'expired'],
     default: 'pending',
   },
+  expiresAt: { type: Date, default: null },
   paymentStatus: {
     type: String,
     enum: ['unpaid', 'processing', 'paid', 'failed', 'refunded'],
@@ -71,6 +72,7 @@ const inputOrderSchema = new mongoose.Schema({
 
 inputOrderSchema.index({ buyer: 1, createdAt: -1 });
 inputOrderSchema.index({ status: 1 });
+inputOrderSchema.index({ status: 1, expiresAt: 1 });
 inputOrderSchema.index({ deliveryProvider: 1, deliveryStatus: 1 });
 
 module.exports = mongoose.model('InputOrder', inputOrderSchema);

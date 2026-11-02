@@ -23,7 +23,11 @@ const STATUS_LABELS = {
   shipped: 'Imesafirishwa',
   delivered: 'Imefikishwa',
   cancelled: 'Imeghairiwa',
+  expired: 'Imeisha muda',
 };
+
+const EXPIRY_DAYS = 3;
+const expiryDate = () => new Date(Date.now() + EXPIRY_DAYS * 24 * 60 * 60 * 1000);
 
 const isDelivery = (order) => order.deliveryMethod === 'delivery';
 
@@ -279,6 +283,7 @@ router.post('/', requireRole('buyer', 'farmer', 'admin'), async (req, res) => {
       deliveryVehicleType: provider ? provider.vehicleType : (deliveryVehicleType || ''),
       deliveryStatus: provider ? 'requested' : 'none',
       totalAmount,
+      expiresAt: expiryDate(),
       deliveryMethod: method,
       pickupLocation: reservations[0]?.product.location || '',
       deliveryLocation: deliveryLocation || '',
@@ -360,6 +365,13 @@ router.put('/:id/status', auth, async (req, res) => {
     if (!canTransitionInputOrder(order.status, status)) {
       return res.status(400).json({
         message: `Hali ya agizo haiwezi kubadilika kutoka ${order.status} hadi ${status}`,
+      });
+    }
+
+    if (status === 'delivered' && isDelivery(order) &&
+        ['accepted', 'in_transit'].includes(order.deliveryStatus)) {
+      return res.status(400).json({
+        message: 'Mzigo uko kwa msafirishaji; mtoa usafiri ndiye anathibitisha kuwasilisha.',
       });
     }
 
@@ -691,7 +703,7 @@ router.post('/:id/pay', auth, async (req, res) => {
     if (order.paymentStatus === 'processing') {
       return res.status(400).json({ message: 'Malipo yanasubiri uthibitisho' });
     }
-    if (['cancelled', 'delivered'].includes(order.status)) {
+    if (['cancelled', 'expired', 'delivered'].includes(order.status)) {
       return res.status(400).json({ message: 'Agizo hili haliwezi kulipwa' });
     }
     if (!provider || !phone) {
@@ -769,5 +781,53 @@ router.post('/:id/receive', auth, async (req, res) => {
     res.status(500).json({ message: 'Hitilafu imetokea' });
   }
 });
+
+// Expose helper for the auto-expiry cron job: the seller never confirmed, so
+// the reserved stock goes back and any up-front charge is reversed.
+router.expirePendingInputOrders = async () => {
+  const now = new Date();
+  const expired = await InputOrder.find({
+    status: 'pending',
+    expiresAt: { $lte: now },
+  });
+
+  for (const order of expired) {
+    for (const item of order.items) {
+      await InputProduct.findByIdAndUpdate(item.product, {
+        $inc: { stockQuantity: item.quantity },
+        $set: { status: 'available' },
+      });
+    }
+
+    order.status = 'expired';
+    order.respondedAt = now;
+    if (isDelivery(order) && order.deliveryProvider) {
+      order.deliveryStatus = 'cancelled';
+    }
+    await order.save();
+
+    await refundPaidOrder({
+      order,
+      kind: 'input',
+      reason: 'Agizo la pembejeo limeisha muda bila kukubaliwa',
+    });
+
+    await sendNotification(order.buyer, {
+      title: 'Agizo Limeisha Muda',
+      message: 'Muuzaji hakukubali agizo lako la pembejeo kwa wakati; hisa yako imetolewa.',
+      type: 'order',
+      link: '/buyer/orders?tab=inputs',
+      metadata: { inputOrderId: order._id, status: 'expired' },
+    });
+    await notifyInputSellers(order, {
+      title: 'Agizo Limeisha Muda',
+      message: `Agizo la ${order.buyerName} limeisha muda bila kukubaliwa.`,
+      link: '/seller/dashboard',
+      metadata: { status: 'expired' },
+    });
+  }
+
+  return expired.length;
+};
 
 module.exports = router;

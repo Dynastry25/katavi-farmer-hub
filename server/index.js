@@ -196,10 +196,13 @@ server.listen(PORT, () => {
 // Auto-expiry job: mark pending orders past their expiresAt as 'expired' and
 // release their stock reservations. Runs every hour.
 const ordersRouter = require('./routes/orders');
+const inputOrdersRouter = require('./routes/inputOrders');
 cron.schedule('0 * * * *', async () => {
   try {
     const released = await ordersRouter.expirePendingOrders();
     if (released > 0) console.log(`[cron] Expired ${released} order(s) and released their stock reservations`);
+    const inputReleased = await inputOrdersRouter.expirePendingInputOrders();
+    if (inputReleased > 0) console.log(`[cron] Expired ${inputReleased} input order(s) and released their stock`);
   } catch (err) {
     console.error('[cron] Auto-expiry job error:', err);
   }
