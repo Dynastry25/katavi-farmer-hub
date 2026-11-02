@@ -15,6 +15,10 @@ const Rating = require('../models/Rating');
 const PlatformSetting = require('../models/PlatformSetting');
 const { refundPaidOrder } = require('../services/paymentFlow.service');
 const { restoreOrderStock } = require('../services/order.stock.service');
+const { orderAmount } = require('../services/order.service');
+
+const escapeRegex = (value) => String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const SWAHILI_MONTHS = ['Jan', 'Feb', 'Mac', 'Apr', 'Mei', 'Jun', 'Jul', 'Ago', 'Sep', 'Okt', 'Nov', 'Des'];
 
 exports.getStats = async (req, res) => {
   try {
@@ -39,7 +43,7 @@ exports.getStats = async (req, res) => {
     const months = [];
     for (let i = 5; i >= 0; i--) {
       const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      months.push({ label: d.toLocaleString('en', { month: 'short' }), start: d });
+      months.push({ label: SWAHILI_MONTHS[d.getMonth()], start: d });
     }
     const monthlyUsers = [];
     for (let i = 0; i < months.length; i++) {
@@ -51,10 +55,20 @@ exports.getStats = async (req, res) => {
 
     const recentUsers = await User.find().select('-password').sort({ createdAt: -1 }).limit(6);
 
+    const [valuedOrders, activeDisputes, pendingLoans] = await Promise.all([
+      Order.find({ status: { $nin: ['rejected', 'cancelled', 'expired'] } })
+        .select('price requestedQuantity approvedQuantity deliveryFee status')
+        .lean(),
+      Order.countDocuments({ status: 'disputed' }),
+      LoanApplication.countDocuments({ status: 'pending' }),
+    ]);
+    const totalOrderValue = valuedOrders.reduce((sum, order) => sum + orderAmount(order), 0);
+
     res.json({
       farmers, buyers, sellers, experts, admins, totalUsers,
       totalCrops, totalOrders, totalProducts, totalLoans, totalGroups,
       totalNotifications, totalRatings,
+      totalOrderValue, activeDisputes, pendingLoans,
       monthlyUsers, recentUsers,
     });
   } catch (error) {
@@ -69,11 +83,14 @@ exports.getUsers = async (req, res) => {
     const filter = {};
     if (role && role !== 'all') filter.role = role;
     if (search) {
-      filter.$or = [
-        { name: { $regex: search, $options: 'i' } },
-        { email: { $regex: search, $options: 'i' } },
-        { phone: { $regex: search, $options: 'i' } },
-      ];
+      const term = escapeRegex(String(search).trim());
+      if (term) {
+        filter.$or = [
+          { name: { $regex: term, $options: 'i' } },
+          { email: { $regex: term, $options: 'i' } },
+          { phone: { $regex: term, $options: 'i' } },
+        ];
+      }
     }
 
     const total = await User.countDocuments(filter);
@@ -316,7 +333,7 @@ exports.getMarketPrices = async (req, res) => {
   try {
     const { cropName, region, page = 1, limit = 20 } = req.query;
     const filter = {};
-    if (cropName) filter.cropName = new RegExp(cropName, 'i');
+    if (cropName) filter.cropName = new RegExp(escapeRegex(cropName), 'i');
     if (region) filter.region = region;
 
     const total = await MarketPrice.countDocuments(filter);
@@ -368,12 +385,32 @@ exports.createMarketPrice = async (req, res) => {
   }
 };
 
+const MARKET_PRICE_FIELDS = [
+  'cropName', 'category', 'region', 'district', 'pricePerUnit', 'unit',
+  'season', 'isBaseline', 'notes', 'dateRecorded',
+];
+
 exports.updateMarketPrice = async (req, res) => {
   try {
     const price = await MarketPrice.findById(req.params.id);
     if (!price) return res.status(404).json({ message: 'Bei hii haipatikani' });
 
-    Object.assign(price, req.body);
+    const updates = {};
+    MARKET_PRICE_FIELDS.forEach((field) => {
+      if (req.body[field] !== undefined) updates[field] = req.body[field];
+    });
+    if (Object.keys(updates).length === 0) {
+      return res.status(400).json({ message: 'Hakuna taarifa za kusasisha' });
+    }
+    if (updates.pricePerUnit !== undefined) {
+      const value = Number(updates.pricePerUnit);
+      if (!Number.isFinite(value) || value < 0) {
+        return res.status(400).json({ message: 'Bei kwa kipimo si sahihi' });
+      }
+      updates.pricePerUnit = value;
+    }
+
+    Object.assign(price, updates);
     await price.save();
     res.json(price);
   } catch (error) {
@@ -548,10 +585,17 @@ exports.deleteBroadcast = async (req, res) => {
 
 exports.broadcastNotification = async (req, res) => {
   try {
-    const { title, message, type, targetDistrict, sendVia } = req.body;
+    const { type, targetDistrict, sendVia } = req.body;
+    const title = String(req.body.title || '').trim().slice(0, 120);
+    const message = String(req.body.message || '').trim().slice(0, 500);
     const audienceInput = req.body.audience || req.body.targetRole || 'all';
     const audience = broadcastAudiences.includes(audienceInput) ? audienceInput : 'all';
-    const channels = Array.isArray(sendVia) && sendVia.length ? sendVia : ['in_app', 'sms'];
+    const allowedChannels = ['in_app', 'sms', 'push'];
+    const requestedChannels = Array.isArray(sendVia)
+      ? sendVia.filter((channel) => allowedChannels.includes(channel))
+      : [];
+    const channels = requestedChannels.length ? requestedChannels : ['in_app', 'sms'];
+    const district = String(targetDistrict || '').trim().slice(0, 60);
 
     if (!title || !message) {
       return res.status(400).json({ message: 'Kichwa na ujumbe vinahitajika' });
@@ -559,7 +603,7 @@ exports.broadcastNotification = async (req, res) => {
 
     const filter = {};
     if (audience !== 'all') filter.role = audience;
-    if (targetDistrict) filter.district = targetDistrict;
+    if (district) filter.district = district;
 
     const users = await User.find(filter).select('_id phone');
     const userIds = users.map(u => u._id);
@@ -573,7 +617,7 @@ exports.broadcastNotification = async (req, res) => {
       message,
       type: type || 'system',
       audience,
-      district: targetDistrict || '',
+      district,
       channels,
       recipientCount: userIds.length,
       sentBy: req.user._id,
@@ -604,7 +648,7 @@ exports.broadcastNotification = async (req, res) => {
     await AuditLog.create({
       user: req.user._id, userName: req.user.name, userRole: req.user.role,
       action: 'broadcast_notification', category: 'system',
-      details: { title, recipientCount: userIds.length, audience, targetDistrict, channels, sms: smsResult, push: pushResult },
+      details: { title, recipientCount: userIds.length, audience, targetDistrict: district, channels, sms: smsResult, push: pushResult },
       ipAddress: req.ip,
     });
 
@@ -612,8 +656,8 @@ exports.broadcastNotification = async (req, res) => {
       message: `Ujumbe umetumwa kwa watumiaji ${userIds.length}`,
       count: notifications.length,
       broadcast: serializeBroadcast(broadcast),
-      sms: smsResult ? { attempted: smsResult.attempted, successCount: smsResult.successCount, mock: true } : null,
-      push: pushResult ? { attempted: pushResult.attempted, successCount: pushResult.successCount, mock: pushResult.successCount === 0 } : null,
+      sms: smsResult ? { attempted: smsResult.attempted, successCount: smsResult.successCount, mock: smsResult.mock } : null,
+      push: pushResult ? { attempted: pushResult.attempted, successCount: pushResult.successCount, mock: pushResult.mock } : null,
     });
   } catch (error) {
     console.error('Admin broadcast error:', error);
@@ -624,11 +668,13 @@ exports.broadcastNotification = async (req, res) => {
 exports.getDisputes = async (req, res) => {
   try {
     const { status, page = 1, limit = 20 } = req.query;
-    const filter = {};
-    if (status && status !== 'all') filter.status = status;
+    const statuses = ['disputed', 'cancelled'];
+    const query = {
+      status: statuses.includes(status) ? status : { $in: statuses },
+    };
 
-    const total = await Order.countDocuments({ ...filter, status: { $in: ['disputed', 'cancelled'] } });
-    const disputes = await Order.find({ ...filter, status: { $in: ['disputed', 'cancelled'] } })
+    const total = await Order.countDocuments(query);
+    const disputes = await Order.find(query)
       .populate('buyer', 'name email phone')
       .populate('farmer', 'name email phone')
       .sort({ createdAt: -1 })
@@ -833,10 +879,13 @@ exports.resolveDispute = async (req, res) => {
 
     const order = await Order.findById(req.params.id);
     if (!order) return res.status(404).json({ message: 'Agizo halipatikani' });
+    if (order.status !== 'disputed') {
+      return res.status(400).json({ message: 'Agizo hili haliko kwenye mgogoro' });
+    }
 
     const fromStatus = order.disputeFromStatus || '';
     order.status = status;
-    order.resolution = resolution || '';
+    order.resolution = String(resolution || '').trim().slice(0, 500);
     order.respondedAt = new Date();
     if (['delivery', 'tr'].includes(order.deliveryMethod)) {
       if (status === 'cancelled') {

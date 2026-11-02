@@ -4,7 +4,7 @@ const broadcastSchema = new mongoose.Schema({
   title: { type: String, required: true, trim: true },
   message: { type: String, required: true },
   type: { type: String, default: 'system' },
-  audience: { type: String, enum: ['all', 'farmer', 'buyer', 'expert', 'seller'], default: 'all' },
+  audience: { type: String, enum: ['all', 'farmer', 'buyer', 'expert', 'seller', 'logistics'], default: 'all' },
   district: { type: String, default: '' },
   channels: { type: [String], enum: ['in_app', 'sms', 'push'], default: ['in_app', 'sms'] },
   recipientCount: { type: Number, default: 0 },

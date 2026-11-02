@@ -56,6 +56,7 @@ const sendBulkSms = async (phones, message) => {
   return {
     successCount: results.filter(r => r.success).length,
     attempted: unique.length,
+    mock: results.length > 0 && results.every(r => r.mock),
     results,
   };
 };

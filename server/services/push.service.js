@@ -48,7 +48,12 @@ const sendPushToUsers = async (userIds, payload) => {
   for (const subscription of subscriptions) {
     results.push(await sendPush(subscription, payload));
   }
-  return { attempted: subscriptions.length, successCount: results.filter(r => r.success).length, results };
+  return {
+    attempted: subscriptions.length,
+    successCount: results.filter(r => r.success).length,
+    mock: !hasVapid,
+    results,
+  };
 };
 
 module.exports = { sendPush, sendPushToUsers, hasVapid };
