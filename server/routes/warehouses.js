@@ -8,6 +8,16 @@ const { Warehouse, StorageBooking } = require('../models/Warehouse');
 
 const BOOKING_STATUSES = ['pending', 'active', 'completed', 'cancelled'];
 
+const BOOKING_TRANSITIONS = {
+  pending: ['active', 'cancelled'],
+  active: ['completed'],
+  completed: [],
+  cancelled: [],
+};
+
+const canTransitionBooking = (from, to) =>
+  Boolean(BOOKING_TRANSITIONS[from]?.includes(to));
+
 const STATUS_MESSAGES = {
   active: 'Uhifadhi wako umeanza',
   completed: 'Uhifadhi umekamilika',
@@ -184,6 +194,18 @@ router.post('/bookings', auth, async (req, res) => {
       totalFee,
       status: 'pending',
     });
+
+    if (warehouse.owner && String(warehouse.owner) !== String(req.user._id)) {
+      await sendNotification(warehouse.owner, {
+        title: 'Ombi Jipya la Ghala',
+        message: `${req.user.name || 'Mteja'}: ${warehouse.name} · gunia ${bags}` +
+          (days > 0 ? ` kwa siku ${days}` : ` kwa miezi ${Math.max(months, 1)}`),
+        type: 'order',
+        link: '/logistics?tab=wh',
+        metadata: { bookingId: String(booking._id) },
+      });
+    }
+
     res.status(201).json({ booking });
   } catch (error) {
     console.error('Create storage booking error:', error);
@@ -209,6 +231,13 @@ router.patch('/bookings/:id/status', requireRole('logistics', 'admin'), async (r
       }
     }
 
+    if (!canTransitionBooking(booking.status, status)) {
+      return res.status(400).json({
+        message: `Uhifadhi huu hauwezi kubadilishwa kutoka "${booking.status}" kwenda "${status}"`,
+      });
+    }
+
+    const reason = String(req.body.reason || '').trim().slice(0, 200);
     booking.status = status;
     await booking.save();
 
@@ -216,9 +245,12 @@ router.patch('/bookings/:id/status', requireRole('logistics', 'admin'), async (r
     if (title) {
       await sendNotification(booking.user, {
         title,
-        message: `${booking.warehouseName || 'Ghala'} · gunia ${booking.bags} kwa miezi ${booking.months}`,
+        message: `${booking.warehouseName || 'Ghala'} · gunia ${booking.bags}` +
+          (booking.days > 0 ? ` kwa siku ${booking.days}` : ` kwa miezi ${booking.months}`) +
+          (status === 'cancelled' && reason ? `. Sababu: ${reason}` : ''),
         type: 'order',
-        link: '/transport',
+        link: '/transport?tab=warehouse',
+        metadata: { bookingId: String(booking._id) },
       });
     }
 
@@ -229,5 +261,52 @@ router.patch('/bookings/:id/status', requireRole('logistics', 'admin'), async (r
   }
 });
 
+// DELETE /api/v1/warehouses/bookings/:id — the customer cancels before the
+// goods are in storage; the warehouse owner is told so they can free space.
+router.delete('/bookings/:id', auth, async (req, res) => {
+  try {
+    const booking = await StorageBooking.findOne({
+      _id: req.params.id,
+      user: req.user._id,
+    });
+    if (!booking) return res.status(404).json({ message: 'Uhifadhi haupo' });
+    if (booking.status === 'active') {
+      return res.status(400).json({
+        message: 'Mzigo umeanza kuhifadhiwa; wasiliana na mmiliki wa ghala',
+      });
+    }
+    if (booking.status === 'completed') {
+      return res.status(400).json({ message: 'Uhifadhi umekamilika; huwezi kughairi' });
+    }
+    if (booking.status === 'cancelled') {
+      return res.json({ message: 'Uhifadhi umeghairiwa', booking });
+    }
+
+    const reason = String(req.body.reason || '').trim().slice(0, 200);
+    booking.status = 'cancelled';
+    await booking.save();
+
+    const warehouse = booking.warehouse
+      ? await Warehouse.findById(booking.warehouse).select('owner')
+      : null;
+    if (warehouse?.owner && String(warehouse.owner) !== String(req.user._id)) {
+      await sendNotification(warehouse.owner, {
+        title: 'Ombi la Ghala Limeghairiwa',
+        message: `${req.user.name || 'Mteja'}: ${booking.warehouseName || 'Ghala'} · gunia ${booking.bags}` +
+          (reason ? `. Sababu: ${reason}` : ''),
+        type: 'order',
+        link: '/logistics?tab=wh',
+        metadata: { bookingId: String(booking._id) },
+      });
+    }
+
+    res.json({ message: 'Uhifadhi umeghairiwa', booking });
+  } catch (error) {
+    console.error('Cancel storage booking error:', error);
+    res.status(500).json({ message: 'Hitilafu imetokea' });
+  }
+});
+
 module.exports = router;
 module.exports.expirePendingOrders = async () => 0;
+module.exports.canTransitionBooking = canTransitionBooking;

@@ -36,6 +36,17 @@ const providerFields = (body) => {
 
 const BOOKING_STATUSES = ['pending', 'accepted', 'in_transit', 'completed', 'cancelled'];
 
+const BOOKING_TRANSITIONS = {
+  pending: ['accepted', 'cancelled'],
+  accepted: ['in_transit', 'cancelled'],
+  in_transit: ['completed'],
+  completed: [],
+  cancelled: [],
+};
+
+const canTransitionBooking = (from, to) =>
+  Boolean(BOOKING_TRANSITIONS[from]?.includes(to));
+
 const STATUS_MESSAGES = {
   accepted: 'Ombi la usafiri limekubaliwa',
   in_transit: 'Mzigo uko njiani',
@@ -225,6 +236,17 @@ router.post('/bookings', auth, async (req, res) => {
       notes: String(req.body.notes || '').trim().slice(0, 300),
       status: 'pending',
     });
+
+    if (provider.owner && String(provider.owner) !== String(req.user._id)) {
+      await sendNotification(provider.owner, {
+        title: 'Ombi Jipya la Usafiri',
+        message: `${req.user.name || 'Mteja'}: ${pickupLocation} → ${dropoffLocation}`,
+        type: 'order',
+        link: '/logistics',
+        metadata: { bookingId: String(booking._id) },
+      });
+    }
+
     res.status(201).json({ booking });
   } catch (error) {
     console.error('Create transport booking error:', error);
@@ -253,11 +275,46 @@ router.get('/bookings/all', requireRole('logistics', 'admin'), async (req, res) 
   }
 });
 
-// DELETE /api/v1/transport/bookings/:id
+// DELETE /api/v1/transport/bookings/:id — the customer cancels until the
+// trip starts; the vehicle owner is told so they can free the slot.
 router.delete('/bookings/:id', auth, async (req, res) => {
   try {
-    await TransportBooking.deleteOne({ _id: req.params.id, user: req.user._id });
-    res.json({ message: 'Ombi limeghairiwa' });
+    const booking = await TransportBooking.findOne({
+      _id: req.params.id,
+      user: req.user._id,
+    });
+    if (!booking) return res.status(404).json({ message: 'Ombi halipo' });
+    if (booking.status === 'in_transit') {
+      return res.status(400).json({
+        message: 'Mzigo uko njiani; wasiliana na mtoa huduma kughairi',
+      });
+    }
+    if (booking.status === 'completed') {
+      return res.status(400).json({ message: 'Usafiri umekamilika; huwezi kughairi' });
+    }
+    if (booking.status === 'cancelled') {
+      return res.json({ message: 'Ombi limeghairiwa', booking });
+    }
+
+    const reason = String(req.body.reason || '').trim().slice(0, 200);
+    booking.status = 'cancelled';
+    await booking.save();
+
+    const provider = booking.transportProvider
+      ? await TransportProvider.findById(booking.transportProvider).select('owner')
+      : null;
+    if (provider?.owner && String(provider.owner) !== String(req.user._id)) {
+      await sendNotification(provider.owner, {
+        title: 'Ombi la Usafiri Limeghairiwa',
+        message: `${req.user.name || 'Mteja'}: ${booking.pickupLocation} → ${booking.dropoffLocation}` +
+          (reason ? `. Sababu: ${reason}` : ''),
+        type: 'order',
+        link: '/logistics',
+        metadata: { bookingId: String(booking._id) },
+      });
+    }
+
+    res.json({ message: 'Ombi limeghairiwa', booking });
   } catch (error) {
     console.error('Cancel transport booking error:', error);
     res.status(500).json({ message: 'Hitilafu imetokea' });
@@ -282,6 +339,13 @@ router.patch('/bookings/:id/status', requireRole('logistics', 'admin'), async (r
       }
     }
 
+    if (!canTransitionBooking(booking.status, status)) {
+      return res.status(400).json({
+        message: `Ombi hili haliwezi kubadilishwa kutoka "${booking.status}" kwenda "${status}"`,
+      });
+    }
+
+    const reason = String(req.body.reason || '').trim().slice(0, 200);
     booking.status = status;
     await booking.save();
 
@@ -289,9 +353,11 @@ router.patch('/bookings/:id/status', requireRole('logistics', 'admin'), async (r
     if (title) {
       await sendNotification(booking.user, {
         title,
-        message: `${booking.transportProviderName || 'Msafirishaji'}: ${booking.pickupLocation} → ${booking.dropoffLocation}`,
+        message: `${booking.transportProviderName || 'Msafirishaji'}: ${booking.pickupLocation} → ${booking.dropoffLocation}` +
+          (status === 'cancelled' && reason ? `. Sababu: ${reason}` : ''),
         type: 'order',
         link: '/transport',
+        metadata: { bookingId: String(booking._id) },
       });
     }
 
@@ -304,3 +370,4 @@ router.patch('/bookings/:id/status', requireRole('logistics', 'admin'), async (r
 
 module.exports = router;
 module.exports.expirePendingOrders = async () => 0;
+module.exports.canTransitionBooking = canTransitionBooking;
