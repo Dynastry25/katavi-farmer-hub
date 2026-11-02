@@ -22,6 +22,7 @@ const {
   canDeleteOrder,
 } = require('../services/order.service');
 const { ensureStockPersisted } = require('../services/crop.stock.service');
+const { restoreOrderStock } = require('../services/order.stock.service');
 const { initiatePayment } = require('../services/payment.service');
 const { refundPaidOrder } = require('../services/paymentFlow.service');
 
@@ -850,13 +851,9 @@ router.delete('/:id', auth, async (req, res) => {
       return res.status(403).json({ message: 'Huna ruhusa ya kufuta agizo hili' });
     }
 
-    // Release any outstanding reservation before deleting.
-    if (order.status === 'pending' && order.crop) {
-      await Crop.updateOne(
-        { _id: order.crop, reservedQuantity: { $gte: order.requestedQuantity } },
-        { $inc: { reservedQuantity: -order.requestedQuantity } }
-      );
-    }
+    // Release a pending reservation, or restore approved stock that was
+    // already deducted when the goods were accepted.
+    await restoreOrderStock(order);
     await Order.findByIdAndDelete(order._id);
     res.json({ message: 'Agizo limefutwa' });
   } catch (error) {
@@ -912,25 +909,18 @@ router.post('/:id/dispute', auth, async (req, res) => {
     const isParty = String(order.buyer) === String(req.user._id) || String(order.farmer) === String(req.user._id);
     if (!isParty) return res.status(403).json({ message: 'Huna ruhusa ya kuripoti mgogoro huu' });
 
-    if (['rejected', 'expired', 'disputed'].includes(order.status)) {
+    if (['rejected', 'expired', 'cancelled', 'disputed'].includes(order.status)) {
       return res.status(400).json({ message: `Agizo tayari liko katika hali ya ${order.status}, haiwezi kufunguliwa mgogoro` });
     }
 
     const { reason, description } = req.body;
     if (!reason) return res.status(400).json({ message: 'Sababu ya mgogoro inahitajika' });
 
+    order.disputeFromStatus = order.status;
     order.status = 'disputed';
     order.resolution = `[${reason}] ${description || ''}`;
     order.respondedAt = new Date();
     await order.save();
-
-    // Release stock reservation if pending
-    if (order.crop) {
-      await Crop.updateOne(
-        { _id: order.crop, reservedQuantity: { $gte: order.requestedQuantity } },
-        { $inc: { reservedQuantity: -order.requestedQuantity } }
-      );
-    }
 
     // Notify the other party
     const reporterIsBuyer = String(order.buyer) === String(req.user._id);

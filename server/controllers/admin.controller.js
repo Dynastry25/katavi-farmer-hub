@@ -14,6 +14,7 @@ const MarketPrice = require('../models/MarketPrice');
 const Rating = require('../models/Rating');
 const PlatformSetting = require('../models/PlatformSetting');
 const { refundPaidOrder } = require('../services/paymentFlow.service');
+const { restoreOrderStock } = require('../services/order.stock.service');
 
 exports.getStats = async (req, res) => {
   try {
@@ -822,17 +823,55 @@ exports.resolveDispute = async (req, res) => {
     const order = await Order.findById(req.params.id);
     if (!order) return res.status(404).json({ message: 'Agizo halipatikani' });
 
+    const fromStatus = order.disputeFromStatus || '';
     order.status = status;
     order.resolution = resolution || '';
+    order.respondedAt = new Date();
+    if (['delivery', 'tr'].includes(order.deliveryMethod)) {
+      if (status === 'cancelled') {
+        order.deliveryStatus = 'cancelled';
+      } else if (['pending', 'accepted', 'in_transit'].includes(order.deliveryStatus)) {
+        order.deliveryStatus = 'delivered';
+      }
+    }
     await order.save();
 
     if (status === 'cancelled') {
+      await restoreOrderStock(order, fromStatus);
       await refundPaidOrder({
         order,
         kind: 'order',
         reason: resolution || 'Mgogoro umetatuliwa kwa kughairi agizo',
       });
+    } else if (fromStatus === 'pending') {
+      // Nothing was approved, so only the reservation has to be released.
+      await restoreOrderStock(order, 'pending');
     }
+
+    try {
+      const { sendNotification } = require('../services/notification.service');
+      const message = status === 'cancelled'
+        ? `Mgogoro wa agizo la ${order.cropName} umetatuliwa: agizo limeghairiwa.`
+        : `Mgogoro wa agizo la ${order.cropName} umetatuliwa: agizo limekamilika.`;
+      if (order.buyer) {
+        await sendNotification(order.buyer, {
+          title: 'Mgogoro Umetatuliwa',
+          message,
+          type: 'dispute',
+          link: '/buyer/orders',
+          metadata: { orderId: order._id, status },
+        });
+      }
+      if (order.farmer) {
+        await sendNotification(order.farmer, {
+          title: 'Mgogoro Umetatuliwa',
+          message,
+          type: 'dispute',
+          link: '/farmer/orders',
+          metadata: { orderId: order._id, status },
+        });
+      }
+    } catch (e) { /* best effort */ }
 
     await AuditLog.create({
       user: req.user._id, userName: req.user.name, userRole: req.user.role,
