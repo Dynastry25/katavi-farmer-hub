@@ -549,6 +549,77 @@ router.patch('/:id/transport/reject', requireRole('logistics', 'admin'), async (
   }
 });
 
+// PATCH /api/v1/orders/:id/transport/provider — buyer/farmer picks a new
+// carrier after the previous one declined (or before the trip starts).
+router.patch('/:id/transport/provider', auth, async (req, res) => {
+  try {
+    const order = await Order.findById(req.params.id);
+    if (!order) return res.status(404).json({ message: 'Agizo halipatikani' });
+
+    const isBuyer = String(order.buyer) === String(req.user._id);
+    const isFarmer = order.farmer &&
+      String(order.farmer) === String(req.user._id);
+    if (!isBuyer && !isFarmer && req.user.role !== 'admin') {
+      return res.status(403).json({ message: 'Huna ruhusa ya kubadilisha msafirishaji' });
+    }
+    if (!isDeliveryOrder(order)) {
+      return res.status(400).json({ message: 'Agizo hili halihitaji usafirishaji' });
+    }
+    if (!['requested', 'pending', 'rejected'].includes(order.deliveryStatus)) {
+      return res.status(400).json({
+        message: 'Safari imeshaanza; huwezi kubadilisha msafirishaji',
+      });
+    }
+    if (!mongoose.isValidObjectId(req.body.deliveryProvider)) {
+      return res.status(400).json({ message: 'Chagua mtoa huduma wa usafiri' });
+    }
+
+    const provider = await TransportProvider.findById(req.body.deliveryProvider);
+    if (!provider) {
+      return res.status(404).json({ message: 'Mtoa huduma wa usafiri hayupo' });
+    }
+    if (provider.available === false) {
+      return res.status(400).json({ message: 'Gari hili halipatikani kwa sasa' });
+    }
+
+    order.deliveryProvider = provider._id;
+    order.deliveryProviderName = provider.name;
+    order.deliveryVehicleType = provider.vehicleType;
+    order.deliveryStatus = 'pending';
+    order.deliveryRejectedReason = '';
+    order.deliveryAcceptedAt = null;
+    order.deliveryLat = null;
+    order.deliveryLng = null;
+    order.deliveryLocationAt = null;
+    const fee = Number(req.body.deliveryFee);
+    order.deliveryFee = Number.isFinite(fee) && fee >= 0 ? fee : 0;
+    await order.save();
+
+    if (provider.owner) {
+      await notify(req, provider.owner, {
+        title: 'Ombi la Usafiri',
+        message: `${order.buyerName} amechagua gari lako kupeleka ${order.cropName}. ${order.pickupLocation || 'Mpanda'} → ${order.deliveryLocation || 'Mpanda'}.`,
+        link: '/logistics?tab=orders',
+        metadata: { orderId: order._id, kind: 'delivery_request' },
+      });
+    }
+    const otherParty = isBuyer ? order.farmer : order.buyer;
+    if (otherParty) {
+      await notify(req, otherParty, {
+        title: 'Msafirishaji Amechaguliwa',
+        message: `${provider.name} amechaguliwa kupeleka ${order.cropName}.`,
+        link: isBuyer ? '/farmer/orders' : '/buyer/orders',
+        metadata: { orderId: order._id, deliveryStatus: 'pending' },
+      });
+    }
+
+    res.json(order);
+  } catch (error) {
+    console.error('Reassign transport provider error:', error);
+    res.status(500).json({ message: 'Hitilafu imetokea' });
+  }
+});
+
 // PATCH /api/v1/orders/:id/transport/status — carrier starts or completes the trip
 router.patch('/:id/transport/status', requireRole('logistics', 'admin'), async (req, res) => {
   try {

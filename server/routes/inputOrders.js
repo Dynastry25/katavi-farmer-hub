@@ -408,6 +408,86 @@ router.put('/:id/status', auth, async (req, res) => {
   }
 });
 
+// PATCH /api/v1/input-orders/:id/transport/provider — buyer or seller picks a
+// new carrier after the previous one declined (or before the trip starts).
+router.patch('/:id/transport/provider', auth, async (req, res) => {
+  try {
+    const order = await InputOrder.findById(req.params.id);
+    if (!order) return res.status(404).json({ message: 'Agizo halipatikani' });
+
+    const isBuyer = String(order.buyer) === String(req.user._id);
+    const isSeller = !isBuyer &&
+      (await inputSellerIds(order)).some(
+        (id) => String(id) === String(req.user._id)
+      );
+    if (!isBuyer && !isSeller && req.user.role !== 'admin') {
+      return res.status(403).json({ message: 'Huna ruhusa ya kubadilisha msafirishaji' });
+    }
+    if (!isDelivery(order)) {
+      return res.status(400).json({ message: 'Agizo hili halihitaji usafirishaji' });
+    }
+    if (!['requested', 'pending', 'rejected'].includes(order.deliveryStatus)) {
+      return res.status(400).json({
+        message: 'Safari imeshaanza; huwezi kubadilisha msafirishaji',
+      });
+    }
+    if (!mongoose.isValidObjectId(req.body.deliveryProvider)) {
+      return res.status(400).json({ message: 'Chagua mtoa huduma wa usafiri' });
+    }
+
+    const provider = await TransportProvider.findById(req.body.deliveryProvider);
+    if (!provider) {
+      return res.status(404).json({ message: 'Mtoa huduma wa usafiri hayupo' });
+    }
+    if (provider.available === false) {
+      return res.status(400).json({ message: 'Gari hili halipatikani kwa sasa' });
+    }
+
+    order.deliveryProvider = provider._id;
+    order.deliveryProviderName = provider.name;
+    order.deliveryVehicleType = provider.vehicleType;
+    order.deliveryStatus = 'pending';
+    order.deliveryRejectedReason = '';
+    order.deliveryAcceptedAt = null;
+    order.deliveryLat = null;
+    order.deliveryLng = null;
+    order.deliveryLocationAt = null;
+    const fee = Number(req.body.deliveryFee);
+    order.deliveryFee = Number.isFinite(fee) && fee >= 0 ? fee : 0;
+    order.totalAmount = (Number(order.itemsTotal) || 0) + order.deliveryFee;
+    await order.save();
+
+    await notifyInputCarrier(order, {
+      title: 'Ombi la Usafiri',
+      message: `${order.buyerName} amechagua gari lako kupeleka pembejeo. ${order.pickupLocation || 'Mpanda'} → ${order.deliveryLocation || 'Mpanda'}.`,
+      metadata: { inputOrderId: order._id },
+    });
+    if (isBuyer) {
+      await notifyInputSellers(order, {
+        title: 'Msafirishaji Amechaguliwa',
+        message: `${provider.name} amechaguliwa kupeleka pembejeo za agizo la ${order.buyerName}.`,
+        link: '/seller/dashboard',
+        metadata: { deliveryStatus: 'pending' },
+      });
+    } else {
+      try {
+        await sendNotification(order.buyer, {
+          title: 'Msafirishaji Amechaguliwa',
+          message: `${provider.name} amechaguliwa kupeleka pembejeo zako.`,
+          type: 'order',
+          link: '/buyer/orders?tab=inputs',
+          metadata: { inputOrderId: order._id, deliveryStatus: 'pending' },
+        });
+      } catch (e) { /* best effort */ }
+    }
+
+    res.json(order);
+  } catch (error) {
+    console.error('Reassign input transport provider error:', error);
+    res.status(500).json({ message: 'Hitilafu imetokea' });
+  }
+});
+
 // PATCH /api/v1/input-orders/:id/transport/accept — carrier takes the job
 router.patch('/:id/transport/accept', requireRole('logistics', 'admin'), async (req, res) => {
   try {
@@ -644,7 +724,17 @@ router.post('/:id/receive', auth, async (req, res) => {
     }
 
     if (!order.receivedAt) order.receivedAt = new Date();
-    if (order.paymentStatus !== 'paid') order.paymentStatus = 'paid';
+    if (order.paymentMethod === 'mm') {
+      // Mobile money must be confirmed before the goods are released; only
+      // cash/bank settle when the buyer confirms receipt.
+      if (order.paymentStatus !== 'paid') {
+        return res.status(400).json({
+          message: 'Malipo ya pesa ya simu hayajathibitishwa. Kamilisha malipo kwanza.',
+        });
+      }
+    } else {
+      order.paymentStatus = 'paid';
+    }
     await order.save();
 
     try {
