@@ -19,6 +19,7 @@ const {
   canPayOrder,
   remainderOffer,
   hasOpenRemainder,
+  canDeleteOrder,
 } = require('../services/order.service');
 const { ensureStockPersisted } = require('../services/crop.stock.service');
 const { initiatePayment } = require('../services/payment.service');
@@ -751,6 +752,9 @@ router.delete('/:id', auth, async (req, res) => {
     if (!order) return res.status(404).json({ message: 'Agizo halipatikani' });
     if (['paid', 'processing'].includes(order.paymentStatus)) {
       return res.status(400).json({ message: 'Agizo lililolipwa haliwezi kufutwa' });
+    }
+    if (!canDeleteOrder(order, req.user)) {
+      return res.status(403).json({ message: 'Huna ruhusa ya kufuta agizo hili' });
     }
 
     // Release any outstanding reservation before deleting.

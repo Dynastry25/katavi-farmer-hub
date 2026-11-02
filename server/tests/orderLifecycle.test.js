@@ -8,6 +8,7 @@ const {
   normalizePaymentMethod,
   orderAmount,
   canPayOrder,
+  canDeleteOrder,
 } = require('../services/order.service');
 
 test('approval defaults to the full requested quantity when omitted', () => {
@@ -108,6 +109,72 @@ test('payment methods are normalised to the supported set', () => {
   assert.strictEqual(normalizePaymentMethod('cod'), 'cod');
   assert.strictEqual(normalizePaymentMethod('cash'), 'cod');
   assert.strictEqual(normalizePaymentMethod(undefined), 'cod');
+});
+
+test('only the order parties or staff can delete an unpaid order', () => {
+  const order = {
+    buyer: 'buyer-1',
+    farmer: 'farmer-1',
+    status: 'pending',
+    paymentStatus: 'unpaid',
+  };
+
+  assert.strictEqual(
+    canDeleteOrder(order, { _id: 'buyer-1', role: 'buyer' }),
+    true
+  );
+  assert.strictEqual(
+    canDeleteOrder(order, { _id: 'farmer-1', role: 'farmer' }),
+    true
+  );
+  assert.strictEqual(
+    canDeleteOrder(order, { _id: 'staff-1', role: 'support' }),
+    true
+  );
+  assert.strictEqual(
+    canDeleteOrder(order, { _id: 'stranger', role: 'buyer' }),
+    false
+  );
+  assert.strictEqual(
+    canDeleteOrder(order, { _id: 'stranger', role: 'logistics' }),
+    false
+  );
+});
+
+test('paid or processing orders cannot be deleted', () => {
+  for (const paymentStatus of ['paid', 'processing']) {
+    assert.strictEqual(
+      canDeleteOrder(
+        {
+          buyer: 'buyer-1',
+          farmer: 'farmer-1',
+          status: 'pending',
+          paymentStatus,
+        },
+        { _id: 'buyer-1', role: 'buyer' }
+      ),
+      false,
+      paymentStatus
+    );
+  }
+});
+
+test('parties cannot delete an order after it left pending', () => {
+  for (const status of ['approved', 'partially_approved', 'delivered', 'completed']) {
+    assert.strictEqual(
+      canDeleteOrder(
+        {
+          buyer: 'buyer-1',
+          farmer: 'farmer-1',
+          status,
+          paymentStatus: 'unpaid',
+        },
+        { _id: 'buyer-1', role: 'buyer' }
+      ),
+      false,
+      status
+    );
+  }
 });
 
 test('Order documents expose the total amount as a virtual', () => {

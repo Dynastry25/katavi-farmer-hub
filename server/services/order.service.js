@@ -112,6 +112,21 @@ const hasOpenRemainder = (order) => {
   return !isTerminal(remainder.status);
 };
 
+// Only the parties can withdraw a pending order; staff may remove any unpaid
+// order. Paid or in-flight payments always block deletion.
+const canDeleteOrder = (order, user) => {
+  if (!order || !user) return false;
+  if (['paid', 'processing'].includes(order.paymentStatus)) return false;
+
+  const isStaff = ['admin', 'support', 'content_moderator', 'finance_officer']
+    .includes(user.role);
+  if (isStaff) return true;
+
+  const isParty = String(order.buyer) === String(user._id) ||
+    String(order.farmer) === String(user._id);
+  return isParty && order.status === 'pending';
+};
+
 module.exports = {
   TERMINAL_STATES,
   isTerminal,
@@ -131,4 +146,5 @@ module.exports = {
   rejectionReservedRelease,
   remainderOffer,
   hasOpenRemainder,
+  canDeleteOrder,
 };
