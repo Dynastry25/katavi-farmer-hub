@@ -27,6 +27,8 @@ const orderSchema = new mongoose.Schema({
   // Status the order had when the dispute opened, so resolution can tell
   // whether stock was still reserved or already deducted.
   disputeFromStatus: { type: String, default: '' },
+  cancelReason: { type: String, default: '' },
+  cancelledAt: { type: Date, default: null },
   options: { type: mongoose.Schema.Types.Mixed, default: {} },
   note: { type: String, default: '' },
   deliveryMethod: { type: String, default: 'self' },

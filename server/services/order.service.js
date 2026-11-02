@@ -127,6 +127,26 @@ const canDeleteOrder = (order, user) => {
   return isParty && order.status === 'pending';
 };
 
+// ── Cancellation ────────────────────────────────────────────
+const CANCELLABLE_STATUSES = ['pending', 'approved', 'partially_approved'];
+const STAFF_ROLES = ['admin', 'support', 'content_moderator', 'finance_officer'];
+
+// Buyer or farmer may withdraw an order until the carrier takes the goods.
+// Staff can cancel anything still in the delivery window.
+const canCancelOrder = (order, user) => {
+  if (!order || !user) return false;
+  if (!CANCELLABLE_STATUSES.includes(order.status)) return false;
+
+  const isStaff = STAFF_ROLES.includes(user.role);
+  if (isStaff) return true;
+
+  const isParty = String(order.buyer) === String(user._id) ||
+    String(order.farmer) === String(user._id);
+  if (!isParty) return false;
+
+  return !['accepted', 'in_transit'].includes(order.deliveryStatus);
+};
+
 module.exports = {
   TERMINAL_STATES,
   isTerminal,
@@ -147,4 +167,7 @@ module.exports = {
   remainderOffer,
   hasOpenRemainder,
   canDeleteOrder,
+  CANCELLABLE_STATUSES,
+  STAFF_ROLES,
+  canCancelOrder,
 };

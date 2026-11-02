@@ -9,6 +9,7 @@ const {
   orderAmount,
   canPayOrder,
   canDeleteOrder,
+  canCancelOrder,
 } = require('../services/order.service');
 
 test('approval defaults to the full requested quantity when omitted', () => {
@@ -175,6 +176,66 @@ test('parties cannot delete an order after it left pending', () => {
       status
     );
   }
+});
+
+test('buyer and farmer can cancel an order until delivery starts', () => {
+  for (const status of ['pending', 'approved', 'partially_approved']) {
+    for (const deliveryStatus of ['none', 'requested', 'pending', 'rejected']) {
+      for (const id of ['buyer-1', 'farmer-1']) {
+        assert.strictEqual(
+          canCancelOrder(
+            { buyer: 'buyer-1', farmer: 'farmer-1', status, deliveryStatus },
+            { _id: id, role: id === 'buyer-1' ? 'buyer' : 'farmer' }
+          ),
+          true,
+          `${status}/${deliveryStatus}/${id}`
+        );
+      }
+    }
+  }
+});
+
+test('a party cannot cancel once the carrier has the goods', () => {
+  for (const deliveryStatus of ['accepted', 'in_transit']) {
+    assert.strictEqual(
+      canCancelOrder(
+        { buyer: 'buyer-1', farmer: 'farmer-1', status: 'approved', deliveryStatus },
+        { _id: 'buyer-1', role: 'buyer' }
+      ),
+      false,
+      deliveryStatus
+    );
+  }
+});
+
+test('staff can cancel a shipment already on the road', () => {
+  assert.strictEqual(
+    canCancelOrder(
+      { buyer: 'buyer-1', farmer: 'farmer-1', status: 'approved', deliveryStatus: 'in_transit' },
+      { _id: 'staff-1', role: 'support' }
+    ),
+    true
+  );
+});
+
+test('terminal orders and strangers cannot be cancelled', () => {
+  for (const status of ['delivered', 'completed', 'rejected', 'expired', 'disputed', 'cancelled']) {
+    assert.strictEqual(
+      canCancelOrder(
+        { buyer: 'buyer-1', farmer: 'farmer-1', status, deliveryStatus: 'none' },
+        { _id: 'admin-1', role: 'admin' }
+      ),
+      false,
+      status
+    );
+  }
+  assert.strictEqual(
+    canCancelOrder(
+      { buyer: 'buyer-1', farmer: 'farmer-1', status: 'approved', deliveryStatus: 'none' },
+      { _id: 'stranger', role: 'buyer' }
+    ),
+    false
+  );
 });
 
 test('Order documents expose the total amount as a virtual', () => {

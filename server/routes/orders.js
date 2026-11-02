@@ -20,6 +20,9 @@ const {
   remainderOffer,
   hasOpenRemainder,
   canDeleteOrder,
+  CANCELLABLE_STATUSES,
+  STAFF_ROLES,
+  canCancelOrder,
 } = require('../services/order.service');
 const { ensureStockPersisted } = require('../services/crop.stock.service');
 const { restoreOrderStock } = require('../services/order.stock.service');
@@ -370,6 +373,95 @@ router.post('/:id/reject', auth, async (req, res) => {
     res.json(order);
   } catch (error) {
     console.error('Reject order error:', error);
+    res.status(500).json({ message: 'Hitilafu imetokea' });
+  }
+});
+
+// POST /api/v1/orders/:id/cancel — buyer, farmer, or staff withdraws an order
+router.post('/:id/cancel', auth, async (req, res) => {
+  try {
+    const order = await Order.findById(req.params.id);
+    if (!order) return res.status(404).json({ message: 'Agizo halipatikani' });
+
+    const isStaff = STAFF_ROLES.includes(req.user.role);
+    if (!canCancelOrder(order, req.user)) {
+      if (!CANCELLABLE_STATUSES.includes(order.status)) {
+        return res.status(400).json({
+          message: `Agizo hili liko katika hali ya ${order.status}, haliwezi kughairiwa`,
+        });
+      }
+      if (!isStaff &&
+          ['accepted', 'in_transit'].includes(order.deliveryStatus)) {
+        return res.status(400).json({
+          message: 'Mzigo uko kwa mtoa usafiri; huwezi kughairi. Wasiliana na msaada.',
+        });
+      }
+      return res.status(403).json({ message: 'Huna ruhusa ya kughairi agizo hili' });
+    }
+
+    const reason = String(req.body.reason || '').trim().slice(0, 200);
+    const previousStatus = order.status;
+    const previousDeliveryStatus = order.deliveryStatus;
+    const deliveryStarted =
+      previousDeliveryStatus === 'accepted' || previousDeliveryStatus === 'in_transit';
+
+    order.status = 'cancelled';
+    order.respondedAt = new Date();
+    order.cancelReason = reason;
+    order.cancelledAt = new Date();
+    if (isDeliveryOrder(order) && previousDeliveryStatus !== 'delivered') {
+      order.deliveryStatus = 'cancelled';
+      if (!deliveryStarted) order.deliveryFee = 0;
+    }
+    await order.save();
+
+    await restoreOrderStock(order, previousStatus);
+    await refundPaidOrder({
+      order,
+      kind: 'order',
+      reason: reason ? `Agizo limeghairiwa: ${reason}` : 'Agizo limeghairiwa',
+    });
+
+    const buyerInitiated = String(order.buyer) === String(req.user._id);
+    const farmerInitiated = String(order.farmer) === String(req.user._id);
+    const initiator = buyerInitiated
+      ? order.buyerName
+      : farmerInitiated ? order.farmerName : 'Msimamizi';
+    const recipients = [];
+    if (order.buyer && !buyerInitiated) recipients.push(order.buyer);
+    if (order.farmer && !farmerInitiated) recipients.push(order.farmer);
+    for (const userId of recipients) {
+      await notify(req, userId, {
+        title: 'Agizo Limeghairiwa',
+        message: `${initiator} ameghairi agizo la ${order.requestedQuantity} ${order.unit || 'kg'} ya ${order.cropName}.` +
+          (reason ? ` Sababu: ${reason}.` : ''),
+        link: String(userId) === String(order.buyer)
+          ? '/buyer/orders'
+          : '/farmer/orders',
+        metadata: { orderId: order._id, status: 'cancelled' },
+      });
+    }
+
+    if (order.deliveryProvider &&
+        ['requested', 'pending', 'accepted', 'in_transit']
+          .includes(previousDeliveryStatus)) {
+      const provider = await TransportProvider.findById(order.deliveryProvider)
+        .select('owner')
+        .lean();
+      if (provider && provider.owner) {
+        await notify(req, provider.owner, {
+          title: 'Kazi ya Usafiri Imefutwa',
+          message: `Agizo la ${order.cropName} limeghairiwa. ` +
+            `Usichukue mzigo ${order.pickupLocation || 'Mpanda'}.`,
+          link: '/logistics?tab=orders',
+          metadata: { orderId: order._id, deliveryStatus: 'cancelled' },
+        });
+      }
+    }
+
+    res.json(order);
+  } catch (error) {
+    console.error('Cancel order error:', error);
     res.status(500).json({ message: 'Hitilafu imetokea' });
   }
 });
