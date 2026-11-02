@@ -6,12 +6,24 @@ const ratingSchema = new mongoose.Schema({
   ratedUser: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   ratedProduct: { type: mongoose.Schema.Types.ObjectId, ref: 'Crop' },
   ratedOrder: { type: mongoose.Schema.Types.ObjectId, ref: 'Order' },
+  ratedInputOrder: { type: mongoose.Schema.Types.ObjectId, ref: 'InputOrder' },
   rating: { type: Number, required: true, min: 1, max: 5 },
   comment: { type: String, default: '' },
-  type: { type: String, enum: ['farmer_to_buyer', 'buyer_to_farmer', 'product_review'], default: 'buyer_to_farmer' },
+  type: {
+    type: String,
+    enum: [
+      'farmer_to_buyer',
+      'buyer_to_farmer',
+      'buyer_to_seller',
+      'seller_to_buyer',
+      'product_review',
+    ],
+    default: 'buyer_to_farmer',
+  },
 }, { timestamps: true });
 
 ratingSchema.index({ ratedUser: 1, createdAt: -1 });
 ratingSchema.index({ ratedProduct: 1 });
+ratingSchema.index({ ratedInputOrder: 1 });
 
 module.exports = mongoose.model('Rating', ratingSchema);

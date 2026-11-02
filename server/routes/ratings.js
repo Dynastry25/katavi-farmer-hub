@@ -4,6 +4,7 @@ const Rating = require('../models/Rating');
 const Order = require('../models/Order');
 const Crop = require('../models/Crop');
 const User = require('../models/User');
+const InputOrder = require('../models/InputOrder');
 const InputProduct = require('../models/InputProduct');
 const { auth, optionalAuth } = require('../middleware/auth');
 
@@ -44,7 +45,10 @@ const recalcAggregate = async ({ ratedUser, ratedProduct }) => {
 // POST /api/v1/ratings - toa ukadiriaji
 router.post('/', auth, async (req, res) => {
   try {
-    const { ratedUser, ratedProduct, ratedOrder, rating, comment, type } = req.body;
+    const {
+      ratedUser, ratedProduct, ratedOrder, ratedInputOrder,
+      rating, comment, type,
+    } = req.body;
 
     if (!rating || isNaN(rating) || rating < 1 || rating > 5) {
       return res.status(400).json({ message: 'Ukadiriaji lazima uwe kati ya 1 na 5' });
@@ -53,8 +57,9 @@ router.post('/', auth, async (req, res) => {
     let target = {
       ratedUser: ratedUser || null,
       ratedProduct: ratedProduct || null,
+      ratedOrder: null,
+      ratedInputOrder: null,
       type: type || 'buyer_to_farmer',
-      orderError: false,
     };
 
     if (ratedOrder) {
@@ -69,6 +74,35 @@ router.post('/', auth, async (req, res) => {
       }
       target.ratedUser = isBuyer ? order.farmer : order.buyer;
       target.type = isBuyer ? 'buyer_to_farmer' : 'farmer_to_buyer';
+      target.ratedOrder = order._id;
+    }
+
+    if (ratedInputOrder) {
+      const order = await InputOrder.findById(ratedInputOrder);
+      if (!order) {
+        return res.status(404).json({ message: 'Agizo halipatikani' });
+      }
+      const productIds = order.items.map((item) => item.product);
+      const sellerIds = await InputProduct.find({
+        _id: { $in: productIds },
+        owner: { $ne: null },
+      }).distinct('owner');
+      const isBuyer = order.buyer.toString() === req.user._id.toString();
+      const isSeller = sellerIds.some((id) => String(id) === String(req.user._id));
+      if (!isBuyer && !isSeller) {
+        return res.status(403).json({ message: 'Huna ruhusa ya kukadiria agizo hili' });
+      }
+      if (isBuyer) {
+        const product = await InputProduct.findById(productIds[0])
+          .select('owner')
+          .lean();
+        target.ratedUser = product?.owner || null;
+        target.type = 'buyer_to_seller';
+      } else {
+        target.ratedUser = order.buyer;
+        target.type = 'seller_to_buyer';
+      }
+      target.ratedInputOrder = order._id;
     }
 
     if (!target.ratedUser && !target.ratedProduct) {
@@ -79,9 +113,11 @@ router.post('/', auth, async (req, res) => {
       return res.status(400).json({ message: 'Huwezi kujikadiria mwenyewe' });
     }
 
-    const existingQuery = ratedOrder
-      ? { rater: req.user._id, ratedOrder }
-      : { rater: req.user._id, ratedUser: target.ratedUser, ratedProduct: target.ratedProduct, type: target.type };
+    const existingQuery = target.ratedOrder
+      ? { rater: req.user._id, ratedOrder: target.ratedOrder }
+      : target.ratedInputOrder
+        ? { rater: req.user._id, ratedInputOrder: target.ratedInputOrder }
+        : { rater: req.user._id, ratedUser: target.ratedUser, ratedProduct: target.ratedProduct, type: target.type };
     const existing = await Rating.findOne(existingQuery);
     if (existing) {
       return res.status(400).json({ message: 'Umeshakadiria kitu hiki' });
@@ -92,7 +128,8 @@ router.post('/', auth, async (req, res) => {
       raterName: req.user.name,
       ratedUser: target.ratedUser,
       ratedProduct: target.ratedProduct,
-      ratedOrder: ratedOrder || null,
+      ratedOrder: target.ratedOrder,
+      ratedInputOrder: target.ratedInputOrder,
       rating: parseInt(rating),
       comment: comment || '',
       type: target.type,
@@ -122,7 +159,7 @@ router.get('/user/:id', optionalAuth, async (req, res) => {
   try {
     let query = { ratedUser: req.params.id };
     if (req.user && req.user.role === 'buyer') {
-      query.type = 'buyer_to_farmer';
+      query.type = { $in: ['buyer_to_farmer', 'buyer_to_seller'] };
     }
     const ratings = await Rating.find(query).sort({ createdAt: -1 }).limit(100);
     res.json(ratings);
