@@ -6,6 +6,19 @@ const { auth } = require('../middleware/auth');
 const { requireRole } = require('../middleware/roleCheck');
 const { sendNotification } = require('../services/notification.service');
 const { initiatePayment } = require('../services/payment.service');
+const {
+  isInputStatus,
+  canTransitionInputOrder,
+  inputPaymentMethod,
+} = require('../services/inputOrder.service');
+
+const STATUS_LABELS = {
+  pending: 'Imetumwa',
+  confirmed: 'Imethibitishwa',
+  shipped: 'Imesafirishwa',
+  delivered: 'Imefikishwa',
+  cancelled: 'Imeghairiwa',
+};
 
 // GET /api/v1/input-orders/my
 router.get('/my', auth, async (req, res) => {
@@ -59,13 +72,41 @@ router.get('/', auth, async (req, res) => {
   }
 });
 
+// GET /api/v1/input-orders/:id — buyer, product owner or staff
+router.get('/:id', auth, async (req, res) => {
+  try {
+    const STAFF_ROLES = ['admin', 'support', 'content_moderator', 'finance_officer'];
+    const order = await InputOrder.findById(req.params.id);
+    if (!order) return res.status(404).json({ message: 'Agizo halipatikani' });
+
+    const isBuyer = String(order.buyer) === String(req.user._id);
+    if (!isBuyer && !STAFF_ROLES.includes(req.user.role)) {
+      const Supplier = require('../models/Supplier');
+      const productIds = order.items.map((item) => item.product);
+      const ownsProduct = productIds.length
+        ? await InputProduct.exists({ _id: { $in: productIds }, owner: req.user._id })
+        : false;
+      const ownsSupplier = order.supplier
+        ? await Supplier.exists({ _id: order.supplier, owner: req.user._id })
+        : false;
+      if (!ownsProduct && !ownsSupplier) {
+        return res.status(403).json({ message: 'Huna ruhusa ya kuona agizo hili' });
+      }
+    }
+
+    res.json(order);
+  } catch (error) {
+    res.status(500).json({ message: 'Hitilafu imetokea' });
+  }
+});
+
 // POST /api/v1/input-orders — buyers/farmers place an input order (with payment initiation)
 router.post('/', requireRole('buyer', 'farmer', 'admin'), async (req, res) => {
   try {
     const {
       items, deliveryMethod, deliveryLocation, contact, notes,
-      paymentProvider, paymentPhone, deliveryFee, deliveryProviderName,
-      deliveryVehicleType,
+      paymentMethod, paymentProvider, paymentPhone, deliveryFee,
+      deliveryProviderName, deliveryVehicleType,
     } = req.body;
 
     if (!items || !items.length) {
@@ -103,12 +144,30 @@ router.post('/', requireRole('buyer', 'farmer', 'admin'), async (req, res) => {
       });
     }
 
-    // Decrement stock only once every line is valid.
+    // Decrement atomically so two buyers cannot claim the same stock.
+    const reserved = [];
     for (const { product, quantity } of reservations) {
-      await InputProduct.findByIdAndUpdate(product._id, {
-        $inc: { stockQuantity: -quantity },
-        $set: product.stockQuantity - quantity <= 0 ? { status: 'out_of_stock' } : {},
-      });
+      const updated = await InputProduct.findOneAndUpdate(
+        { _id: product._id, stockQuantity: { $gte: quantity } },
+        { $inc: { stockQuantity: -quantity } },
+        { new: true }
+      );
+      if (!updated) {
+        for (const done of reserved) {
+          await InputProduct.findByIdAndUpdate(done._id, {
+            $inc: { stockQuantity: done.quantity },
+          });
+        }
+        return res.status(409).json({
+          message: `Hisa ya ${product.name} haikutosha. Inapatikana: ${product.stockQuantity} ${product.unit}`,
+        });
+      }
+      if (updated.stockQuantity <= 0) {
+        await InputProduct.findByIdAndUpdate(updated._id, {
+          $set: { status: 'out_of_stock' },
+        });
+      }
+      reserved.push({ _id: product._id, quantity });
     }
 
     const fee = Math.max(0, Number(deliveryFee) || 0);
@@ -127,6 +186,7 @@ router.post('/', requireRole('buyer', 'farmer', 'admin'), async (req, res) => {
       deliveryLocation: deliveryLocation || '',
       contact: contact || req.user.phone,
       notes: notes || '',
+      paymentMethod: inputPaymentMethod({ paymentMethod, paymentProvider }),
       paymentStatus: 'unpaid',
     });
 
@@ -178,8 +238,7 @@ router.put('/:id/status', auth, async (req, res) => {
   try {
     const STAFF_ROLES = ['admin', 'support', 'content_moderator', 'finance_officer'];
     const { status } = req.body;
-    const validStatuses = ['pending', 'confirmed', 'shipped', 'delivered', 'cancelled'];
-    if (!validStatuses.includes(status)) {
+    if (!isInputStatus(status)) {
       return res.status(400).json({ message: 'Hali ya agizo siyo sahihi' });
     }
 
@@ -200,10 +259,19 @@ router.put('/:id/status', auth, async (req, res) => {
       }
     }
 
-    if (status === 'cancelled' && order.status !== 'cancelled') {
+    if (!canTransitionInputOrder(order.status, status)) {
+      return res.status(400).json({
+        message: `Hali ya agizo haiwezi kubadilika kutoka ${order.status} hadi ${status}`,
+      });
+    }
+
+    if (status === 'cancelled') {
       // Restore stock
       for (const item of order.items) {
         await InputProduct.findByIdAndUpdate(item.product, { $inc: { stockQuantity: item.quantity }, $set: { status: 'available' } });
+      }
+      if (['processing', 'paid'].includes(order.paymentStatus)) {
+        order.paymentStatus = 'refunded';
       }
     }
 
@@ -212,9 +280,9 @@ router.put('/:id/status', auth, async (req, res) => {
 
     await sendNotification(order.buyer, {
       title: 'Sasisha ya Agizo la Pembejeo',
-      message: `Agizo lako la pembejeo limebadilisha hadi: ${status}`,
+      message: `Agizo lako la pembejeo: ${STATUS_LABELS[status] || status}`,
       type: 'order',
-      link: '/buyer-dashboard',
+      link: '/buyer/orders?tab=inputs',
       metadata: { inputOrderId: order._id, status },
     });
 
@@ -235,20 +303,80 @@ router.post('/:id/pay', auth, async (req, res) => {
       return res.status(403).json({ message: 'Huna ruhusa' });
     }
 
+    const method = order.paymentMethod || (order.paymentProvider ? 'mm' : 'cod');
+    if (method !== 'mm') {
+      return res.status(400).json({ message: 'Agizo hili linatumia njia nyingine ya malipo' });
+    }
+    if (order.paymentStatus === 'paid') {
+      return res.status(400).json({ message: 'Agizo hili limekwisha lipwa' });
+    }
+    if (order.paymentStatus === 'processing') {
+      return res.status(400).json({ message: 'Malipo yanasubiri uthibitisho' });
+    }
+    if (['cancelled', 'delivered'].includes(order.status)) {
+      return res.status(400).json({ message: 'Agizo hili haliwezi kulipwa' });
+    }
+    if (!provider || !phone) {
+      return res.status(400).json({ message: 'Chagua mtoa huduma na namba ya simu' });
+    }
+
     const result = await initiatePayment({
       provider, phone, amount: order.totalAmount,
       reference: `INPUT-ORDER-${order._id}`, customerName: req.user.name,
     });
 
-    if (result.success) {
-      order.paymentStatus = 'processing';
-      order.paymentTransactionId = result.transactionId || '';
-      order.paymentProvider = provider;
-      await order.save();
+    if (!result.success) {
+      return res.status(400).json({ message: result.error || 'Malipo hayakuanza' });
     }
+
+    order.paymentStatus = 'processing';
+    order.paymentMethod = 'mm';
+    order.paymentTransactionId = result.transactionId || '';
+    order.paymentProvider = provider;
+    await order.save();
 
     res.json(result);
   } catch (error) {
+    res.status(500).json({ message: 'Hitilafu imetokea' });
+  }
+});
+
+// POST /api/v1/input-orders/:id/receive — buyer confirms delivery
+router.post('/:id/receive', auth, async (req, res) => {
+  try {
+    const order = await InputOrder.findById(req.params.id);
+    if (!order) return res.status(404).json({ message: 'Agizo halipatikani' });
+    if (String(order.buyer) !== String(req.user._id)) {
+      return res.status(403).json({ message: 'Huna ruhusa' });
+    }
+    if (order.status !== 'delivered') {
+      return res.status(400).json({ message: 'Agizo bado halijafikishwa' });
+    }
+
+    if (!order.receivedAt) order.receivedAt = new Date();
+    if (order.paymentStatus !== 'paid') order.paymentStatus = 'paid';
+    await order.save();
+
+    try {
+      const owners = await InputProduct.find({
+        _id: { $in: order.items.map((item) => item.product) },
+        owner: { $ne: null },
+      }).distinct('owner');
+      for (const ownerId of owners) {
+        if (String(ownerId) === String(req.user._id)) continue;
+        await sendNotification(ownerId, {
+          title: 'Mzigo Umepokelewa',
+          message: `${req.user.name} amethibitisha kupokea agizo la pembejeo.`,
+          type: 'order',
+          link: '/seller/dashboard',
+          metadata: { inputOrderId: order._id },
+        });
+      }
+    } catch (e) { /* best effort */ }
+
+    res.json(order);
+  } catch (error) {
+    console.error('Receive input order error:', error);
     res.status(500).json({ message: 'Hitilafu imetokea' });
   }
 });
