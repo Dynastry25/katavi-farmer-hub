@@ -46,20 +46,27 @@ const requirePermission = (permission) => {
 };
 
 const requireOwnershipOrAdmin = (getResourceOwnerId) => {
-  return async (req, res, next) => {
-    try {
-      await auth(req, res, async () => {
+  return (req, res, next) => {
+    auth(req, res, async () => {
+      try {
         if (req.user.role === 'admin') return next();
 
         const ownerId = await getResourceOwnerId(req);
-        if (!ownerId || ownerId.toString() !== req.user._id.toString()) {
+        if (!ownerId) {
+          return res.status(404).json({ message: 'Rasilimali haipatikani' });
+        }
+        if (ownerId.toString() !== req.user._id.toString()) {
           return res.status(403).json({ message: 'Huna ruhusa ya kufanya kitendo hiki' });
         }
         next();
-      });
-    } catch (error) {
-      res.status(401).json({ message: 'Tokeni siyo sahihi' });
-    }
+      } catch (error) {
+        if (error?.name === 'CastError') {
+          return res.status(400).json({ message: 'Kitambulisho si sahihi' });
+        }
+        console.error('Ownership check error:', error);
+        res.status(500).json({ message: 'Hitilafu imetokea' });
+      }
+    }).catch(() => res.status(401).json({ message: 'Tokeni siyo sahihi' }));
   };
 };
 

@@ -117,6 +117,10 @@ exports.updateUserRole = async (req, res) => {
     const user = await User.findById(req.params.id);
     if (!user) return res.status(404).json({ message: 'Mtumiaji haupatikani' });
 
+    if (user.role === 'admin' && req.user.role !== 'admin') {
+      return res.status(403).json({ message: 'Huwezi kubadilisha akaunti ya msimamizi mkuu' });
+    }
+
     if (user._id.toString() === req.user._id.toString() && role !== 'admin') {
       return res.status(400).json({ message: 'Huwezi kubadilisha jukumu lako mwenyewe' });
     }
@@ -145,6 +149,10 @@ exports.updateUser = async (req, res) => {
     const { name, phone, location, district, ward, village, businessType, expertise } = req.body;
     const user = await User.findById(req.params.id);
     if (!user) return res.status(404).json({ message: 'Mtumiaji haupatikani' });
+
+    if (user.role === 'admin' && req.user.role !== 'admin') {
+      return res.status(403).json({ message: 'Huwezi kubadilisha akaunti ya msimamizi mkuu' });
+    }
 
     if (name !== undefined) user.name = name;
     if (phone !== undefined) user.phone = phone;
@@ -233,6 +241,9 @@ exports.suspendUser = async (req, res) => {
     if (!user) return res.status(404).json({ message: 'Mtumiaji haupatikani' });
     if (user._id.toString() === req.user._id.toString()) {
       return res.status(400).json({ message: 'Huwezi kusimamisha mwenyewe' });
+    }
+    if (user.role === 'admin' && req.user.role !== 'admin') {
+      return res.status(403).json({ message: 'Huwezi kusimamisha akaunti ya msimamizi mkuu' });
     }
 
     user.isActive = req.body.suspend !== false ? false : true;

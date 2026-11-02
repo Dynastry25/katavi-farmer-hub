@@ -72,21 +72,34 @@ const recalcAggregate = async ({ ratedUser, ratedProduct, ratedTransportProvider
 router.post('/', auth, async (req, res) => {
   try {
     const {
-      ratedUser, ratedProduct, ratedOrder, ratedInputOrder,
-      ratedTransportProvider, rating, comment, type,
+      ratedOrder, ratedInputOrder, ratedTransportProvider, rating, comment,
     } = req.body;
 
     if (!rating || isNaN(rating) || rating < 1 || rating > 5) {
       return res.status(400).json({ message: 'Ukadiriaji lazima uwe kati ya 1 na 5' });
     }
+    if (!ratedOrder && !ratedInputOrder) {
+      return res.status(400).json({
+        message: 'Kadiria kupitia agizo ulilokamilisha',
+      });
+    }
+    if (ratedOrder && ratedInputOrder) {
+      return res.status(400).json({ message: 'Kadiria agizo moja kwa wakati mmoja' });
+    }
+    if (ratedOrder && !mongoose.isValidObjectId(ratedOrder)) {
+      return res.status(400).json({ message: 'Kitambulisho cha agizo si sahihi' });
+    }
+    if (ratedInputOrder && !mongoose.isValidObjectId(ratedInputOrder)) {
+      return res.status(400).json({ message: 'Kitambulisho cha agizo si sahihi' });
+    }
 
     const target = {
-      ratedUser: ratedUser || null,
-      ratedProduct: ratedProduct || null,
+      ratedUser: null,
+      ratedProduct: null,
       ratedTransportProvider: null,
       ratedOrder: null,
       ratedInputOrder: null,
-      type: type || 'buyer_to_farmer',
+      type: '',
     };
     let raterIsBuyer = false;
     let orderDelivered = false;
@@ -182,21 +195,15 @@ router.post('/', auth, async (req, res) => {
       return res.status(400).json({ message: 'Huwezi kujikadiria mwenyewe' });
     }
 
-    const existingQuery = target.ratedOrder || target.ratedInputOrder
-      ? {
-          rater: req.user._id,
-          ratedOrder: target.ratedOrder,
-          ratedInputOrder: target.ratedInputOrder,
-          ratedTransportProvider: target.ratedTransportProvider,
-          type: target.type,
-        }
-      : {
-          rater: req.user._id,
-          ratedUser: target.ratedUser,
-          ratedProduct: target.ratedProduct,
-          type: target.type,
-        };
-    const existing = await Rating.findOne(existingQuery);
+    // A rating is always tied to a completed order, so one rater can submit at
+    // most one rating per order and per party.
+    const existing = await Rating.findOne({
+      rater: req.user._id,
+      ratedOrder: target.ratedOrder,
+      ratedInputOrder: target.ratedInputOrder,
+      ratedTransportProvider: target.ratedTransportProvider,
+      type: target.type,
+    });
     if (existing) {
       return res.status(400).json({ message: 'Umeshakadiria kitu hiki' });
     }

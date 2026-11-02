@@ -33,7 +33,10 @@ router.get('/articles', optionalAuth, async (req, res) => {
 // GET /api/advice/experts
 router.get('/experts', async (req, res) => {
   try {
-    const experts = await Expert.find().populate('user', '-password');
+    const experts = await Expert.find().populate(
+      'user',
+      'name profilePicture location district'
+    );
     res.json(experts);
   } catch (error) {
     res.status(500).json({ message: 'Hitilafu imetokea' });
@@ -60,10 +63,33 @@ router.put('/articles/:id', auth, async (req, res) => {
     if (!(await canManageArticle(req))) {
       return res.status(403).json({ message: 'Huna ruhusa ya kuhariri makala hii' });
     }
-    const article = await AdviceArticle.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    const editable = ['title', 'excerpt', 'content', 'category', 'readTime', 'image'];
+    const updates = {};
+    for (const key of editable) {
+      if (req.body[key] !== undefined) updates[key] = req.body[key];
+    }
+    if (req.body.status !== undefined) {
+      if (!['admin', 'content_moderator'].includes(req.user.role)) {
+        return res.status(403).json({ message: 'Hali ya makala hurekebishwa na wahariri' });
+      }
+      if (!['pending', 'approved', 'rejected'].includes(req.body.status)) {
+        return res.status(400).json({ message: 'Hali ya makala si sahihi' });
+      }
+      updates.status = req.body.status;
+    }
+    if (!Object.keys(updates).length) {
+      return res.status(400).json({ message: 'Hakuna mabadiliko yaliyotolewa' });
+    }
+    const article = await AdviceArticle.findByIdAndUpdate(req.params.id, updates, {
+      new: true,
+      runValidators: true,
+    });
     if (!article) return res.status(404).json({ message: 'Makala haipatikani' });
     res.json(article);
   } catch (error) {
+    if (error?.name === 'ValidationError') {
+      return res.status(400).json({ message: 'Taarifa za makala hazijakamilika' });
+    }
     res.status(500).json({ message: 'Hitilafu imetokea' });
   }
 });

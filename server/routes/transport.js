@@ -20,6 +20,29 @@ const numeric = (value, fallback) => {
   return Number.isFinite(num) && num >= 0 ? num : fallback;
 };
 
+// Maps a provider's free-text vehicle type onto the priced rate classes.
+const VEHICLE_RATE_KEYS = {
+  motorcycle: 'boda', boda: 'boda',
+  pickup: 'pickup',
+  truck: 'canter', canter: 'canter',
+  lorry: 'lori', lori: 'lori',
+};
+
+const resolveVehicleRate = async (vehicleType) => {
+  const key = VEHICLE_RATE_KEYS[String(vehicleType || '').toLowerCase()] || 'lori';
+  const stored = await TransportRate.findOne({ key }).lean();
+  const rate = stored || DEFAULT_RATES[key];
+  const defaults = DEFAULT_RATES[key];
+  return {
+    key,
+    base: numeric(rate.base, defaults.base),
+    perKm: numeric(rate.perKm, defaults.perKm),
+    perKg: numeric(rate.perKg, defaults.perKg),
+  };
+};
+
+const roundFee = (value) => Math.round(value / 500) * 500;
+
 const providerFields = (body) => {
   const data = {};
   if (body.name !== undefined) data.name = String(body.name).trim().slice(0, 120);
@@ -224,15 +247,25 @@ router.post('/bookings', auth, async (req, res) => {
       return res.status(400).json({ message: 'Gari hili halipatikani kwa sasa' });
     }
 
+    // Fare is derived from the stored rate card plus the provider's own
+    // per-km price; client-supplied rates and totals are ignored.
+    const rate = await resolveVehicleRate(provider.vehicleType);
+    const distanceKm = numeric(req.body.distanceKm, 0);
+    const weightKg = numeric(req.body.weightKg, 0);
+    const ratePerKm = provider.ratePerKm > 0 ? provider.ratePerKm : rate.perKm;
+    const totalAmount = roundFee(
+      rate.base + ratePerKm * distanceKm + rate.perKg * weightKg
+    );
+
     const booking = await TransportBooking.create({
       user: req.user._id,
       transportProvider: provider._id,
       transportProviderName: provider.name,
       pickupLocation,
       dropoffLocation,
-      distanceKm: numeric(req.body.distanceKm, 0),
-      ratePerKm: numeric(req.body.ratePerKm, provider.ratePerKm),
-      totalAmount: numeric(req.body.totalAmount, 0),
+      distanceKm,
+      ratePerKm,
+      totalAmount,
       notes: String(req.body.notes || '').trim().slice(0, 300),
       status: 'pending',
     });

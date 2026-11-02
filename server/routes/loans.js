@@ -1,4 +1,5 @@
 const express = require('express');
+const mongoose = require('mongoose');
 const router = express.Router();
 const Loan = require('../models/Loan');
 const LoanApplication = require('../models/LoanApplication');
@@ -28,7 +29,25 @@ router.get('/my', auth, async (req, res) => {
 // POST /api/loans/apply — farmers (and admins) apply for loans
 router.post('/apply', requireRole('farmer', 'admin'), async (req, res) => {
   try {
-    const application = await LoanApplication.create({ ...req.body, user: req.user._id });
+    const loanName = String(req.body.loanName || '').trim();
+    const amount = String(req.body.amount || '').trim();
+    const numericAmount = Number(amount.replace(/[^\d.]/g, ''));
+    if (!loanName) {
+      return res.status(400).json({ message: 'Chagua huduma ya mkopo' });
+    }
+    if (!Number.isFinite(numericAmount) || numericAmount <= 0) {
+      return res.status(400).json({ message: 'Weka kiasi sahihi cha mkopo' });
+    }
+
+    // Applicants never choose their own decision or repayment ledger.
+    const application = await LoanApplication.create({
+      user: req.user._id,
+      loan: mongoose.isValidObjectId(req.body.loan) ? req.body.loan : undefined,
+      loanName: loanName.slice(0, 160),
+      amount,
+      status: 'pending',
+      repaymentStatus: 'none',
+    });
 
     // Refresh credit/trust data so the score reflects this new activity.
     try {

@@ -1,9 +1,12 @@
 const crypto = require('crypto');
 const express = require('express');
+const mongoose = require('mongoose');
 const router = express.Router();
 const { auth } = require('../middleware/auth');
 const { requireRole, STAFF_ROLES } = require('../middleware/roleCheck');
 const InputProduct = require('../models/InputProduct');
+const Order = require('../models/Order');
+const { orderAmount, canPayOrder } = require('../services/order.service');
 const { initiatePayment } = require('../services/payment.service');
 const {
   findPaymentTargets,
@@ -52,21 +55,52 @@ const canViewTarget = async (target, user) => {
   return false;
 };
 
-// POST /api/v1/payments/initiate
+// POST /api/v1/payments/initiate — starts mobile-money collection for one crop
+// order. The amount always comes from the order, never from the client.
 router.post('/initiate', auth, async (req, res) => {
   try {
-    const { provider, phone, amount, reference, customerName } = req.body;
+    const { provider, phone, orderId } = req.body;
+    if (!mongoose.isValidObjectId(orderId)) {
+      return res.status(400).json({ message: 'Chagua agizo la kulipia' });
+    }
+    if (!provider || !phone) {
+      return res.status(400).json({ message: 'Chagua mtoa huduma na namba ya simu' });
+    }
+
+    const order = await Order.findById(orderId);
+    if (!order) return res.status(404).json({ message: 'Agizo halipatikani' });
+    if (req.user.role !== 'admin' &&
+        String(order.buyer) !== String(req.user._id)) {
+      return res.status(403).json({ message: 'Huna ruhusa kulipia agizo hili' });
+    }
+    if (!canPayOrder(order)) {
+      return res.status(400).json({
+        message: order.paymentStatus === 'paid'
+          ? 'Agizo limekwisha lipwa'
+          : `Agizo hili haliko kwenye hali ya kulipiwa (${order.status})`,
+      });
+    }
+
+    const amount = orderAmount(order);
     const result = await initiatePayment({
       provider,
       phone,
       amount,
-      reference,
-      customerName: customerName || req.user?.name,
+      reference: `CROP-ORDER-${order._id}`,
+      customerName: req.user.name,
     });
     if (!result.success) {
       return res.status(400).json({ message: result.error });
     }
-    res.status(201).json(result);
+
+    order.paymentStatus = 'processing';
+    order.paymentMethod = 'mm';
+    order.paymentProvider = provider;
+    order.paymentTransactionId = result.transactionId || '';
+    order.paymentAmount = amount;
+    await order.save();
+
+    res.status(201).json({ ...result, amount, orderId: String(order._id) });
   } catch (error) {
     console.error('Payment initiate error:', error);
     res.status(500).json({ message: 'Hitilafu imetokea' });
