@@ -27,7 +27,7 @@ const inputOrderSchema = new mongoose.Schema({
   },
   paymentStatus: {
     type: String,
-    enum: ['unpaid', 'processing', 'paid', 'refunded'],
+    enum: ['unpaid', 'processing', 'paid', 'failed', 'refunded'],
     default: 'unpaid',
   },
   paymentMethod: {
@@ -37,6 +37,11 @@ const inputOrderSchema = new mongoose.Schema({
   },
   paymentTransactionId: { type: String, default: '' },
   paymentProvider: { type: String, default: '' },
+  // Amount actually charged (kept after the order changes so refunds match).
+  paymentAmount: { type: Number, default: 0 },
+  paidAt: { type: Date, default: null },
+  refundedAt: { type: Date, default: null },
+  refundReference: { type: String, default: '' },
   receivedAt: { type: Date, default: null },
   respondedAt: { type: Date, default: null },
   deliveryMethod: { type: String, enum: ['pickup', 'delivery'], default: 'pickup' },

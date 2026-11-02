@@ -24,7 +24,12 @@ const initiatePayment = async ({ provider, phone, amount, reference, customerNam
 
   const transactionId = 'TX' + Date.now().toString(36).toUpperCase() + crypto.randomBytes(3).toString('hex').toUpperCase();
 
-  if (process.env.PAYMENT_API_URL && process.env.PAYMENT_API_KEY) {
+  const gatewayConfigured = Boolean(process.env.PAYMENT_API_URL || process.env.PAYMENT_API_KEY);
+  if (gatewayConfigured && (!process.env.PAYMENT_API_URL || !process.env.PAYMENT_API_KEY)) {
+    return { success: false, error: 'Mfumo wa malipo haujasanidiwa vizuri. Wasiliana na msimamizi.' };
+  }
+
+  if (gatewayConfigured) {
     try {
       const response = await fetch(process.env.PAYMENT_API_URL, {
         method: 'POST',
@@ -34,12 +39,19 @@ const initiatePayment = async ({ provider, phone, amount, reference, customerNam
         },
         body: JSON.stringify({ provider, phone: toE164(phone), amount: numeric, reference, customerName }),
       });
-      if (response.ok) {
-        const data = await response.json();
-        return { success: true, status: 'pending', transactionId: data.transactionId || transactionId, reference, mock: false, pickupNumber: data.customerMessage || '' };
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        return {
+          success: false,
+          error: data.message || data.error || `Mtoa huduma wa malipo hakukubali ombi (${response.status})`,
+        };
       }
+      return { success: true, status: 'pending', transactionId: data.transactionId || transactionId, reference, mock: false, pickupNumber: data.customerMessage || '' };
     } catch (e) {
+      // A configured gateway that cannot be reached must not silently fall back
+      // to mock: the buyer would believe a charge was requested when it was not.
       console.error('[Payment] API error:', e.message);
+      return { success: false, error: 'Mtoa huduma wa malipo hapatikani kwa sasa. Jaribu tena.' };
     }
   }
 
@@ -56,9 +68,55 @@ const initiatePayment = async ({ provider, phone, amount, reference, customerNam
   };
 };
 
-const getPaymentStatus = async (transactionId) => {
-  // Simulate checkout status. Real integrations would query the provider.
-  return { transactionId, status: 'pending', message: 'Malipo yako bado yanasubiri uthibitisho.' };
+// Reverses a captured mobile-money charge. Uses PAYMENT_REFUND_URL when the
+// gateway is configured; otherwise records a mock refund for local development.
+const refundPayment = async ({ transactionId, amount, reason }) => {
+  const transaction = String(transactionId || '').trim();
+  if (!transaction) {
+    return { success: false, error: 'Namba ya muamala haipo' };
+  }
+  const numeric = Number(amount) || 0;
+
+  if (process.env.PAYMENT_REFUND_URL) {
+    if (!process.env.PAYMENT_API_KEY) {
+      return { success: false, error: 'Ufunguo wa huduma ya malipo haupo' };
+    }
+    try {
+      const response = await fetch(process.env.PAYMENT_REFUND_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${process.env.PAYMENT_API_KEY}`,
+        },
+        body: JSON.stringify({ transactionId: transaction, amount: numeric, reason }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        return {
+          success: false,
+          error: data.message || data.error || `Marejesho yalikataliwa (${response.status})`,
+        };
+      }
+      return {
+        success: true,
+        status: 'refunded',
+        refundId: data.refundId || data.refund_id || '',
+        mock: false,
+      };
+    } catch (e) {
+      console.error('[Payment] Refund API error:', e.message);
+      return { success: false, error: 'Huduma ya marejesho hapatikani kwa sasa.' };
+    }
+  }
+
+  // A live gateway without a refund endpoint must never be recorded as refunded.
+  if (process.env.PAYMENT_API_URL) {
+    return { success: false, error: 'Marejesho ya malipo hayajasanidiwa kwenye mfumo.' };
+  }
+
+  const refundId = 'RF' + Date.now().toString(36).toUpperCase() + crypto.randomBytes(3).toString('hex').toUpperCase();
+  console.log(`[PAYMENT][MOCK] refund ${transaction} TZS ${numeric} (${reason || 'no-reason'})`);
+  return { success: true, status: 'refunded', refundId, mock: true };
 };
 
-module.exports = { initiatePayment, getPaymentStatus, PROVIDERS, toE164 };
+module.exports = { initiatePayment, refundPayment, PROVIDERS, toE164 };

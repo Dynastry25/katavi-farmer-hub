@@ -56,7 +56,11 @@ const orderSchema = new mongoose.Schema({
   },
   paymentProvider: { type: String, default: '' },
   paymentTransactionId: { type: String, default: '' },
+  // Amount actually charged (kept after the order changes so refunds match).
+  paymentAmount: { type: Number, default: 0 },
   paidAt: { type: Date, default: null },
+  refundedAt: { type: Date, default: null },
+  refundReference: { type: String, default: '' },
 }, { timestamps: true });
 
 // Amount payable by the buyer: accepted quantity × price + delivery fee.
