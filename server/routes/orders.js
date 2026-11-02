@@ -23,6 +23,7 @@ const {
 } = require('../services/order.service');
 const { ensureStockPersisted } = require('../services/crop.stock.service');
 const { initiatePayment } = require('../services/payment.service');
+const { refundPaidOrder } = require('../services/paymentFlow.service');
 
 const EXPIRY_DAYS = 3;
 const expiryDate = () => new Date(Date.now() + EXPIRY_DAYS * 24 * 60 * 60 * 1000);
@@ -220,17 +221,22 @@ router.post('/pay', requireRole('buyer', 'farmer', 'seller', 'admin'), async (re
       return res.status(400).json({ message: result.error || 'Malipo hayakuanza' });
     }
 
-    await Order.updateMany(
-      { _id: { $in: ids } },
-      {
-        $set: {
-          paymentStatus: 'processing',
-          paymentMethod: 'mm',
-          paymentProvider: provider,
-          paymentTransactionId: result.transactionId || '',
+    // Keep each order's charged amount: the payable total can change later
+    // (partial approval, delivery-fee adjustments) but refunds must match it.
+    await Order.bulkWrite(orders.map((order) => ({
+      updateOne: {
+        filter: { _id: order._id },
+        update: {
+          $set: {
+            paymentStatus: 'processing',
+            paymentMethod: 'mm',
+            paymentProvider: provider,
+            paymentTransactionId: result.transactionId || '',
+            paymentAmount: orderAmount(order),
+          },
         },
-      }
-    );
+      },
+    })));
 
     const updated = await Order.find({ _id: { $in: ids } }).lean();
     res.json({ payment: result, amount, orders: updated.map(withAmount) });
@@ -346,6 +352,13 @@ router.post('/:id/reject', auth, async (req, res) => {
     }
     await order.save();
 
+    // A buyer may have paid up-front while the order was pending.
+    await refundPaidOrder({
+      order,
+      kind: 'order',
+      reason: 'Agizo limekataliwa na mkulima',
+    });
+
     await notify(req, order.buyer, {
       title: 'Agizo Limetengwa',
       message: `${order.farmerName} amekataa agizo la ${order.requestedQuantity} ${order.unit || 'kg'} ya ${order.cropName}.`,
@@ -380,8 +393,17 @@ router.post('/:id/receive', auth, async (req, res) => {
     if (isDeliveryOrder(order) && order.deliveryStatus !== 'rejected') {
       order.deliveryStatus = 'delivered';
     }
-    // Receipt settles the payment: escrow releases and cash-on-delivery is paid.
-    if (order.paymentStatus !== 'paid' && order.paymentStatus !== 'refunded') {
+    // Receipt settles cash/bank payments. Mobile money must have been confirmed
+    // by the gateway first — the buyer cannot release money by tapping receive.
+    if (order.paymentMethod === 'mm') {
+      if (order.paymentStatus !== 'paid') {
+        return res.status(400).json({
+          message: order.paymentStatus === 'refunded'
+            ? 'Malipo yamerejeshwa; agizo hili haliwezi kuthibitishwa.'
+            : 'Malipo ya pesa ya simu hayajathibitishwa. Kamilisha malipo kwanza.',
+        });
+      }
+    } else if (order.paymentStatus !== 'paid' && order.paymentStatus !== 'refunded') {
       order.paymentStatus = 'paid';
       order.paidAt = new Date();
     }
@@ -860,6 +882,11 @@ router.expirePendingOrders = async () => {
       order.deliveryStatus = 'cancelled';
     }
     await order.save();
+    await refundPaidOrder({
+      order,
+      kind: 'order',
+      reason: 'Agizo limeisha muda bila kujibiwa',
+    });
     await sendNotification(order.buyer, {
       title: 'Agizo Limeisha Muda',
       message: `Mkulima hakuweza kujibu kwa wakati, agizo la ${order.requestedQuantity} ${order.unit || 'kg'} ya ${order.cropName} limeisha muda. Hisa yako imetolewa.`,

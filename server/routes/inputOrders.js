@@ -8,6 +8,7 @@ const { auth } = require('../middleware/auth');
 const { requireRole } = require('../middleware/roleCheck');
 const { sendNotification } = require('../services/notification.service');
 const { initiatePayment } = require('../services/payment.service');
+const { refundPaidOrder } = require('../services/paymentFlow.service');
 const {
   isInputStatus,
   canTransitionInputOrder,
@@ -319,6 +320,7 @@ router.post('/', requireRole('buyer', 'farmer', 'admin'), async (req, res) => {
         order.paymentStatus = 'processing';
         order.paymentTransactionId = paymentResult.transactionId || '';
         order.paymentProvider = paymentProvider;
+        order.paymentAmount = totalAmount;
         await order.save();
       }
     }
@@ -366,15 +368,21 @@ router.put('/:id/status', auth, async (req, res) => {
       for (const item of order.items) {
         await InputProduct.findByIdAndUpdate(item.product, { $inc: { stockQuantity: item.quantity }, $set: { status: 'available' } });
       }
-      if (['processing', 'paid'].includes(order.paymentStatus)) {
-        order.paymentStatus = 'refunded';
-      }
       if (isDelivery(order) && order.deliveryProvider) {
         order.deliveryStatus = 'cancelled';
       }
     }
 
     order.status = status;
+    if (status === 'cancelled') {
+      // A confirmed charge is reversed; a still-processing request is settled
+      // (and refunded) by the gateway callback if it later succeeds.
+      await refundPaidOrder({
+        order,
+        kind: 'input',
+        reason: 'Agizo la pembejeo limeghairiwa',
+      });
+    }
     if (status === 'confirmed' && isDelivery(order) &&
         order.deliveryProvider && order.deliveryStatus === 'requested') {
       // The seller accepted the order, so the carrier can now take the job.
@@ -703,6 +711,7 @@ router.post('/:id/pay', auth, async (req, res) => {
     order.paymentMethod = 'mm';
     order.paymentTransactionId = result.transactionId || '';
     order.paymentProvider = provider;
+    order.paymentAmount = order.totalAmount;
     await order.save();
 
     res.json(result);

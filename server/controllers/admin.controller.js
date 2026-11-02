@@ -13,6 +13,7 @@ const AuditLog = require('../models/AuditLog');
 const MarketPrice = require('../models/MarketPrice');
 const Rating = require('../models/Rating');
 const PlatformSetting = require('../models/PlatformSetting');
+const { refundPaidOrder } = require('../services/paymentFlow.service');
 
 exports.getStats = async (req, res) => {
   try {
@@ -824,6 +825,14 @@ exports.resolveDispute = async (req, res) => {
     order.status = status;
     order.resolution = resolution || '';
     await order.save();
+
+    if (status === 'cancelled') {
+      await refundPaidOrder({
+        order,
+        kind: 'order',
+        reason: resolution || 'Mgogoro umetatuliwa kwa kughairi agizo',
+      });
+    }
 
     await AuditLog.create({
       user: req.user._id, userName: req.user.name, userRole: req.user.role,
