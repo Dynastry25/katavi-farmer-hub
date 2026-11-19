@@ -1,15 +1,16 @@
 const Crop = require('../models/Crop');
 const { deriveCropStatus } = require('./order.service');
+const { lowStockThreshold } = require('../config/livestock');
 
 // Statuses where approval already removed the goods from physical stock.
 const DEDUCTED_STATUSES = ['approved', 'partially_approved', 'delivered', 'completed'];
 
 const refreshCropStatus = async (cropId) => {
-  const crop = await Crop.findById(cropId).select('stockQuantity').lean();
+  const crop = await Crop.findById(cropId).select('stockQuantity category').lean();
   if (!crop) return;
   await Crop.updateOne(
     { _id: cropId },
-    { $set: { status: deriveCropStatus(crop.stockQuantity) } }
+    { $set: { status: deriveCropStatus(crop.stockQuantity, lowStockThreshold(crop.category)) } }
   );
 };
 

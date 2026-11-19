@@ -4,7 +4,8 @@
 // Backfill the physical stock from the legacy quantity and persist it once so
 // displays, availability checks and the atomic reservation guard all agree.
 
-const UNITS = ['kg', 'gunia', 'debe', 'tani'];
+const { ALL_UNITS } = require('../config/livestock');
+const UNITS = ALL_UNITS;
 const unitRegex = new RegExp(`^\\s*\\d+(\\.\\d+)?\\s+(${UNITS.join('|')})\\s*$`, 'i');
 
 const normalizeStock = (crop) => {

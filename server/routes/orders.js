@@ -6,6 +6,7 @@ const Crop = require('../models/Crop');
 const { TransportProvider } = require('../models/Transport');
 const { auth } = require('../middleware/auth');
 const { requireRole } = require('../middleware/roleCheck');
+const { lowStockThreshold } = require('../config/livestock');
 const { sendNotification } = require('../services/notification.service');
 const {
   isTerminal,
@@ -288,7 +289,7 @@ router.post('/:id/approve', auth, async (req, res) => {
       return res.status(400).json({ message: 'Hisia ya zao haieleweki (stock no longer sufficient). Ongeza hisa kwanza.' });
     }
 
-    const cropStatus = deriveCropStatus(updated.stockQuantity);
+    const cropStatus = deriveCropStatus(updated.stockQuantity, lowStockThreshold(updated.category));
     await Crop.updateOne({ _id: order.crop }, { $set: { status: cropStatus } });
 
     order.approvedQuantity = approved;

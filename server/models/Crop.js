@@ -1,11 +1,15 @@
 const mongoose = require('mongoose');
+const { ALL_UNITS, ANIMALS } = require('../config/livestock');
 
 const cropSchema = new mongoose.Schema({
   name: { type: String, required: true, trim: true },
-  category: { type: String, required: true, enum: ['cereals', 'legumes', 'vegetables', 'fruits', 'tubers', 'oilseeds'] },
+  category: { type: String, required: true, enum: ['cereals', 'legumes', 'vegetables', 'fruits', 'tubers', 'oilseeds', 'livestock', 'livestock_products'] },
+  // Species for livestock listings (mbuzi, ngombe, kuku...) and the source
+  // animal for livestock products (nyama, mayai, maziwa...).
+  animal: { type: String, enum: [...ANIMALS, ''], default: '' },
   price: { type: Number, required: true },
   quantity: { type: String, required: true },
-  unit: { type: String, enum: ['kg', 'gunia', 'debe', 'tani'], default: 'kg' },
+  unit: { type: String, enum: ALL_UNITS, default: 'kg' },
   location: { type: String, required: true },
   farmer: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   farmerName: { type: String, required: true },

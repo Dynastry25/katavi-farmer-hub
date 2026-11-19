@@ -7,6 +7,7 @@ const upload = require('../middleware/upload');
 const cloudinary = require('../config/cloudinary');
 const { normalizeStock, ensureStockPersisted } = require('../services/crop.stock.service');
 const { searchRegex, literalRegex } = require('../utils/safeRegex');
+const { normalizeUnit, normalizeAnimal, lowStockThreshold } = require('../config/livestock');
 
 const uploadToCloudinary = (file) => {
   return new Promise((resolve, reject) => {
@@ -60,6 +61,7 @@ router.get('/', optionalAuth, async (req, res) => {
         { name: searchFilter },
         { description: searchFilter },
         { farmerName: searchFilter },
+        { animal: searchFilter },
       ];
     }
 
@@ -100,11 +102,13 @@ router.post('/', requireRole('farmer', 'admin'), async (req, res) => {
     const priceError = await validatePriceLimit({ name: req.body.name, price: req.body.price });
     if (priceError) return res.status(400).json({ message: priceError });
 
-    const unit = ['kg', 'gunia', 'debe', 'tani'].includes(req.body.unit) ? req.body.unit : 'kg';
+    const unit = normalizeUnit(req.body.unit);
     const stockQuantity = Math.max(0, Number(req.body.stockQuantity) || Number(req.body.quantity) || 0);
+    const lowStock = lowStockThreshold(req.body.category);
     const crop = await Crop.create({
       name: req.body.name,
       category: req.body.category,
+      animal: normalizeAnimal(req.body.animal),
       price: req.body.price,
       description: req.body.description,
       image: req.body.image,
@@ -114,7 +118,7 @@ router.post('/', requireRole('farmer', 'admin'), async (req, res) => {
       unit,
       stockQuantity,
       quantity: `${stockQuantity} ${unit}`,
-      status: stockQuantity > 0 ? (stockQuantity < 100 ? 'low_stock' : 'available') : 'out_of_stock',
+      status: stockQuantity > 0 ? (stockQuantity < lowStock ? 'low_stock' : 'available') : 'out_of_stock',
       farmer: req.user._id,
       farmerName: req.user.name,
     });
@@ -133,11 +137,12 @@ router.put('/:id', requireOwnershipOrAdmin(cropOwnerId), async (req, res) => {
 
     if (req.body.stockQuantity !== undefined) {
       const stockQuantity = Math.max(0, Number(req.body.stockQuantity) || 0);
-      const unit = ['kg', 'gunia', 'debe', 'tani'].includes(req.body.unit) ? req.body.unit : (crop.unit || 'kg');
+      const unit = normalizeUnit(req.body.unit, crop.unit || 'kg');
       crop.stockQuantity = stockQuantity;
       crop.unit = unit;
       crop.quantity = `${stockQuantity} ${unit}`;
-      crop.status = stockQuantity <= 0 ? 'out_of_stock' : (stockQuantity < 100 ? 'low_stock' : 'available');
+      const lowStock = lowStockThreshold(crop.category);
+      crop.status = stockQuantity <= 0 ? 'out_of_stock' : (stockQuantity < lowStock ? 'low_stock' : 'available');
     }
     if (req.body.name !== undefined || req.body.price !== undefined) {
       const priceError = await validatePriceLimit({
@@ -148,6 +153,7 @@ router.put('/:id', requireOwnershipOrAdmin(cropOwnerId), async (req, res) => {
     }
     if (req.body.name !== undefined) crop.name = req.body.name;
     if (req.body.category !== undefined) crop.category = req.body.category;
+    if (req.body.animal !== undefined) crop.animal = normalizeAnimal(req.body.animal);
     if (req.body.price !== undefined) crop.price = req.body.price;
     if (req.body.description !== undefined) crop.description = req.body.description;
     if (req.body.harvestDate !== undefined) crop.harvestDate = req.body.harvestDate;

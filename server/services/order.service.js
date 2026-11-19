@@ -15,11 +15,12 @@ const availableStock = (crop) => {
 
 const hasSufficientStock = (crop, requested) => availableStock(crop) >= requested;
 
-// Determine the crop status based on remaining physical stock.
-const deriveCropStatus = (stockQuantity) => {
+// Determine the crop status based on remaining physical stock. Livestock
+// listings pass a threshold of 0 so any positive stock stays sellable.
+const deriveCropStatus = (stockQuantity, lowStockAt = 100) => {
   const stock = Number(stockQuantity) || 0;
   if (stock <= 0) return 'out_of_stock';
-  if (stock < 100) return 'low_stock';
+  if (stock < lowStockAt) return 'low_stock';
   return 'available';
 };
 

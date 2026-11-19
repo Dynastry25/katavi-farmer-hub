@@ -138,4 +138,7 @@ test('deriveCropStatus reflects out-of-stock and low-stock thresholds', () => {
   assert.strictEqual(deriveCropStatus(-3), 'out_of_stock');
   assert.strictEqual(deriveCropStatus(50), 'low_stock');
   assert.strictEqual(deriveCropStatus(100), 'available');
+  // Livestock passes 0 so any positive head count is available.
+  assert.strictEqual(deriveCropStatus(2, 0), 'available');
+  assert.strictEqual(deriveCropStatus(0, 0), 'out_of_stock');
 });
