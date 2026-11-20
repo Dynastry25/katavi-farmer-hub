@@ -187,6 +187,7 @@ app.use('/api/v1/auth', authLimiter, require('./routes/auth'));
 app.use('/api/v1/chatbot', aiLimiter, require('./routes/chatbot'));
 app.use('/api/v1/ai', aiLimiter, require('./routes/ai'));
 app.use('/api/v1/crops', require('./routes/crops'));
+app.use('/api/v1/recommendations', require('./routes/recommendations'));
 app.use('/api/v1/favorites', require('./routes/favorites'));
 app.use('/api/v1/products', require('./routes/products'));
 app.use('/api/v1/orders', require('./routes/orders'));
