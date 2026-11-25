@@ -6,6 +6,11 @@ const { requireRole } = require('../middleware/roleCheck');
 const { sendNotification } = require('../services/notification.service');
 const { TransportProvider, TransportBooking } = require('../models/Transport');
 const TransportRate = require('../models/TransportRate');
+const cache = require('../services/cache.service');
+
+const PROVIDERS_PREFIX = 'transport:providers';
+
+const providersKey = (availableOnly) => `${PROVIDERS_PREFIX}:${availableOnly ? 'available' : 'all'}`;
 
 const RATE_KEYS = ['boda', 'pickup', 'canter', 'lori'];
 const DEFAULT_RATES = {
@@ -80,9 +85,12 @@ const STATUS_MESSAGES = {
 // GET /api/v1/transport/providers
 router.get('/providers', async (req, res) => {
   try {
-    const filter = {};
-    if (req.query.available === 'true') filter.available = true;
-    const providers = await TransportProvider.find(filter).sort({ createdAt: -1 }).limit(200).lean();
+    const availableOnly = req.query.available === 'true';
+    const key = providersKey(availableOnly);
+    const providers = await cache.remember(key, cache.TTL.LISTING, () => {
+      const filter = availableOnly ? { available: true } : {};
+      return TransportProvider.find(filter).sort({ createdAt: -1 }).limit(200).lean();
+    });
     res.json(providers);
   } catch (error) {
     console.error('Get transport providers error:', error);
@@ -112,6 +120,7 @@ router.post('/providers', requireRole('logistics', 'admin'), async (req, res) =>
       return res.status(400).json({ message: 'Namba ya gari (plate) inahitajika' });
     }
     const provider = await TransportProvider.create({ ...data, owner: req.user._id });
+    await cache.delByPrefix(PROVIDERS_PREFIX);
     res.status(201).json({ provider });
   } catch (error) {
     console.error('Create transport provider error:', error);
@@ -133,6 +142,7 @@ router.patch('/providers/:id', requireRole('logistics', 'admin'), async (req, re
     }
     Object.assign(provider, providerFields(req.body));
     await provider.save();
+    await cache.delByPrefix(PROVIDERS_PREFIX);
     res.json({ provider });
   } catch (error) {
     console.error('Update transport provider error:', error);
@@ -149,6 +159,7 @@ router.delete('/providers/:id', requireRole('logistics', 'admin'), async (req, r
       return res.status(403).json({ message: 'Huna ruhusa ya kuondoa gari hili' });
     }
     await TransportProvider.deleteOne({ _id: provider._id });
+    await cache.delByPrefix(PROVIDERS_PREFIX);
     res.json({ message: 'Mtoa huduma ameondolewa' });
   } catch (error) {
     console.error('Delete transport provider error:', error);

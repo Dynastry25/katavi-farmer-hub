@@ -5,6 +5,9 @@ const { auth } = require('../middleware/auth');
 const { requireRole } = require('../middleware/roleCheck');
 const { sendNotification } = require('../services/notification.service');
 const { Warehouse, StorageBooking } = require('../models/Warehouse');
+const cache = require('../services/cache.service');
+
+const LIST_KEY = 'warehouses:list';
 
 const BOOKING_STATUSES = ['pending', 'active', 'completed', 'cancelled'];
 
@@ -48,7 +51,8 @@ const canManageWarehouse = (warehouse, user) =>
 // GET /api/v1/warehouses — public list of storage spaces.
 router.get('/', async (req, res) => {
   try {
-    const warehouses = await Warehouse.find().sort({ createdAt: -1 }).limit(200).lean();
+    const warehouses = await cache.remember(LIST_KEY, cache.TTL.LISTING, () =>
+      Warehouse.find().sort({ createdAt: -1 }).limit(200).lean());
     res.json(warehouses);
   } catch (error) {
     console.error('Get warehouses error:', error);
@@ -81,6 +85,7 @@ router.post('/', requireRole('logistics', 'admin'), async (req, res) => {
       return res.status(400).json({ message: 'Weka bei ya siku au ya mwezi' });
     }
     const warehouse = await Warehouse.create({ ...data, owner: req.user._id });
+    await cache.del(LIST_KEY);
     res.status(201).json(warehouse);
   } catch (error) {
     console.error('Create warehouse error:', error);
@@ -101,6 +106,7 @@ router.patch('/:id', requireRole('logistics', 'admin'), async (req, res) => {
       return res.status(400).json({ message: 'Weka bei ya siku au ya mwezi' });
     }
     await warehouse.save();
+    await cache.del(LIST_KEY);
     res.json(warehouse);
   } catch (error) {
     console.error('Update warehouse error:', error);
@@ -117,6 +123,7 @@ router.delete('/:id', requireRole('logistics', 'admin'), async (req, res) => {
       return res.status(403).json({ message: 'Huna ruhusa ya kuondoa ghala hili' });
     }
     await Warehouse.deleteOne({ _id: warehouse._id });
+    await cache.del(LIST_KEY);
     res.json({ message: 'Ghala limeondolewa' });
   } catch (error) {
     console.error('Delete warehouse error:', error);

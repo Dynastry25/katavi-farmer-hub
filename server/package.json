@@ -26,6 +26,7 @@
     "express-rate-limit": "^8.7.0",
     "groq-sdk": "^1.6.0",
     "helmet": "^8.3.0",
+    "ioredis": "^6.1.0",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.15.1",
     "morgan": "^1.12.0",

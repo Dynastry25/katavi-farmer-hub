@@ -395,6 +395,9 @@ exports.createMarketPrice = async (req, res) => {
       ipAddress: req.ip,
     });
 
+    const cache = require('../services/cache.service');
+    await cache.delByPrefix('market-prices');
+
     res.status(201).json(price);
   } catch (error) {
     console.error('Admin create market price error:', error);

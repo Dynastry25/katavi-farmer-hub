@@ -5,6 +5,10 @@ const MarketPrice = require('../models/MarketPrice');
 const { calculateAveragePrice, getPriceTrend } = require('../services/priceEngine.service');
 const { searchRegex, searchTerm } = require('../utils/safeRegex');
 const { clampInt } = require('../utils/pagination');
+const cache = require('../services/cache.service');
+
+const TICKER_KEY = 'market-prices:ticker';
+const baseKey = (region) => `market-prices:baselines:${region || 'all'}`;
 
 router.get('/', async (req, res) => {
   try {
@@ -60,10 +64,11 @@ router.get('/trend', async (req, res) => {
 router.get('/baselines', async (req, res) => {
   try {
     const { region } = req.query;
-    const filter = { isBaseline: true };
-    if (region) filter.region = region;
-
-    const prices = await MarketPrice.find(filter).sort({ cropName: 1 }).limit(500).lean();
+    const prices = await cache.remember(baseKey(region), cache.TTL.BASELINE, () => {
+      const filter = { isBaseline: true };
+      if (region) filter.region = region;
+      return MarketPrice.find(filter).sort({ cropName: 1 }).limit(500).lean();
+    });
     res.json(prices);
   } catch (error) {
     console.error('Get baselines error:', error);
@@ -74,7 +79,7 @@ router.get('/baselines', async (req, res) => {
 // GET /api/v1/market-prices/ticker — latest vs previous price per crop for scrolling ticker
 router.get('/ticker', async (req, res) => {
   try {
-    const rows = await MarketPrice.aggregate([
+    const rows = await cache.remember(TICKER_KEY, cache.TTL.PRICE, () => MarketPrice.aggregate([
       { $sort: { cropName: 1, dateRecorded: -1 } },
       {
         $group: {
@@ -107,7 +112,7 @@ router.get('/ticker', async (req, res) => {
         },
       },
       { $sort: { cropName: 1 } },
-    ]);
+    ]));
 
     res.json(rows);
   } catch (error) {
