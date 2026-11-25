@@ -232,6 +232,7 @@ app.use('/api/v1/insurance', require('./routes/insurance'));
 app.use('/api/v1/institutional', require('./routes/institutional'));
 app.use('/api/v1/kyc', require('./routes/kyc'));
 app.use('/api/v1/insights', require('./routes/insights'));
+app.use('/api/v1/earnings', require('./routes/earnings'));
 app.use('/api/v1/analytics', require('./routes/analytics'));
 app.use('/api/v1/settings', require('./routes/settings'));
 app.use('/api/v1/input-products', require('./routes/inputProducts'));
