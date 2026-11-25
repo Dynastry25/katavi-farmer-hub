@@ -11,7 +11,14 @@ const PREFIX = 'katavi:ekilimo:';
 
 // In-process fallback so a missing or unreachable Redis degrades to per-instance
 // caching instead of failing requests or hammering MongoDB.
-const memory = new NodeCache({ stdTTL: TTL.LISTING, checkperiod: 60, useClones: false });
+const MAX_KEYS = Math.max(Number(process.env.CACHE_MAX_KEYS) || 5000, 100);
+
+const memory = new NodeCache({
+  stdTTL: TTL.LISTING,
+  checkperiod: 60,
+  useClones: false,
+  maxKeys: MAX_KEYS,
+});
 
 let redisClient;
 let redisReady = false;
@@ -184,6 +191,52 @@ const stats = () => {
   };
 };
 
+// Credentials never leave the process; health output only names the host.
+const maskRedisUrl = (url = '') => {
+  try {
+    const parsed = new URL(url);
+    const auth = parsed.username || parsed.password ? '***@' : '';
+    return `${parsed.protocol}//${auth}${parsed.hostname}${parsed.port ? `:${parsed.port}` : ''}`;
+  } catch {
+    return 'configured';
+  }
+};
+
+const health = async () => {
+  const configured = Boolean(process.env.REDIS_URL);
+  let latencyMs = null;
+  if (configured && isRedisReady()) {
+    const started = Date.now();
+    try {
+      await redisClient.ping();
+      latencyMs = Date.now() - started;
+    } catch (error) {
+      redisReady = false;
+      warn(`Redis PING failed (${error.message})`);
+    }
+  }
+  return {
+    configured,
+    ready: isRedisReady(),
+    latencyMs,
+    host: configured ? maskRedisUrl(process.env.REDIS_URL) : '',
+    maxKeys: MAX_KEYS,
+    ...stats(),
+  };
+};
+
+const close = async () => {
+  if (redisClient && typeof redisClient.quit === 'function') {
+    try {
+      await redisClient.quit();
+    } catch (error) {
+      console.warn(`[cache] Redis shutdown failed (${error.message})`);
+    }
+  }
+  redisClient = undefined;
+  redisReady = false;
+};
+
 module.exports = {
   TTL,
   get,
@@ -192,4 +245,7 @@ module.exports = {
   delByPrefix,
   remember,
   stats,
+  health,
+  close,
+  maskRedisUrl,
 };

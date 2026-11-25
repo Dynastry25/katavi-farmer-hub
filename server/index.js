@@ -15,6 +15,7 @@ const { auth } = require('./middleware/auth');
 const { requireRole } = require('./middleware/roleCheck');
 const logger = require('./utils/logger');
 const metrics = require('./services/metrics.service');
+const cache = require('./services/cache.service');
 const jobQueue = require('./services/jobQueue.service');
 const {
   generalLimiter,
@@ -28,6 +29,12 @@ const Conversation = require('./models/Conversation');
 
 dotenv.config();
 connectDB();
+
+// Redis is optional: health output and request paths fall back to the local
+// cache, but production should set REDIS_URL for a shared cache layer.
+if (process.env.NODE_ENV === 'production' && !process.env.REDIS_URL) {
+  logger.warn('REDIS_URL is not set; using the per-instance in-process cache');
+}
 
 const app = express();
 const server = http.createServer(app);
@@ -93,11 +100,19 @@ app.use(mongoSanitize);
 
 // Liveness + readiness. Render uses /api/health; both paths report the database
 // state so a broken connection is visible instead of silently serving stale data.
-const healthCheck = (req, res) => {
+const healthCheck = async (req, res) => {
   const connected = mongoose.connection.readyState === 1;
+  let cacheState;
+  try {
+    cacheState = await cache.health();
+  } catch (error) {
+    cacheState = { configured: Boolean(process.env.REDIS_URL), ready: false, backend: 'memory' };
+  }
   res.status(connected ? 200 : 503).json({
     status: connected ? 'ok' : 'degraded',
     database: connected ? 'connected' : 'disconnected',
+    cache: cacheState,
+    uptimeSeconds: Math.round(process.uptime()),
     message: connected ? 'Katavi E-Kilimo API inafanya kazi' : 'Seva haijaunganishwa na hifadhidata',
     timestamp: new Date().toISOString(),
   });
@@ -351,6 +366,7 @@ const shutdown = async (signal) => {
   try {
     if (expiryJob) expiryJob.stop();
     if (jobWorker) jobQueue.stopWorker();
+    await cache.close();
     await new Promise((resolve) => io.close(resolve));
     await mongoose.connection.close(false);
     process.exit(0);
