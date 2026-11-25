@@ -28,6 +28,12 @@ services:
         sync: false
       - key: REDIS_URL
         sync: false
+      - key: CACHE_MAX_KEYS
+        value: "5000"
+      - key: USSD_SERVICE_CODE
+        sync: false
+      - key: USSD_SUPPORT_PHONE
+        sync: false
       - key: PAYMENT_CALLBACK_SECRET
         sync: false
       - key: PAYMENT_WEBHOOK_SECRET
