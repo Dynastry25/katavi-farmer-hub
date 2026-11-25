@@ -7,6 +7,7 @@ const { sendNotification } = require('../services/notification.service');
 const { Warehouse, StorageBooking } = require('../models/Warehouse');
 const cache = require('../services/cache.service');
 const { auditRoute } = require('../services/audit.service');
+const { buildListEnvelope } = require('../services/listResponse.service');
 const { freeSpaceBags, storageFee, reservedBagsFor } = require('../services/warehouse.service');
 
 const LIST_KEY = 'warehouses:list';
@@ -55,7 +56,7 @@ router.get('/', async (req, res) => {
   try {
     const warehouses = await cache.remember(LIST_KEY, cache.TTL.LISTING, () =>
       Warehouse.find().sort({ createdAt: -1 }).limit(200).lean());
-    res.json(warehouses);
+    res.json(buildListEnvelope(warehouses, req.query));
   } catch (error) {
     console.error('Get warehouses error:', error);
     res.status(500).json({ message: 'Hitilafu imetokea' });
@@ -66,7 +67,7 @@ router.get('/', async (req, res) => {
 router.get('/mine', requireRole('logistics', 'admin'), async (req, res) => {
   try {
     const warehouses = await Warehouse.find({ owner: req.user._id }).sort({ createdAt: -1 }).limit(100).lean();
-    res.json(warehouses);
+    res.json(buildListEnvelope(warehouses, req.query));
   } catch (error) {
     console.error('Get my warehouses error:', error);
     res.status(500).json({ message: 'Hitilafu imetokea' });

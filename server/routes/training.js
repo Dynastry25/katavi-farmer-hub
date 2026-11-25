@@ -7,6 +7,7 @@ const TrainingEnrollment = require('../models/TrainingEnrollment');
 const { auth, optionalAuth } = require('../middleware/auth');
 const { STAFF_ROLES } = require('../middleware/roleCheck');
 const { auditRoute } = require('../services/audit.service');
+const { buildListEnvelope } = require('../services/listResponse.service');
 const { sendNotification } = require('../services/notification.service');
 const { initiatePayment, isPaymentPending } = require('../services/payment.service');
 const { refundPaidOrder } = require('../services/paymentFlow.service');
@@ -110,7 +111,7 @@ router.get('/courses/mine', auth, async (req, res) => {
       .sort({ createdAt: -1 })
       .limit(100)
       .lean();
-    res.json(courses);
+    res.json(buildListEnvelope(courses, req.query));
   } catch (error) {
     console.error('My courses error:', error);
     res.status(500).json({ message: 'Hitilafu imetokea' });
@@ -474,7 +475,7 @@ router.get('/enrollments/my', auth, async (req, res) => {
       .sort({ createdAt: -1 })
       .limit(100)
       .lean();
-    res.json(enrollments);
+    res.json(buildListEnvelope(enrollments, req.query));
   } catch (error) {
     console.error('My training enrollments error:', error);
     res.status(500).json({ message: 'Hitilafu imetokea' });
@@ -488,7 +489,7 @@ router.get('/enrollments/incoming', auth, async (req, res) => {
       .sort({ createdAt: -1 })
       .limit(200)
       .lean();
-    res.json(enrollments);
+    res.json(buildListEnvelope(enrollments, req.query));
   } catch (error) {
     console.error('Incoming training enrollments error:', error);
     res.status(500).json({ message: 'Hitilafu imetokea' });

@@ -6,6 +6,7 @@ const { auth } = require('../middleware/auth');
 const { requireRole } = require('../middleware/roleCheck');
 const { auditRoute } = require('../services/audit.service');
 const { summarizeJobs } = require('../services/jobQueue.service');
+const { buildListEnvelope } = require('../services/listResponse.service');
 
 // GET /api/v1/jobs/my — background tasks the caller queued
 router.get('/my', auth, async (req, res) => {
@@ -14,7 +15,7 @@ router.get('/my', auth, async (req, res) => {
       .sort({ createdAt: -1 })
       .limit(50)
       .lean();
-    res.json(jobs);
+    res.json(buildListEnvelope(jobs, req.query));
   } catch (error) {
     console.error('My jobs error:', error);
     res.status(500).json({ message: 'Hitilafu imetokea' });
@@ -29,7 +30,7 @@ router.get('/', requireRole('admin', 'support'), async (req, res) => {
       filter.status = req.query.status;
     }
     const jobs = await JobTask.find(filter).sort({ createdAt: -1 }).limit(200).lean();
-    res.json({ items: jobs, summary: summarizeJobs(jobs) });
+    res.json({ ...buildListEnvelope(jobs, req.query), summary: summarizeJobs(jobs) });
   } catch (error) {
     console.error('List jobs error:', error);
     res.status(500).json({ message: 'Hitilafu imetokea' });

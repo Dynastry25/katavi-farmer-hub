@@ -3,6 +3,7 @@ const router = express.Router();
 const { auth } = require('../middleware/auth');
 const { requirePermission } = require('../middleware/roleCheck');
 const cache = require('../services/cache.service');
+const { buildListEnvelope } = require('../services/listResponse.service');
 const {
   clampDays,
   getOverview,
@@ -33,7 +34,7 @@ router.get('/districts', auth, requirePermission('stats.view'), async (req, res)
       days: clampDays(req.query.days),
       limit: req.query.limit,
     });
-    res.json(districts);
+    res.json(buildListEnvelope(districts, req.query));
   } catch (error) {
     console.error('Institutional districts error:', error);
     res.status(500).json({ message: 'Hitilafu imetokea' });

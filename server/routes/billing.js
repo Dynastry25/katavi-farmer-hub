@@ -8,6 +8,7 @@ const { auth } = require('../middleware/auth');
 const { requireRole } = require('../middleware/roleCheck');
 const { auditRoute } = require('../services/audit.service');
 const { sendNotification } = require('../services/notification.service');
+const { buildListEnvelope } = require('../services/listResponse.service');
 const {
   round2,
   canInvoiceTransition,
@@ -53,7 +54,7 @@ router.get('/invoices/my', auth, async (req, res) => {
     const invoices = await Invoice.find({ customer: req.user._id, status: { $ne: 'draft' } })
       .sort({ createdAt: -1 })
       .limit(100);
-    res.json(invoices.map((invoice) => withStatus(invoice)));
+    res.json(buildListEnvelope(invoices.map((invoice) => withStatus(invoice)), req.query));
   } catch (error) {
     console.error('My invoices error:', error);
     res.status(500).json({ message: 'Hitilafu imetokea' });
@@ -73,7 +74,7 @@ router.get('/invoices', billingRoles, async (req, res) => {
       const now = new Date();
       invoices = invoices.filter((invoice) => effectiveStatus(invoice, now) === 'overdue');
     }
-    res.json(invoices.map((invoice) => withStatus(invoice)));
+    res.json(buildListEnvelope(invoices.map((invoice) => withStatus(invoice)), req.query));
   } catch (error) {
     console.error('List invoices error:', error);
     res.status(500).json({ message: 'Hitilafu imetokea' });

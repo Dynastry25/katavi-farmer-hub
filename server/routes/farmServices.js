@@ -11,6 +11,7 @@ const { auditRoute } = require('../services/audit.service');
 const { sendNotification } = require('../services/notification.service');
 const { initiatePayment, isPaymentPending } = require('../services/payment.service');
 const cache = require('../services/cache.service');
+const { buildListEnvelope, addListMeta } = require('../services/listResponse.service');
 const {
   estimateAmount,
   canTransitionBooking,
@@ -97,7 +98,7 @@ router.get('/offers', optionalAuth, async (req, res) => {
     const result = req.user
       ? await load()
       : await cache.remember(listKey(req.query), cache.TTL.LISTING, load);
-    res.json(result);
+    res.json(addListMeta(result, { limit }));
   } catch (error) {
     console.error('List farm services error:', error);
     res.status(500).json({ message: 'Hitilafu imetokea' });
@@ -111,7 +112,10 @@ router.get('/offers/my', auth, async (req, res) => {
       .sort({ createdAt: -1 })
       .limit(100)
       .lean();
-    res.json(offers.map((offer) => ({ ...offer, averageRating: offerRating(offer) })));
+    res.json(buildListEnvelope(
+      offers.map((offer) => ({ ...offer, averageRating: offerRating(offer) })),
+      req.query,
+    ));
   } catch (error) {
     console.error('My farm services error:', error);
     res.status(500).json({ message: 'Hitilafu imetokea' });

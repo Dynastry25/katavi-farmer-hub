@@ -10,6 +10,7 @@ const { STAFF_ROLES } = require('../middleware/roleCheck');
 const { auditRoute } = require('../services/audit.service');
 const { sendNotification } = require('../services/notification.service');
 const cache = require('../services/cache.service');
+const { buildListEnvelope, addListMeta } = require('../services/listResponse.service');
 const {
   buildListFilter,
   isExpired,
@@ -95,7 +96,7 @@ router.get('/', optionalAuth, async (req, res) => {
       ? await load()
       : await cache.remember(listKey(req.query), cache.TTL.LISTING, load);
 
-    if (!req.user || !result.items.length) return res.json(result);
+    if (!req.user || !result.items.length) return res.json(addListMeta(result, { limit }));
 
     const commitments = await ContractCommitment.find({
       farmer: req.user._id,
@@ -103,14 +104,14 @@ router.get('/', optionalAuth, async (req, res) => {
     }).select('contract status').lean();
     const byContract = new Map(commitments.map((row) => [String(row.contract), row.status]));
 
-    res.json({
+    res.json(addListMeta({
       ...result,
       items: result.items.map((item) => ({
         ...item,
         myCommitment: byContract.get(String(item._id)) || '',
         isBuyer: String(item.buyer) === String(req.user._id),
       })),
-    });
+    }, { limit }));
   } catch (error) {
     console.error('List contracts error:', error);
     res.status(500).json({ message: 'Hitilafu imetokea' });
@@ -124,7 +125,7 @@ router.get('/my', auth, async (req, res) => {
       .sort({ createdAt: -1 })
       .limit(100)
       .lean();
-    res.json(items.map(withProgress));
+    res.json(buildListEnvelope(items.map(withProgress), req.query));
   } catch (error) {
     console.error('My contracts error:', error);
     res.status(500).json({ message: 'Hitilafu imetokea' });
@@ -138,17 +139,17 @@ router.get('/commitments/my', auth, async (req, res) => {
       .sort({ createdAt: -1 })
       .limit(100)
       .lean();
-    if (!commitments.length) return res.json([]);
+    if (!commitments.length) return res.json(buildListEnvelope([], req.query));
 
     const contracts = await Contract.find({
       _id: { $in: commitments.map((row) => row.contract) },
     }).select('title cropName quantityKg pricePerKg deadline status buyerName').lean();
     const byId = new Map(contracts.map((row) => [String(row._id), row]));
 
-    res.json(commitments.map((row) => ({
+    res.json(buildListEnvelope(commitments.map((row) => ({
       ...row,
       contract: withProgress(byId.get(String(row.contract)) || {}),
-    })));
+    })), req.query));
   } catch (error) {
     console.error('My commitments error:', error);
     res.status(500).json({ message: 'Hitilafu imetokea' });

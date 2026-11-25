@@ -12,6 +12,7 @@ const { auditRoute } = require('../services/audit.service');
 const { sendNotification } = require('../services/notification.service');
 const { recalcUserRating } = require('../services/rating.service');
 const cache = require('../services/cache.service');
+const { buildListEnvelope, addListMeta } = require('../services/listResponse.service');
 const {
   buildListFilter,
   isExpired,
@@ -84,7 +85,7 @@ router.get('/', optionalAuth, async (req, res) => {
     // Anonymous feeds are cached; a signed-in response carries per-user flags.
     const result = req.user ? await load() : await cache.remember(listKey(req.query), cache.TTL.LISTING, load);
 
-    if (!req.user || !result.items.length) return res.json(result);
+    if (!req.user || !result.items.length) return res.json(addListMeta(result, { limit }));
 
     const applied = await OpportunityApplication.find({
       applicant: req.user._id,
@@ -92,14 +93,14 @@ router.get('/', optionalAuth, async (req, res) => {
     }).select('opportunity status').lean();
     const byOpportunity = new Map(applied.map((row) => [String(row.opportunity), row.status]));
 
-    res.json({
+    res.json(addListMeta({
       ...result,
       items: result.items.map((item) => ({
         ...item,
         applied: byOpportunity.get(String(item._id)) || '',
         isOwner: String(item.owner) === String(req.user._id),
       })),
-    });
+    }, { limit }));
   } catch (error) {
     console.error('List opportunities error:', error);
     res.status(500).json({ message: 'Hitilafu imetokea' });
@@ -113,7 +114,7 @@ router.get('/my', auth, async (req, res) => {
       .sort({ createdAt: -1 })
       .limit(100)
       .lean();
-    res.json(items);
+    res.json(buildListEnvelope(items, req.query));
   } catch (error) {
     console.error('My opportunities error:', error);
     res.status(500).json({ message: 'Hitilafu imetokea' });
@@ -127,17 +128,17 @@ router.get('/applications/my', auth, async (req, res) => {
       .sort({ createdAt: -1 })
       .limit(100)
       .lean();
-    if (!applications.length) return res.json([]);
+    if (!applications.length) return res.json(buildListEnvelope([], req.query));
 
     const opportunities = await Opportunity.find({
       _id: { $in: applications.map((row) => row.opportunity) },
     }).select('title kind category status district payAmount payUnit ownerName').lean();
     const byId = new Map(opportunities.map((row) => [String(row._id), row]));
 
-    res.json(applications.map((row) => ({
+    res.json(buildListEnvelope(applications.map((row) => ({
       ...row,
       opportunity: byId.get(String(row.opportunity)) || null,
-    })));
+    })), req.query));
   } catch (error) {
     console.error('My applications error:', error);
     res.status(500).json({ message: 'Hitilafu imetokea' });
@@ -396,7 +397,7 @@ router.get('/:id/applications', auth, async (req, res) => {
       .sort({ createdAt: -1 })
       .limit(200)
       .lean();
-    if (!applications.length) return res.json([]);
+    if (!applications.length) return res.json(buildListEnvelope([], req.query));
 
     const applicants = await User.find({
       _id: { $in: applications.map((row) => row.applicant) },
@@ -413,7 +414,7 @@ router.get('/:id/applications', auth, async (req, res) => {
       ratingsByApplication.get(key).push(rating);
     }
 
-    res.json(applications.map((row) => {
+    res.json(buildListEnvelope(applications.map((row) => {
       const profile = byId.get(String(row.applicant)) || {};
       return {
         ...row,
@@ -429,7 +430,7 @@ router.get('/:id/applications', auth, async (req, res) => {
         },
         ratings: ratingsByApplication.get(String(row._id)) || [],
       };
-    }));
+    }), req.query));
   } catch (error) {
     console.error('Opportunity applications error:', error);
     res.status(500).json({ message: 'Hitilafu imetokea' });

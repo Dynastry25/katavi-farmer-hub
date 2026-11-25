@@ -10,6 +10,7 @@ const { auth } = require('../middleware/auth');
 const { requireRole, STAFF_ROLES } = require('../middleware/roleCheck');
 const { auditRoute } = require('../services/audit.service');
 const { sendNotification } = require('../services/notification.service');
+const { buildListEnvelope } = require('../services/listResponse.service');
 const cache = require('../services/cache.service');
 const {
   COMMISSION_RATES,
@@ -57,7 +58,7 @@ router.get('/', async (req, res) => {
         .sort({ createdAt: -1 })
         .limit(200)
         .lean());
-    res.json(agents);
+    res.json(buildListEnvelope(agents, req.query));
   } catch (error) {
     console.error('List agents error:', error);
     res.status(500).json({ message: 'Hitilafu imetokea' });
@@ -156,7 +157,7 @@ router.get('/commissions/my', auth, async (req, res) => {
       .sort({ createdAt: -1 })
       .limit(200)
       .lean();
-    res.json(commissions);
+    res.json(buildListEnvelope(commissions, req.query));
   } catch (error) {
     console.error('My commissions error:', error);
     res.status(500).json({ message: 'Hitilafu imetokea' });
@@ -183,7 +184,7 @@ router.get('/registry', requireRole(...REVIEW_ROLES), async (req, res) => {
     if (req.query.status) filter.status = String(req.query.status);
     if (req.query.district) filter.district = String(req.query.district);
     const profiles = await AgentProfile.find(filter).sort({ createdAt: -1 }).limit(200).lean();
-    res.json(profiles);
+    res.json(buildListEnvelope(profiles, req.query));
   } catch (error) {
     console.error('Agent registry error:', error);
     res.status(500).json({ message: 'Hitilafu imetokea' });
@@ -236,7 +237,7 @@ router.get('/commissions', requireRole(...REVIEW_ROLES), async (req, res) => {
       .sort({ createdAt: -1 })
       .limit(200)
       .lean();
-    res.json(commissions);
+    res.json(buildListEnvelope(commissions, req.query));
   } catch (error) {
     console.error('List commissions error:', error);
     res.status(500).json({ message: 'Hitilafu imetokea' });

@@ -79,6 +79,10 @@ app.set('query parser', 'simple');
 // First, so every log line and error response shares the request id.
 app.use(requestContext);
 
+// Opt-in list envelope for the Flutter 2.0 clients; bare arrays stay untouched
+// for legacy clients (see docs/API_CONVENTIONS.md).
+app.use(require('./middleware/listEnvelope'));
+
 app.use(compression({ threshold: 1024 }));
 
 app.use(cors({

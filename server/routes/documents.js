@@ -7,6 +7,7 @@ const { auth } = require('../middleware/auth');
 const { STAFF_ROLES } = require('../middleware/roleCheck');
 const queue = require('../services/jobQueue.service');
 const { getEarningsSummary } = require('../services/earnings.service');
+const { buildListEnvelope } = require('../services/listResponse.service');
 const { effectiveStatus } = require('../services/billing.service');
 
 const money = (value) => `TZS ${(Number(value) || 0).toLocaleString('en-US')}`;
@@ -110,7 +111,7 @@ router.get('/my', auth, async (req, res) => {
       .sort({ createdAt: -1 })
       .limit(100)
       .lean();
-    res.json(documents);
+    res.json(buildListEnvelope(documents, req.query));
   } catch (error) {
     console.error('My documents error:', error);
     res.status(500).json({ message: 'Hitilafu imetokea' });
