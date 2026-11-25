@@ -246,6 +246,7 @@ app.use('/api/v1/price-limits', require('./routes/priceLimits'));
 app.use('/api/v1/transport', require('./routes/transport'));
 app.use('/api/v1/warehouses', require('./routes/warehouses'));
 app.use('/api/v1/warehouse-bookings', require('./routes/warehouseBookings'));
+app.use('/api/v1/warehouse-stock', require('./routes/warehouseStock'));
 
 // Operational metrics for dashboards and alerting. Admin only: counts and route
 // names are exposed, never request bodies.
