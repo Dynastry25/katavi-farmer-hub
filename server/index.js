@@ -230,6 +230,7 @@ app.use('/api/v1/agents', require('./routes/agents'));
 app.use('/api/v1/training', require('./routes/training'));
 app.use('/api/v1/insurance', require('./routes/insurance'));
 app.use('/api/v1/institutional', require('./routes/institutional'));
+app.use('/api/v1/insights', require('./routes/insights'));
 app.use('/api/v1/analytics', require('./routes/analytics'));
 app.use('/api/v1/settings', require('./routes/settings'));
 app.use('/api/v1/input-products', require('./routes/inputProducts'));
