@@ -223,6 +223,8 @@ app.use('/api/v1/suppliers', require('./routes/suppliers'));
 app.use('/api/v1/loans', require('./routes/loans'));
 app.use('/api/v1/farmer-groups', require('./routes/farmerGroups'));
 app.use('/api/v1/organizations', require('./routes/organizations'));
+app.use('/api/v1/ussd', require('./routes/ussd'));
+app.use('/api/v1/sync', require('./routes/sync'));
 app.use('/api/v1/chat', require('./routes/chat'));
 app.use('/api/v1/contact', require('./routes/contact'));
 app.use('/api/v1/advice', require('./routes/advice'));
