@@ -14,6 +14,7 @@ const {
   exceedsCapacity,
   makeTrackingCode,
 } = require('../services/transport.service');
+const { rankCarriers } = require('../services/matching.service');
 
 const PROVIDERS_PREFIX = 'transport:providers';
 
@@ -99,6 +100,55 @@ router.get('/providers', async (req, res) => {
     res.json(providers);
   } catch (error) {
     console.error('Get transport providers error:', error);
+    res.status(500).json({ message: 'Hitilafu imetokea' });
+  }
+});
+
+const publicCarrier = (provider) => ({
+  id: provider._id,
+  name: provider.name,
+  phone: provider.phone,
+  location: provider.location,
+  vehicleType: provider.vehicleType,
+  ratePerKm: provider.ratePerKm,
+  capacityKg: provider.capacityKg,
+  vehiclePlate: provider.vehiclePlate,
+  description: provider.description,
+  averageRating: provider.averageRating,
+  totalReviews: provider.totalReviews,
+});
+
+// GET /api/v1/transport/match — rank available carriers for a load.
+router.get('/match', async (req, res) => {
+  try {
+    const weightKg = numeric(req.query.weightKg, 0);
+    const distanceKm = numeric(req.query.distanceKm, 0);
+    if (weightKg <= 0) {
+      return res.status(400).json({ message: 'Uzito wa mzigo unahitajika' });
+    }
+    const limit = Math.min(Math.max(Math.floor(numeric(req.query.limit, 5)) || 5, 1), 10);
+
+    const providers = await TransportProvider.find({ available: true }).limit(200).lean();
+    const rateCache = {};
+    const carriers = [];
+    for (const provider of providers) {
+      const cacheKey = String(provider.vehicleType || '').toLowerCase();
+      if (!rateCache[cacheKey]) {
+        rateCache[cacheKey] = await resolveVehicleRate(provider.vehicleType);
+      }
+      const { totalAmount } = transportFare({
+        rate: rateCache[cacheKey],
+        providerRatePerKm: provider.ratePerKm,
+        distanceKm,
+        weightKg,
+      });
+      carriers.push({ ...publicCarrier(provider), fare: totalAmount });
+    }
+
+    const matches = rankCarriers(carriers, { weightKg, limit });
+    res.json({ matches, criteria: { weightKg, distanceKm, limit } });
+  } catch (error) {
+    console.error('Match transport carriers error:', error);
     res.status(500).json({ message: 'Hitilafu imetokea' });
   }
 });
