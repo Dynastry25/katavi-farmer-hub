@@ -234,6 +234,7 @@ app.use('/api/v1/kyc', require('./routes/kyc'));
 app.use('/api/v1/insights', require('./routes/insights'));
 app.use('/api/v1/earnings', require('./routes/earnings'));
 app.use('/api/v1/docs', require('./routes/docs'));
+app.use('/api/v1/quality', require('./routes/quality'));
 app.use('/api/v1/analytics', require('./routes/analytics'));
 app.use('/api/v1/settings', require('./routes/settings'));
 app.use('/api/v1/input-products', require('./routes/inputProducts'));
