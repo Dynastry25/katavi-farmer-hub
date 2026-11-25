@@ -34,7 +34,9 @@ const trainingEnrollmentSchema = new mongoose.Schema({
   refundReference: { type: String, default: '' },
   completedAt: { type: Date, default: null },
   cancelledAt: { type: Date, default: null },
-  certificateCode: { type: String, default: '' },
+  // Left unset until the certificate is issued; the sparse unique index then
+  // only tracks real certificate codes.
+  certificateCode: { type: String },
   certificateIssuedAt: { type: Date, default: null },
 }, { timestamps: true });
 

@@ -228,6 +228,7 @@ app.use('/api/v1/contracts', require('./routes/contracts'));
 app.use('/api/v1/farm-services', require('./routes/farmServices'));
 app.use('/api/v1/agents', require('./routes/agents'));
 app.use('/api/v1/training', require('./routes/training'));
+app.use('/api/v1/insurance', require('./routes/insurance'));
 app.use('/api/v1/analytics', require('./routes/analytics'));
 app.use('/api/v1/settings', require('./routes/settings'));
 app.use('/api/v1/input-products', require('./routes/inputProducts'));

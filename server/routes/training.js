@@ -329,7 +329,7 @@ router.post('/courses/:id/enroll', auth, auditRoute({
     enrollment.refundReference = '';
     enrollment.completedAt = null;
     enrollment.cancelledAt = null;
-    enrollment.certificateCode = '';
+    enrollment.certificateCode = undefined;
     enrollment.certificateIssuedAt = null;
 
     try {
@@ -577,7 +577,7 @@ router.post('/enrollments/:id/certificate', auth, auditRoute({
         await enrollment.save();
       } catch (error) {
         if (error.code !== 11000) throw error;
-        enrollment.certificateCode = '';
+        enrollment.certificateCode = undefined;
       }
     }
     if (!enrollment.certificateCode) {
