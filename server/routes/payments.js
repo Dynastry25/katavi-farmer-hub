@@ -14,6 +14,7 @@ const {
   applyPaymentResult,
   refundTransaction,
 } = require('../services/paymentFlow.service');
+const { auditRoute } = require('../services/audit.service');
 
 const normalizeEvent = (value) => {
   const event = String(value || '').trim().toLowerCase();
@@ -57,7 +58,13 @@ const canViewTarget = async (target, user) => {
 
 // POST /api/v1/payments/initiate — starts mobile-money collection for one crop
 // order. The amount always comes from the order, never from the client.
-router.post('/initiate', auth, async (req, res) => {
+router.post('/initiate', auth, auditRoute({
+  action: 'initiate_payment',
+  category: 'payment',
+  targetType: 'Order',
+  targetId: (req) => req.body?.orderId,
+  details: (req) => ({ provider: req.body?.provider || '' }),
+}), async (req, res) => {
   try {
     const { provider, phone, orderId } = req.body;
     if (!mongoose.isValidObjectId(orderId)) {
@@ -109,7 +116,17 @@ router.post('/initiate', auth, async (req, res) => {
 
 // POST /api/v1/payments/callback — gateway webhook. The shared secret keeps
 // arbitrary callers from marking orders as paid.
-router.post('/callback', async (req, res) => {
+router.post('/callback', auditRoute({
+  action: 'payment_callback',
+  category: 'payment',
+  targetType: 'Order',
+  actorName: 'payment-gateway',
+  actorRole: 'system',
+  details: (req) => ({
+    transactionId: transactionFromBody(req.body),
+    status: normalizeEvent(req.body.status || req.body.event) || '',
+  }),
+}), async (req, res) => {
   try {
     const secret = process.env.PAYMENT_CALLBACK_SECRET;
     if (!secret) {
@@ -152,7 +169,16 @@ router.post('/callback', async (req, res) => {
 
 // POST /api/v1/payments/:transactionId/confirm — manual reconciliation by
 // finance staff (e.g. when the gateway callback never arrives).
-router.post('/:transactionId/confirm', requireRole('admin', 'finance_officer'), async (req, res) => {
+router.post('/:transactionId/confirm', requireRole('admin', 'finance_officer'), auditRoute({
+  action: 'confirm_payment',
+  category: 'payment',
+  targetType: 'Order',
+  targetId: () => undefined,
+  details: (req) => ({
+    transactionId: String(req.params.transactionId || ''),
+    status: normalizeEvent(req.body.status || 'paid') || '',
+  }),
+}), async (req, res) => {
   try {
     const status = normalizeEvent(req.body.status || 'paid');
     if (!status) {
@@ -186,7 +212,16 @@ router.post('/:transactionId/confirm', requireRole('admin', 'finance_officer'), 
 // POST /api/v1/payments/:transactionId/refund — finance reverses a captured
 // charge. `manualReference` records a refund already done in the provider
 // portal when no refund API is configured.
-router.post('/:transactionId/refund', requireRole('admin', 'finance_officer'), async (req, res) => {
+router.post('/:transactionId/refund', requireRole('admin', 'finance_officer'), auditRoute({
+  action: 'refund_payment',
+  category: 'payment',
+  targetType: 'Order',
+  targetId: () => undefined,
+  details: (req) => ({
+    transactionId: String(req.params.transactionId || ''),
+    reason: String(req.body?.reason || '').slice(0, 200),
+  }),
+}), async (req, res) => {
   try {
     const targets = await findPaymentTargets(req.params.transactionId);
     if (!targets.length) {

@@ -1,11 +1,18 @@
 const mongoose = require('mongoose');
 
 const auditLogSchema = new mongoose.Schema({
-  user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-  userName: { type: String, required: true },
-  userRole: { type: String, required: true },
+  user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+  userName: { type: String, default: '' },
+  userRole: { type: String, default: '' },
   action: { type: String, required: true },
-  category: { type: String, enum: ['user', 'product', 'order', 'loan', 'content', 'settings', 'system', 'auth'], default: 'system' },
+  category: {
+    type: String,
+    enum: [
+      'user', 'product', 'order', 'payment', 'booking', 'transport', 'warehouse',
+      'farm', 'employment', 'loan', 'content', 'settings', 'system', 'auth',
+    ],
+    default: 'system',
+  },
   targetType: { type: String, default: '' },
   targetId: { type: mongoose.Schema.Types.ObjectId },
   details: { type: mongoose.Schema.Types.Mixed, default: {} },
@@ -16,5 +23,6 @@ const auditLogSchema = new mongoose.Schema({
 auditLogSchema.index({ user: 1, createdAt: -1 });
 auditLogSchema.index({ category: 1, createdAt: -1 });
 auditLogSchema.index({ action: 1 });
+auditLogSchema.index({ targetType: 1, targetId: 1, createdAt: -1 });
 
 module.exports = mongoose.model('AuditLog', auditLogSchema);

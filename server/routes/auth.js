@@ -11,6 +11,7 @@ const { sendNotification } = require('../services/notification.service');
 const { sendSms } = require('../services/sms.service');
 const { sendOtpEmail, isDeliverableEmail } = require('../services/email.service');
 const { loginLimiter, otpLimiter } = require('../middleware/rateLimits');
+const { audit, auditRoute } = require('../services/audit.service');
 
 const STAFF_ROLES = ['admin', 'support', 'content_moderator', 'finance_officer'];
 const PUBLIC_ROLES = ['farmer', 'buyer', 'seller', 'expert', 'logistics'];
@@ -134,6 +135,17 @@ router.post('/register', async (req, res) => {
 
     const token = generateToken(user._id);
 
+    audit(req, {
+      action: 'register_user',
+      category: 'auth',
+      userId: user._id,
+      userName: user.name,
+      userRole: user.role,
+      targetType: 'User',
+      targetId: user._id,
+      details: { role: user.role },
+    });
+
     res.status(201).json(publicUser(user, token));
   } catch (error) {
     console.error('Registration error:', error);
@@ -196,6 +208,17 @@ router.post('/login', loginLimiter, async (req, res) => {
 
     const token = generateToken(user._id);
 
+    audit(req, {
+      action: 'login',
+      category: 'auth',
+      userId: user._id,
+      userName: user.name,
+      userRole: user.role,
+      targetType: 'User',
+      targetId: user._id,
+      details: { method: 'password' },
+    });
+
     res.json(publicUser(user, token));
   } catch (error) {
     console.error('Login error:', error);
@@ -232,6 +255,17 @@ router.post('/2fa/verify', otpLimiter, async (req, res) => {
     user.twoFactorCodeHash = '';
     user.twoFactorCodeExpires = null;
     await user.save();
+
+    audit(req, {
+      action: 'login_2fa',
+      category: 'auth',
+      userId: user._id,
+      userName: user.name,
+      userRole: user.role,
+      targetType: 'User',
+      targetId: user._id,
+      details: { method: '2fa' },
+    });
 
     const token = generateToken(user._id);
     res.json(publicUser(user, token));
@@ -313,7 +347,7 @@ router.get('/me', auth, async (req, res) => {
 });
 
 // PUT /api/auth/profile
-router.put('/profile', auth, async (req, res) => {
+router.put('/profile', auth, auditRoute({ action: 'update_profile', category: 'auth', targetType: 'User' }), async (req, res) => {
   try {
     const { name, phone, location, district, ward, village, bio, farmSize, farmLocation, crops, businessType, businessLocation, expertise, experience, profilePicture } = req.body;
     
@@ -409,7 +443,7 @@ router.post('/phone/send-otp', auth, otpLimiter, async (req, res) => {
 });
 
 // POST /api/v1/auth/phone/verify
-router.post('/phone/verify', auth, otpLimiter, async (req, res) => {
+router.post('/phone/verify', auth, otpLimiter, auditRoute({ action: 'verify_phone', category: 'auth', targetType: 'User' }), async (req, res) => {
   try {
     const { code } = req.body;
     if (!code) return res.status(400).json({ message: 'Namba ya uthibitisho inahitajika' });
@@ -808,6 +842,17 @@ router.post('/phone/password/reset', otpLimiter, async (req, res) => {
     user.phoneVerified = true;
     await user.save();
     await PhoneOtp.deleteOne({ phone: key });
+
+    audit(req, {
+      action: 'reset_password',
+      category: 'auth',
+      userId: user._id,
+      userName: user.name,
+      userRole: user.role,
+      targetType: 'User',
+      targetId: user._id,
+      details: { method: 'phone_otp' },
+    });
 
     res.json({
       message: 'Nenosiri limebadilishwa.',

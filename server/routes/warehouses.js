@@ -6,6 +6,7 @@ const { requireRole } = require('../middleware/roleCheck');
 const { sendNotification } = require('../services/notification.service');
 const { Warehouse, StorageBooking } = require('../models/Warehouse');
 const cache = require('../services/cache.service');
+const { auditRoute } = require('../services/audit.service');
 
 const LIST_KEY = 'warehouses:list';
 
@@ -72,7 +73,7 @@ router.get('/mine', requireRole('logistics', 'admin'), async (req, res) => {
 });
 
 // POST /api/v1/warehouses — register a warehouse (logistics partner or admin).
-router.post('/', requireRole('logistics', 'admin'), async (req, res) => {
+router.post('/', requireRole('logistics', 'admin'), auditRoute({ action: 'create_warehouse', category: 'warehouse', targetType: 'Warehouse', targetId: () => undefined }), async (req, res) => {
   try {
     const data = warehouseFields(req.body);
     if (!data.name) {
@@ -94,7 +95,7 @@ router.post('/', requireRole('logistics', 'admin'), async (req, res) => {
 });
 
 // PATCH /api/v1/warehouses/:id — owner or admin.
-router.patch('/:id', requireRole('logistics', 'admin'), async (req, res) => {
+router.patch('/:id', requireRole('logistics', 'admin'), auditRoute({ action: 'update_warehouse', category: 'warehouse', targetType: 'Warehouse' }), async (req, res) => {
   try {
     const warehouse = await Warehouse.findById(req.params.id);
     if (!warehouse) return res.status(404).json({ message: 'Ghala halipo' });
@@ -115,7 +116,7 @@ router.patch('/:id', requireRole('logistics', 'admin'), async (req, res) => {
 });
 
 // DELETE /api/v1/warehouses/:id — owner or admin.
-router.delete('/:id', requireRole('logistics', 'admin'), async (req, res) => {
+router.delete('/:id', requireRole('logistics', 'admin'), auditRoute({ action: 'delete_warehouse', category: 'warehouse', targetType: 'Warehouse' }), async (req, res) => {
   try {
     const warehouse = await Warehouse.findById(req.params.id);
     if (!warehouse) return res.status(404).json({ message: 'Ghala halipo' });
@@ -166,7 +167,13 @@ router.get('/bookings/all', requireRole('logistics', 'admin'), async (req, res) 
 });
 
 // POST /api/v1/warehouses/bookings
-router.post('/bookings', auth, async (req, res) => {
+router.post('/bookings', auth, auditRoute({
+  action: 'create_storage_booking',
+  category: 'booking',
+  targetType: 'StorageBooking',
+  targetId: () => undefined,
+  details: (req) => ({ bags: Number(req.body?.bags) || 0 }),
+}), async (req, res) => {
   try {
     if (!mongoose.isValidObjectId(req.body.warehouse)) {
       return res.status(400).json({ message: 'Chagua ghala' });
@@ -223,7 +230,12 @@ router.post('/bookings', auth, async (req, res) => {
 });
 
 // PATCH /api/v1/warehouses/bookings/:id/status — warehouse owner or admin.
-router.patch('/bookings/:id/status', requireRole('logistics', 'admin'), async (req, res) => {
+router.patch('/bookings/:id/status', requireRole('logistics', 'admin'), auditRoute({
+  action: 'update_storage_booking_status',
+  category: 'booking',
+  targetType: 'StorageBooking',
+  details: (req) => ({ status: String(req.body?.status || '') }),
+}), async (req, res) => {
   try {
     const { status } = req.body;
     if (!BOOKING_STATUSES.includes(status)) {
@@ -272,7 +284,7 @@ router.patch('/bookings/:id/status', requireRole('logistics', 'admin'), async (r
 
 // DELETE /api/v1/warehouses/bookings/:id — the customer cancels before the
 // goods are in storage; the warehouse owner is told so they can free space.
-router.delete('/bookings/:id', auth, async (req, res) => {
+router.delete('/bookings/:id', auth, auditRoute({ action: 'cancel_storage_booking', category: 'booking', targetType: 'StorageBooking' }), async (req, res) => {
   try {
     const booking = await StorageBooking.findOne({
       _id: req.params.id,

@@ -28,6 +28,7 @@ const {
 const { ensureStockPersisted } = require('../services/crop.stock.service');
 const { restoreOrderStock } = require('../services/order.stock.service');
 const { initiatePayment } = require('../services/payment.service');
+const { auditRoute } = require('../services/audit.service');
 const { refundPaidOrder } = require('../services/paymentFlow.service');
 
 const EXPIRY_DAYS = 3;
@@ -83,7 +84,15 @@ router.get('/', auth, async (req, res) => {
 });
 
 // POST /api/orders - place an order (buyer or farmer buying another farm)
-router.post('/', requireRole('buyer', 'farmer', 'seller', 'admin'), async (req, res) => {
+router.post('/', requireRole('buyer', 'farmer', 'seller', 'admin'), auditRoute({
+  action: 'create_order',
+  category: 'order',
+  targetType: 'Order',
+  details: (req) => ({
+    cropId: req.body?.cropId || req.body?.crop || '',
+    quantity: req.body?.requestedQuantity || req.body?.quantity || 0,
+  }),
+}), async (req, res) => {
   try {
     const {
       crop, requestedQuantity, deliveryDate, contact, options, note,
@@ -187,7 +196,15 @@ router.post('/', requireRole('buyer', 'farmer', 'seller', 'admin'), async (req, 
 });
 
 // POST /api/orders/pay - buyer pays for one or more live crop orders at once
-router.post('/pay', requireRole('buyer', 'farmer', 'seller', 'admin'), async (req, res) => {
+router.post('/pay', requireRole('buyer', 'farmer', 'seller', 'admin'), auditRoute({
+  action: 'initiate_bulk_payment',
+  category: 'payment',
+  targetType: 'Order',
+  details: (req) => ({
+    orderIds: Array.isArray(req.body?.orderIds) ? req.body.orderIds.slice(0, 20) : [],
+    provider: req.body?.provider || '',
+  }),
+}), async (req, res) => {
   try {
     const { orderIds, provider, phone } = req.body;
     const ids = Array.isArray(orderIds)
@@ -253,7 +270,7 @@ router.post('/pay', requireRole('buyer', 'farmer', 'seller', 'admin'), async (re
 });
 
 // POST /api/orders/:id/approve - farmer approves (full or partial)
-router.post('/:id/approve', auth, async (req, res) => {
+router.post('/:id/approve', auth, auditRoute({ action: 'approve_order', category: 'order', targetType: 'Order' }), async (req, res) => {
   try {
     const order = await Order.findById(req.params.id);
     if (!order) return res.status(404).json({ message: 'Agizo halipatikani' });
@@ -334,7 +351,7 @@ router.post('/:id/approve', auth, async (req, res) => {
 });
 
 // POST /api/orders/:id/reject - farmer rejects
-router.post('/:id/reject', auth, async (req, res) => {
+router.post('/:id/reject', auth, auditRoute({ action: 'reject_order', category: 'order', targetType: 'Order' }), async (req, res) => {
   try {
     const order = await Order.findById(req.params.id);
     if (!order) return res.status(404).json({ message: 'Agizo halipatikani' });
@@ -380,7 +397,7 @@ router.post('/:id/reject', auth, async (req, res) => {
 });
 
 // POST /api/v1/orders/:id/cancel — buyer, farmer, or staff withdraws an order
-router.post('/:id/cancel', auth, async (req, res) => {
+router.post('/:id/cancel', auth, auditRoute({ action: 'cancel_order', category: 'order', targetType: 'Order' }), async (req, res) => {
   try {
     const order = await Order.findById(req.params.id);
     if (!order) return res.status(404).json({ message: 'Agizo halipatikani' });
@@ -469,7 +486,7 @@ router.post('/:id/cancel', auth, async (req, res) => {
 });
 
 // POST /api/v1/orders/:id/receive — buyer confirms the goods arrived
-router.post('/:id/receive', auth, async (req, res) => {
+router.post('/:id/receive', auth, auditRoute({ action: 'complete_order', category: 'order', targetType: 'Order' }), async (req, res) => {
   try {
     const order = await Order.findById(req.params.id);
     if (!order) return res.status(404).json({ message: 'Agizo halipatikani' });
@@ -521,7 +538,7 @@ router.post('/:id/receive', auth, async (req, res) => {
 });
 
 // POST /api/v1/orders/:id/deliver — farmer hands the goods over to the buyer
-router.post('/:id/deliver', auth, async (req, res) => {
+router.post('/:id/deliver', auth, auditRoute({ action: 'mark_order_delivered', category: 'order', targetType: 'Order' }), async (req, res) => {
   try {
     const order = await Order.findById(req.params.id);
     if (!order) return res.status(404).json({ message: 'Agizo halipatikani' });
@@ -582,7 +599,7 @@ router.get('/transport/requests', requireRole('logistics', 'admin'), async (req,
 });
 
 // PATCH /api/v1/orders/:id/transport/accept — carrier takes the delivery job
-router.patch('/:id/transport/accept', requireRole('logistics', 'admin'), async (req, res) => {
+router.patch('/:id/transport/accept', requireRole('logistics', 'admin'), auditRoute({ action: 'accept_order_transport', category: 'order', targetType: 'Order' }), async (req, res) => {
   try {
     const order = await Order.findById(req.params.id);
     if (!order || !order.deliveryProvider) {
@@ -624,7 +641,7 @@ router.patch('/:id/transport/accept', requireRole('logistics', 'admin'), async (
 });
 
 // PATCH /api/v1/orders/:id/transport/reject — carrier declines the delivery job
-router.patch('/:id/transport/reject', requireRole('logistics', 'admin'), async (req, res) => {
+router.patch('/:id/transport/reject', requireRole('logistics', 'admin'), auditRoute({ action: 'reject_order_transport', category: 'order', targetType: 'Order' }), async (req, res) => {
   try {
     const order = await Order.findById(req.params.id);
     if (!order || !order.deliveryProvider) {
@@ -668,7 +685,7 @@ router.patch('/:id/transport/reject', requireRole('logistics', 'admin'), async (
 
 // PATCH /api/v1/orders/:id/transport/provider — buyer/farmer picks a new
 // carrier after the previous one declined (or before the trip starts).
-router.patch('/:id/transport/provider', auth, async (req, res) => {
+router.patch('/:id/transport/provider', auth, auditRoute({ action: 'assign_order_transport', category: 'order', targetType: 'Order' }), async (req, res) => {
   try {
     const order = await Order.findById(req.params.id);
     if (!order) return res.status(404).json({ message: 'Agizo halipatikani' });
@@ -738,7 +755,12 @@ router.patch('/:id/transport/provider', auth, async (req, res) => {
 });
 
 // PATCH /api/v1/orders/:id/transport/status — carrier starts or completes the trip
-router.patch('/:id/transport/status', requireRole('logistics', 'admin'), async (req, res) => {
+router.patch('/:id/transport/status', requireRole('logistics', 'admin'), auditRoute({
+  action: 'update_order_transport_status',
+  category: 'order',
+  targetType: 'Order',
+  details: (req) => ({ status: req.body?.status || '' }),
+}), async (req, res) => {
   try {
     const { status } = req.body;
     if (!['in_transit', 'delivered'].includes(status)) {
@@ -843,7 +865,7 @@ router.get('/:id', auth, async (req, res) => {
 });
 
 // POST /api/orders/:id/remainder - buyer requests the remaining quantity
-router.post('/:id/remainder', auth, async (req, res) => {
+router.post('/:id/remainder', auth, auditRoute({ action: 'offer_order_remainder', category: 'order', targetType: 'Order' }), async (req, res) => {
   try {
     const order = await Order.findById(req.params.id);
     if (!order) return res.status(404).json({ message: 'Agizo halipatikani' });
@@ -934,7 +956,7 @@ router.put('/:id', auth, async (req, res) => {
 });
 
 // DELETE /api/orders/:id
-router.delete('/:id', auth, async (req, res) => {
+router.delete('/:id', auth, auditRoute({ action: 'delete_order', category: 'order', targetType: 'Order' }), async (req, res) => {
   try {
     const order = await Order.findById(req.params.id);
     if (!order) return res.status(404).json({ message: 'Agizo halipatikani' });
@@ -995,7 +1017,12 @@ router.expirePendingOrders = async () => {
 // ──────────────────────────────────────────────
 
 // POST /api/v1/orders/:id/dispute — buyer/farmer raises a dispute on their order
-router.post('/:id/dispute', auth, async (req, res) => {
+router.post('/:id/dispute', auth, auditRoute({
+  action: 'open_order_dispute',
+  category: 'order',
+  targetType: 'Order',
+  details: (req) => ({ reason: String(req.body?.reason || '').slice(0, 200) }),
+}), async (req, res) => {
   try {
     const order = await Order.findById(req.params.id);
     if (!order) return res.status(404).json({ message: 'Agizo halipatikani' });

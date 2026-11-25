@@ -7,6 +7,7 @@ const { sendNotification } = require('../services/notification.service');
 const { TransportProvider, TransportBooking } = require('../models/Transport');
 const TransportRate = require('../models/TransportRate');
 const cache = require('../services/cache.service');
+const { auditRoute } = require('../services/audit.service');
 
 const PROVIDERS_PREFIX = 'transport:providers';
 
@@ -110,7 +111,7 @@ router.get('/providers/mine', requireRole('logistics', 'admin'), async (req, res
 });
 
 // POST /api/v1/transport/providers — logistics partner or admin
-router.post('/providers', requireRole('logistics', 'admin'), async (req, res) => {
+router.post('/providers', requireRole('logistics', 'admin'), auditRoute({ action: 'create_transport_provider', category: 'transport', targetType: 'TransportProvider', targetId: () => undefined }), async (req, res) => {
   try {
     const data = providerFields(req.body);
     if (!data.name) {
@@ -133,7 +134,7 @@ const canManageProvider = (provider, user) =>
   (provider.owner && String(provider.owner) === String(user._id));
 
 // PATCH /api/v1/transport/providers/:id — owner or admin
-router.patch('/providers/:id', requireRole('logistics', 'admin'), async (req, res) => {
+router.patch('/providers/:id', requireRole('logistics', 'admin'), auditRoute({ action: 'update_transport_provider', category: 'transport', targetType: 'TransportProvider' }), async (req, res) => {
   try {
     const provider = await TransportProvider.findById(req.params.id);
     if (!provider) return res.status(404).json({ message: 'Mtoa huduma hayupo' });
@@ -151,7 +152,7 @@ router.patch('/providers/:id', requireRole('logistics', 'admin'), async (req, re
 });
 
 // DELETE /api/v1/transport/providers/:id — owner or admin
-router.delete('/providers/:id', requireRole('logistics', 'admin'), async (req, res) => {
+router.delete('/providers/:id', requireRole('logistics', 'admin'), auditRoute({ action: 'delete_transport_provider', category: 'transport', targetType: 'TransportProvider' }), async (req, res) => {
   try {
     const provider = await TransportProvider.findById(req.params.id);
     if (!provider) return res.status(404).json({ message: 'Mtoa huduma hayupo' });
@@ -190,7 +191,11 @@ router.get('/rates', async (req, res) => {
 });
 
 // PUT /api/v1/transport/rates/:key — admin
-router.put('/rates/:key', requireRole('admin'), async (req, res) => {
+router.put('/rates/:key', requireRole('admin'), auditRoute({
+  action: 'update_transport_rates',
+  category: 'settings',
+  details: (req) => ({ key: String(req.params.key || '') }),
+}), async (req, res) => {
   try {
     const { key } = req.params;
     if (!RATE_KEYS.includes(key)) {
@@ -217,7 +222,7 @@ router.put('/rates/:key', requireRole('admin'), async (req, res) => {
 });
 
 // POST /api/v1/transport/rates/reset — admin
-router.post('/rates/reset', requireRole('admin'), async (req, res) => {
+router.post('/rates/reset', requireRole('admin'), auditRoute({ action: 'reset_transport_rates', category: 'settings' }), async (req, res) => {
   try {
     await TransportRate.deleteMany({});
     const rates = await TransportRate.insertMany(
@@ -242,7 +247,17 @@ router.get('/bookings', auth, async (req, res) => {
 });
 
 // POST /api/v1/transport/bookings
-router.post('/bookings', auth, async (req, res) => {
+router.post('/bookings', auth, auditRoute({
+  action: 'create_transport_booking',
+  category: 'booking',
+  targetType: 'TransportBooking',
+  targetId: () => undefined,
+  details: (req) => ({
+    vehicleType: String(req.body?.vehicleType || '').slice(0, 30),
+    pickup: String(req.body?.pickupLocation || '').slice(0, 120),
+    dropoff: String(req.body?.dropoffLocation || '').slice(0, 120),
+  }),
+}), async (req, res) => {
   try {
     const pickupLocation = String(req.body.pickupLocation || '').trim();
     const dropoffLocation = String(req.body.dropoffLocation || '').trim();
@@ -322,7 +337,7 @@ router.get('/bookings/all', requireRole('logistics', 'admin'), async (req, res) 
 
 // DELETE /api/v1/transport/bookings/:id — the customer cancels until the
 // trip starts; the vehicle owner is told so they can free the slot.
-router.delete('/bookings/:id', auth, async (req, res) => {
+router.delete('/bookings/:id', auth, auditRoute({ action: 'cancel_transport_booking', category: 'booking', targetType: 'TransportBooking' }), async (req, res) => {
   try {
     const booking = await TransportBooking.findOne({
       _id: req.params.id,
@@ -367,7 +382,12 @@ router.delete('/bookings/:id', auth, async (req, res) => {
 });
 
 // PATCH /api/v1/transport/bookings/:id/status — logistics / admin
-router.patch('/bookings/:id/status', requireRole('logistics', 'admin'), async (req, res) => {
+router.patch('/bookings/:id/status', requireRole('logistics', 'admin'), auditRoute({
+  action: 'update_transport_booking_status',
+  category: 'booking',
+  targetType: 'TransportBooking',
+  details: (req) => ({ status: String(req.body?.status || '') }),
+}), async (req, res) => {
   try {
     const { status } = req.body;
     if (!BOOKING_STATUSES.includes(status)) {

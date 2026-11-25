@@ -5,6 +5,7 @@ const Loan = require('../models/Loan');
 const LoanApplication = require('../models/LoanApplication');
 const { auth } = require('../middleware/auth');
 const { requireRole, STAFF_ROLES } = require('../middleware/roleCheck');
+const { auditRoute } = require('../services/audit.service');
 
 // GET /api/loans
 router.get('/', async (req, res) => {
@@ -27,7 +28,13 @@ router.get('/my', auth, async (req, res) => {
 });
 
 // POST /api/loans/apply — farmers (and admins) apply for loans
-router.post('/apply', requireRole('farmer', 'admin'), async (req, res) => {
+router.post('/apply', requireRole('farmer', 'admin'), auditRoute({
+  action: 'apply_loan',
+  category: 'loan',
+  targetType: 'LoanApplication',
+  targetId: () => undefined,
+  details: (req) => ({ loanName: String(req.body?.loanName || '').slice(0, 120) }),
+}), async (req, res) => {
   try {
     const loanName = String(req.body.loanName || '').trim();
     const amount = String(req.body.amount || '').trim();
@@ -69,7 +76,12 @@ const STAFF_ONLY_FIELDS = ['status', 'repaymentStatus', 'remaining', 'nextPaymen
 const OWNER_EDITABLE_FIELDS = ['loan', 'loanName', 'amount'];
 
 // PUT /api/v1/loans/applications/:id — owner (limited fields) or staff only
-router.put('/applications/:id', auth, async (req, res) => {
+router.put('/applications/:id', auth, auditRoute({
+  action: 'update_loan_application',
+  category: 'loan',
+  targetType: 'LoanApplication',
+  details: (req) => ({ fields: Object.keys(req.body || {}).slice(0, 20) }),
+}), async (req, res) => {
   try {
     const existing = await LoanApplication.findById(req.params.id);
     if (!existing) return res.status(404).json({ message: 'Ombi hili halipatikani' });
