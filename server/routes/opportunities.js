@@ -4,18 +4,24 @@ const mongoose = require('mongoose');
 const router = express.Router();
 const Opportunity = require('../models/Opportunity');
 const OpportunityApplication = require('../models/OpportunityApplication');
+const Rating = require('../models/Rating');
 const User = require('../models/User');
 const { auth, optionalAuth } = require('../middleware/auth');
-const { STAFF_ROLES } = require('../middleware/roleCheck');
+const { STAFF_ROLES, requirePermission } = require('../middleware/roleCheck');
 const { auditRoute } = require('../services/audit.service');
 const { sendNotification } = require('../services/notification.service');
+const { recalcUserRating } = require('../services/rating.service');
 const cache = require('../services/cache.service');
 const {
   buildListFilter,
   isExpired,
   ageFromDateOfBirth,
   canTransition,
+  canApplicantTransition,
+  canRateApplication,
+  paymentError,
   nextOpportunityStatus,
+  PAYMENT_METHODS,
 } = require('../services/opportunity.service');
 
 const LIST_PREFIX = 'opportunities:list:';
@@ -186,7 +192,8 @@ router.post('/', auth, auditRoute({
       contactPhone: String(body.contactPhone || user.phone || '').slice(0, 20),
       startDate: dateOrNull(body.startDate),
       deadline,
-      posterVerified: Boolean(user.isVerified || user.phoneVerified || STAFF_ROLES.includes(user.role)),
+      posterVerified: verified,
+      posterVerifiedAt: verified ? new Date() : null,
     });
 
     await cache.delByPrefix(LIST_PREFIX);
@@ -396,6 +403,16 @@ router.get('/:id/applications', auth, async (req, res) => {
     }).select('name phone district ward village phoneVerified isVerified trustScore').lean();
     const byId = new Map(applicants.map((row) => [String(row._id), row]));
 
+    const ratings = await Rating.find({
+      ratedApplication: { $in: applications.map((row) => row._id) },
+    }).select('ratedApplication type rating comment rater raterName createdAt').lean();
+    const ratingsByApplication = new Map();
+    for (const rating of ratings) {
+      const key = String(rating.ratedApplication);
+      if (!ratingsByApplication.has(key)) ratingsByApplication.set(key, []);
+      ratingsByApplication.get(key).push(rating);
+    }
+
     res.json(applications.map((row) => {
       const profile = byId.get(String(row.applicant)) || {};
       return {
@@ -410,6 +427,7 @@ router.get('/:id/applications', auth, async (req, res) => {
           isVerified: Boolean(profile.isVerified),
           trustScore: profile.trustScore || 0,
         },
+        ratings: ratingsByApplication.get(String(row._id)) || [],
       };
     }));
   } catch (error) {
@@ -440,8 +458,10 @@ router.put('/applications/:id', auth, auditRoute({
     if (!isApplicant && !isOwner) {
       return res.status(403).json({ message: 'Huna ruhusa kubadilisha maombi haya' });
     }
-    if (isApplicant && !isOwner && next !== 'withdrawn') {
-      return res.status(403).json({ message: 'Mwombaji anaweza tu kuondoa maombi yake' });
+    if (isApplicant && !isOwner && !canApplicantTransition(application.status, next)) {
+      return res.status(403).json({
+        message: 'Mwombaji anaweza tu kuondoa maombi au kuwasilisha kukamilika kwa kazi',
+      });
     }
     if (!canTransition(application.status, next)) {
       return res.status(400).json({
@@ -451,6 +471,8 @@ router.put('/applications/:id', auth, auditRoute({
 
     application.status = next;
     application.statusUpdatedAt = new Date();
+    if (next === 'completion_requested') application.completionRequestedAt = new Date();
+    if (next === 'completed') application.completedAt = new Date();
     await application.save();
 
     if (next === 'accepted') {
@@ -463,7 +485,19 @@ router.put('/applications/:id', auth, auditRoute({
       await opportunity.save();
     }
 
-    if (next !== 'withdrawn') {
+    if (next === 'completed') {
+      opportunity.completedCount += 1;
+      await opportunity.save();
+    }
+
+    if (next === 'completion_requested') {
+      await notify(opportunity.owner, {
+        title: 'Kazi Yawasilishwa Kukamilika',
+        message: `${application.applicantName} amewasilisha kuwa kazi ya "${opportunity.title}" imekamilika. Thibitisha na rekodi malipo.`,
+        link: '/opportunities',
+        metadata: { opportunityId: opportunity._id, applicationId: application._id, status: next },
+      });
+    } else if (next !== 'withdrawn') {
       const labels = {
         shortlisted: 'umeorodheshwa kwa mahojiano',
         accepted: 'umekubaliwa',
@@ -478,9 +512,144 @@ router.put('/applications/:id', auth, auditRoute({
       });
     }
 
-    res.json({ application, opportunity: { status: opportunity.status, acceptedCount: opportunity.acceptedCount } });
+    res.json({
+      application,
+      opportunity: {
+        status: opportunity.status,
+        acceptedCount: opportunity.acceptedCount,
+        completedCount: opportunity.completedCount,
+      },
+    });
   } catch (error) {
     console.error('Update opportunity application error:', error);
+    res.status(500).json({ message: 'Hitilafu imetokea' });
+  }
+});
+
+// POST /api/v1/opportunities/applications/:id/payment — employer settles the job
+router.post('/applications/:id/payment', auth, auditRoute({
+  action: 'record_job_payment',
+  category: 'payment',
+  targetType: 'OpportunityApplication',
+}), async (req, res) => {
+  try {
+    const application = mongoose.isValidObjectId(req.params.id)
+      ? await OpportunityApplication.findById(req.params.id)
+      : null;
+    if (!application) return res.status(404).json({ message: 'Maombi hayapatikani' });
+
+    const opportunity = await Opportunity.findById(application.opportunity);
+    if (!opportunity) return res.status(404).json({ message: 'Fursa haipatikani' });
+
+    const isOwner = String(opportunity.owner) === String(req.user._id) || STAFF_ROLES.includes(req.user.role);
+    if (!isOwner) {
+      return res.status(403).json({ message: 'Mmiliki wa fursa pekee anaweza kurekodi malipo' });
+    }
+    if (application.status !== 'completed') {
+      return res.status(400).json({ message: 'Thibitisha kukamilika kwa kazi kabla ya malipo' });
+    }
+    if (application.paymentStatus !== 'unpaid') {
+      return res.status(409).json({ message: 'Malipo ya kazi hii yamerekodiwa' });
+    }
+
+    const body = req.body || {};
+    const waived = Boolean(body.waived);
+    const problem = paymentError({ waived, amount: body.amount, payAmount: opportunity.payAmount });
+    if (problem) return res.status(400).json({ message: problem });
+
+    const method = String(body.method || 'cash').toLowerCase();
+    if (!waived && !PAYMENT_METHODS.includes(method)) {
+      return res.status(400).json({ message: 'Njia ya malipo si sahihi' });
+    }
+
+    application.paymentStatus = waived ? 'waived' : 'paid';
+    application.paidAmount = waived ? 0 : Math.round(Number(body.amount));
+    application.paymentMethod = waived ? '' : method;
+    application.paymentReference = String(body.reference || '').slice(0, 120);
+    application.paidAt = new Date();
+    await application.save();
+
+    await notify(application.applicant, {
+      title: 'Malipo ya Kazi',
+      message: waived
+        ? `Kazi ya "${opportunity.title}" imerekodiwa kama bila malipo.`
+        : `Umerekodiwa malipo ya TZS ${application.paidAmount.toLocaleString('en-US')} kwa kazi ya "${opportunity.title}".`,
+      link: '/opportunities',
+      metadata: {
+        opportunityId: opportunity._id,
+        applicationId: application._id,
+        paymentStatus: application.paymentStatus,
+      },
+    });
+
+    res.json(application);
+  } catch (error) {
+    console.error('Record job payment error:', error);
+    res.status(500).json({ message: 'Hitilafu imetokea' });
+  }
+});
+
+// POST /api/v1/opportunities/applications/:id/rate — either side rates the other
+router.post('/applications/:id/rate', auth, auditRoute({
+  action: 'rate_job_application',
+  category: 'employment',
+  targetType: 'OpportunityApplication',
+}), async (req, res) => {
+  try {
+    const application = mongoose.isValidObjectId(req.params.id)
+      ? await OpportunityApplication.findById(req.params.id)
+      : null;
+    if (!application) return res.status(404).json({ message: 'Maombi hayapatikani' });
+
+    const opportunity = await Opportunity.findById(application.opportunity);
+    if (!opportunity) return res.status(404).json({ message: 'Fursa haipatikani' });
+
+    const isWorker = String(application.applicant) === String(req.user._id);
+    const isEmployer = String(opportunity.owner) === String(req.user._id);
+    if (!isWorker && !isEmployer) {
+      return res.status(403).json({ message: 'Huna ruhusa kukadiria kazi hii' });
+    }
+    if (!canRateApplication(application)) {
+      return res.status(400).json({
+        message: 'Unaweza kukadiria baada ya kazi kukamilika na malipo kurekodiwa',
+      });
+    }
+
+    const rating = Number(req.body.rating);
+    if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
+      return res.status(400).json({ message: 'Ukadiriaji lazima uwe kati ya 1 na 5' });
+    }
+    const type = isEmployer ? 'employer_to_worker' : 'worker_to_employer';
+    const ratedUser = isEmployer ? application.applicant : opportunity.owner;
+
+    const existing = await Rating.findOne({
+      rater: req.user._id,
+      ratedApplication: application._id,
+      type,
+    });
+    if (existing) return res.status(409).json({ message: 'Umeshakadiria kazi hii' });
+
+    const created = await Rating.create({
+      rater: req.user._id,
+      raterName: req.user.name || '',
+      ratedUser,
+      ratedApplication: application._id,
+      rating,
+      comment: String(req.body.comment || '').slice(0, 500),
+      type,
+    });
+    await recalcUserRating(ratedUser);
+
+    await notify(ratedUser, {
+      title: 'Ukadiriaji Mpya',
+      message: `Umepokea ukadiriaji wa ${rating}/5 kwa kazi ya "${opportunity.title}".`,
+      link: '/opportunities',
+      metadata: { opportunityId: opportunity._id, applicationId: application._id, rating },
+    });
+
+    res.status(201).json(created);
+  } catch (error) {
+    console.error('Rate job application error:', error);
     res.status(500).json({ message: 'Hitilafu imetokea' });
   }
 });

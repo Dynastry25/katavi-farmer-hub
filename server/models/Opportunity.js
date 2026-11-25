@@ -43,9 +43,11 @@ const opportunitySchema = new mongoose.Schema({
   // Minimum working age is fixed at 18 so child labour postings cannot exist.
   minimumAge: { type: Number, default: 18, min: 18 },
   posterVerified: { type: Boolean, default: false },
+  posterVerifiedAt: { type: Date, default: null },
   status: { type: String, enum: OPPORTUNITY_STATUSES, default: 'open' },
   applicationsCount: { type: Number, default: 0, min: 0 },
   acceptedCount: { type: Number, default: 0, min: 0 },
+  completedCount: { type: Number, default: 0, min: 0 },
 }, { timestamps: true });
 
 opportunitySchema.index({ status: 1, kind: 1, createdAt: -1 });

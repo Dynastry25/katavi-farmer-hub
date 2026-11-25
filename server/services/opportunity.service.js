@@ -37,19 +37,49 @@ const buildListFilter = (query = {}) => {
   return filter;
 };
 
-// Employers move applications forward; applicants may withdraw; nobody reopens
-// a rejected or completed application.
+// Employers move applications forward; applicants may withdraw, or signal that
+// the work is done; nobody reopens a rejected or completed application.
 const APPLICATION_TRANSITIONS = {
   pending: ['shortlisted', 'accepted', 'rejected', 'withdrawn'],
   shortlisted: ['accepted', 'rejected', 'withdrawn'],
-  accepted: ['completed'],
+  accepted: ['completion_requested', 'completed', 'withdrawn'],
+  completion_requested: ['completed', 'accepted'],
   rejected: [],
   withdrawn: [],
   completed: [],
 };
 
+const APPLICANT_MOVES = ['withdrawn', 'completion_requested'];
+
 const canTransition = (from, to) =>
   Boolean(APPLICATION_TRANSITIONS[from]?.includes(to));
+
+const canApplicantTransition = (from, to) => (
+  APPLICANT_MOVES.includes(to) && canTransition(from, to)
+);
+
+// Money closes the job: both sides may rate only after the employer has paid
+// (or marked a free/volunteer posting as waived).
+const isPaymentSettled = (application = {}) => (
+  ['paid', 'waived'].includes(application.paymentStatus)
+);
+
+const canRateApplication = (application = {}) => (
+  application.status === 'completed' && isPaymentSettled(application)
+);
+
+const PAYMENT_METHODS = ['cash', 'mobile_money', 'bank', 'other'];
+
+// Returns an error message, or null when the payment entry is acceptable.
+const paymentError = ({ waived, amount, payAmount = 0 } = {}) => {
+  const owed = Number(payAmount) || 0;
+  const paid = Number(amount) || 0;
+  if (waived) {
+    return owed > 0 ? 'Kazi hii ina malipo; rekodi kiasi kilicholipwa' : null;
+  }
+  if (!(paid > 0)) return 'Kiasi kilicholipwa kinahitajika';
+  return null;
+};
 
 const nextOpportunityStatus = ({ status, positions, acceptedCount }) => {
   if (status === 'closed') return 'closed';
@@ -63,6 +93,12 @@ module.exports = {
   ageFromDateOfBirth,
   buildListFilter,
   canTransition,
+  canApplicantTransition,
+  isPaymentSettled,
+  canRateApplication,
+  paymentError,
   nextOpportunityStatus,
   APPLICATION_TRANSITIONS,
+  APPLICANT_MOVES,
+  PAYMENT_METHODS,
 };
