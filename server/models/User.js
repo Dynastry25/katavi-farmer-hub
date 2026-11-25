@@ -36,11 +36,14 @@ const userSchema = new mongoose.Schema({
   businessLocation: { type: String, default: '' },
   expertise: { type: String, default: '' },
   experience: { type: String, default: '' },
+  // Attribution for the agent network: set once at registration.
+  referredBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
 }, { timestamps: true });
 
 userSchema.index({ role: 1, createdAt: -1 });
 userSchema.index({ createdAt: -1 });
 userSchema.index({ phone: 1 });
+userSchema.index({ referredBy: 1 });
 
 userSchema.pre('save', async function() {
   if (!this.isModified('password')) return;

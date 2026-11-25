@@ -6,12 +6,15 @@ const bcrypt = require('bcryptjs');
 const User = require('../models/User');
 const Expert = require('../models/Expert');
 const PhoneOtp = require('../models/PhoneOtp');
+const AgentProfile = require('../models/AgentProfile');
+const AgentCommission = require('../models/AgentCommission');
 const { auth } = require('../middleware/auth');
 const { sendNotification } = require('../services/notification.service');
 const { sendSms } = require('../services/sms.service');
 const { sendOtpEmail, isDeliverableEmail } = require('../services/email.service');
 const { loginLimiter, otpLimiter } = require('../middleware/rateLimits');
 const { audit, auditRoute } = require('../services/audit.service');
+const { commissionAmount, buildReference } = require('../services/agent.service');
 
 const STAFF_ROLES = ['admin', 'support', 'content_moderator', 'finance_officer'];
 const PUBLIC_ROLES = ['farmer', 'buyer', 'seller', 'expert', 'logistics'];
@@ -132,6 +135,34 @@ router.post('/register', async (req, res) => {
     });
 
     await ensureExpertProfile(user);
+
+    // Optional agent attribution. A known active agent earns a pending
+    // commission, which staff approve only after the farmer is verified.
+    const agentCode = String(req.body.agentCode || '').trim().toUpperCase();
+    if (agentCode) {
+      try {
+        const profile = await AgentProfile.findOne({ code: agentCode, status: 'active' }).lean();
+        if (profile && String(profile.user) !== String(user._id)) {
+          user.referredBy = profile.user;
+          await user.save();
+          if (user.role === 'farmer') {
+            await AgentCommission.create({
+              agent: profile.user,
+              agentCode: profile.code,
+              agentName: profile.name,
+              eventType: 'farmer_registration',
+              reference: buildReference('farmer_registration', { farmerId: user._id }),
+              amount: commissionAmount('farmer_registration'),
+              metadata: { farmerId: user._id, farmerName: user.name },
+            });
+          }
+        }
+      } catch (error) {
+        if (error.code !== 11000) {
+          console.error('Agent attribution error:', error.message);
+        }
+      }
+    }
 
     const token = generateToken(user._id);
 
