@@ -10,6 +10,10 @@ const paymentReference = ({ transactionId, orderType, orderId }) =>
 const refundReference = ({ refundId, transactionId, orderType, orderId }) =>
   `refund:${refundId || transactionId || 'manual'}:${orderType}:${orderId}`;
 
+// Bookings reuse this ledger but name their parties customer/provider.
+const payerOf = (order) => order.buyer || order.customer || null;
+const payeeOf = (order) => order.farmer || order.seller || order.provider || null;
+
 // Ledger writes are idempotent: a duplicate reference means the event was
 // already posted, which is success rather than an error for the caller.
 const postEntry = async (entry) => {
@@ -34,8 +38,8 @@ const recordPayment = ({ order, kind, transactionId, provider, amount }) => post
   provider: provider || order.paymentProvider || '',
   orderType: kind,
   orderId: order._id,
-  payer: order.buyer || null,
-  payee: order.farmer || order.seller || null,
+  payer: payerOf(order),
+  payee: payeeOf(order),
   metadata: { orderStatus: order.status, paymentStatus: order.paymentStatus },
 });
 
@@ -53,8 +57,8 @@ const recordRefund = ({ order, kind, amount, refundId, reason }) => postEntry({
   provider: order.paymentProvider || '',
   orderType: kind,
   orderId: order._id,
-  payer: order.buyer || null,
-  payee: order.farmer || order.seller || null,
+  payer: payerOf(order),
+  payee: payeeOf(order),
   reason: String(reason || '').slice(0, 300),
   metadata: { paymentStatus: order.paymentStatus },
 });

@@ -49,6 +49,10 @@ const canViewTarget = async (target, user) => {
   const { order, kind } = target;
   if (String(order.buyer) === String(user._id)) return true;
   if (kind === 'order' && String(order.farmer) === String(user._id)) return true;
+  if (kind === 'booking') {
+    return String(order.customer) === String(user._id)
+      || String(order.provider) === String(user._id);
+  }
   if (kind === 'input') {
     return Boolean(await InputProduct.exists({
       _id: { $in: order.items.map((item) => item.product) },

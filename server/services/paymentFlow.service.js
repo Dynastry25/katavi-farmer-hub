@@ -1,6 +1,7 @@
 const Order = require('../models/Order');
 const InputOrder = require('../models/InputOrder');
 const InputProduct = require('../models/InputProduct');
+const ServiceBooking = require('../models/ServiceBooking');
 const { refundPayment } = require('./payment.service');
 const { sendNotification } = require('./notification.service');
 const ledger = require('./ledger.service');
@@ -10,14 +11,16 @@ const ledger = require('./ledger.service');
 const DEAD_STATUSES = {
   order: ['rejected', 'expired', 'cancelled'],
   input: ['cancelled'],
+  booking: ['cancelled', 'declined'],
 };
 
 const PAYMENT_LINKS = {
   order: '/buyer/orders',
   input: '/buyer/orders?tab=inputs',
+  booking: '/services',
 };
 
-const amountFor = (order, kind) => {
+const amountFor = (order) => {
   const paid = Number(order.paymentAmount) || 0;
   if (paid > 0) return paid;
   return Number(order.totalAmount) || 0;
@@ -34,6 +37,16 @@ const notify = async (userId, payload) => {
 
 const notifyPaymentSettled = async (order, kind) => {
   const amount = money(amountFor(order, kind));
+  if (kind === 'booking') {
+    await notify(order.provider, {
+      title: 'Malipo Yamekamilika',
+      message: `${order.customerName} amelipa ${amount} kwa huduma ya ${order.title}.`,
+      link: '/services',
+      metadata: { bookingId: order._id, paymentStatus: 'paid' },
+    });
+    return;
+  }
+
   if (kind === 'order') {
     await notify(order.farmer, {
       title: 'Malipo Yamekamilika',
@@ -72,7 +85,12 @@ const findPaymentTargets = async (transactionId) => {
   }
 
   const inputOrders = await InputOrder.find({ paymentTransactionId: transaction });
-  return inputOrders.map((order) => ({ kind: 'input', order }));
+  if (inputOrders.length) {
+    return inputOrders.map((order) => ({ kind: 'input', order }));
+  }
+
+  const bookings = await ServiceBooking.find({ paymentTransactionId: transaction });
+  return bookings.map((order) => ({ kind: 'booking', order }));
 };
 
 const paymentSummary = ({ order, kind }) => ({
@@ -96,15 +114,19 @@ const markRefunded = async (order, kind, { amount, reason, refundId }) => {
 
   await ledger.recordRefund({ order, kind, amount, refundId, reason });
 
-  await notify(order.buyer, {
+  const payer = order.buyer || order.customer;
+  const targetMeta = kind === 'order'
+    ? { orderId: order._id }
+    : kind === 'input'
+      ? { inputOrderId: order._id }
+      : { bookingId: order._id };
+  await notify(payer, {
     title: 'Malipo Yamerejeshwa',
     message: `Malipo ya ${money(amount)} yamerejeshwa kwenye akaunti yako.` +
       (reason ? ` Sababu: ${reason}.` : ''),
     link: PAYMENT_LINKS[kind],
     metadata: {
-      ...(kind === 'order'
-        ? { orderId: order._id }
-        : { inputOrderId: order._id }),
+      ...targetMeta,
       paymentStatus: 'refunded',
     },
   });

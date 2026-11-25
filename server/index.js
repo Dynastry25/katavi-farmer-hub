@@ -225,6 +225,7 @@ app.use('/api/v1/shamba', require('./routes/shamba'));
 app.use('/api/v1/farms', require('./routes/farms'));
 app.use('/api/v1/opportunities', require('./routes/opportunities'));
 app.use('/api/v1/contracts', require('./routes/contracts'));
+app.use('/api/v1/farm-services', require('./routes/farmServices'));
 app.use('/api/v1/analytics', require('./routes/analytics'));
 app.use('/api/v1/settings', require('./routes/settings'));
 app.use('/api/v1/input-products', require('./routes/inputProducts'));
