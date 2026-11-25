@@ -253,6 +253,7 @@ app.use('/api/v1/earnings', require('./routes/earnings'));
 app.use('/api/v1/billing', require('./routes/billing'));
 app.use('/api/v1/documents', require('./routes/documents'));
 app.use('/api/v1/jobs', require('./routes/jobs'));
+app.use('/api/v1/search', require('./routes/search'));
 app.use('/api/v1/docs', require('./routes/docs'));
 app.use('/api/v1/quality', require('./routes/quality'));
 app.use('/api/v1/bulk', require('./routes/bulk'));
