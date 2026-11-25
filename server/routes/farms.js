@@ -8,6 +8,7 @@ const FarmActivity = require('../models/FarmActivity');
 const { auth } = require('../middleware/auth');
 const { requireRole } = require('../middleware/roleCheck');
 const { auditRoute } = require('../services/audit.service');
+const { buildListEnvelope } = require('../services/listResponse.service');
 const {
   seasonOf,
   summarizeSeason,
@@ -67,7 +68,7 @@ router.get('/', auth, requireRole(...FARM_ROLES), async (req, res) => {
   try {
     const filter = ownerFilter(req);
     const farms = await Farm.find(filter).sort({ isActive: -1, createdAt: -1 }).lean();
-    if (!farms.length) return res.json([]);
+    if (!farms.length) return res.json(buildListEnvelope([], req.query));
 
     const farmIds = farms.map((farm) => farm._id);
     const [plotCounts, activePlantings] = await Promise.all([
@@ -88,11 +89,11 @@ router.get('/', auth, requireRole(...FARM_ROLES), async (req, res) => {
     const plots = new Map(plotCounts.map((row) => [String(row._id), row.count]));
     const plantings = new Map(activePlantings.map((row) => [String(row._id), row.count]));
 
-    res.json(farms.map((farm) => ({
+    res.json(buildListEnvelope(farms.map((farm) => ({
       ...farm,
       plotCount: plots.get(String(farm._id)) || 0,
       activePlantings: plantings.get(String(farm._id)) || 0,
-    })));
+    }))));
   } catch (error) {
     console.error('List farms error:', error);
     res.status(500).json({ message: 'Hitilafu imetokea' });
@@ -146,7 +147,7 @@ router.get('/plantings', auth, requireRole(...FARM_ROLES), async (req, res) => {
       .sort({ plantingDate: -1, createdAt: -1 })
       .limit(limit)
       .lean();
-    res.json(plantings);
+    res.json(buildListEnvelope(plantings, req.query));
   } catch (error) {
     console.error('List plantings error:', error);
     res.status(500).json({ message: 'Hitilafu imetokea' });
@@ -284,7 +285,7 @@ router.get('/activities', auth, requireRole(...FARM_ROLES), async (req, res) => 
       .lean();
 
     res.json({
-      activities,
+      ...buildListEnvelope(activities, req.query),
       totals: activityTotals(activities),
     });
   } catch (error) {
