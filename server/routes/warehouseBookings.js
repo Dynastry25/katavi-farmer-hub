@@ -3,6 +3,11 @@ const router = express.Router();
 const mongoose = require('mongoose');
 const { auth } = require('../middleware/auth');
 const { Warehouse, StorageBooking } = require('../models/Warehouse');
+const {
+  freeSpaceBags,
+  storageFee,
+  reservedBagsFor,
+} = require('../services/warehouse.service');
 
 const numeric = (value, fallback) => {
   const num = Number(value);
@@ -39,12 +44,15 @@ router.post('/', auth, async (req, res) => {
     const days = Math.max(0, Math.round(numeric(req.body.days, 0)));
     const months = Math.max(0, Math.round(numeric(req.body.months, 0)));
 
-    let totalFee = 0;
-    if (days > 0 && warehouse.feePerBagPerDay > 0) {
-      totalFee = warehouse.feePerBagPerDay * bags * days;
-    } else if (warehouse.feePerBagPerMonth > 0) {
-      totalFee = warehouse.feePerBagPerMonth * bags * Math.max(months, 1);
-    } else {
+    const free = freeSpaceBags(warehouse, await reservedBagsFor(warehouse._id));
+    if (bags > free) {
+      return res.status(400).json({
+        message: `Ghala lina nafasi ya gunia ${Number.isFinite(free) ? free : 'zisizo na kikomo'} pekee`,
+      });
+    }
+
+    const fee = storageFee(warehouse, { bags, days, months });
+    if (!fee) {
       return res.status(400).json({ message: 'Ghala hili halina bei iliyowekwa' });
     }
 
@@ -53,9 +61,9 @@ router.post('/', auth, async (req, res) => {
       warehouse: warehouse._id,
       warehouseName: warehouse.name,
       bags,
-      months: days > 0 ? 0 : Math.max(months, 1),
-      days,
-      totalFee,
+      months: fee.months,
+      days: fee.days,
+      totalFee: fee.totalFee,
       status: 'pending',
     });
     res.status(201).json({ booking });

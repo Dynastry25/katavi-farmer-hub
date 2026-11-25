@@ -25,15 +25,23 @@ const TransportBookingSchema = new Schema({
   transportProviderName: { type: String, default: '' },
   pickupLocation: { type: String, required: true },
   dropoffLocation: { type: String, required: true },
+  goodsType: { type: String, default: '' },
   distanceKm: { type: Number, default: 0 },
+  weightKg: { type: Number, default: 0 },
   ratePerKm: { type: Number, default: 0 },
   totalAmount: { type: Number, default: 0 },
+  scheduledDate: { type: Date, default: null },
+  trackingCode: { type: String, default: '' },
   status: { type: String, default: 'pending' },
   notes: { type: String, default: '' },
+  cancelledAt: { type: Date, default: null },
+  cancelReason: { type: String, default: '' },
+  carrierRating: { type: Number, default: 0, min: 0, max: 5 },
 }, { timestamps: true });
 
 TransportBookingSchema.index({ user: 1, createdAt: -1 });
 TransportBookingSchema.index({ transportProvider: 1, status: 1, createdAt: -1 });
+TransportBookingSchema.index({ trackingCode: 1 }, { unique: true, sparse: true });
 
 module.exports = {
   TransportProvider: mongoose.model('TransportProvider', TransportProviderSchema),

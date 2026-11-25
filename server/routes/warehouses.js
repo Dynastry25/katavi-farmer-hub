@@ -7,6 +7,7 @@ const { sendNotification } = require('../services/notification.service');
 const { Warehouse, StorageBooking } = require('../models/Warehouse');
 const cache = require('../services/cache.service');
 const { auditRoute } = require('../services/audit.service');
+const { freeSpaceBags, storageFee, reservedBagsFor } = require('../services/warehouse.service');
 
 const LIST_KEY = 'warehouses:list';
 
@@ -191,12 +192,16 @@ router.post('/bookings', auth, auditRoute({
     const days = Math.max(0, Math.round(numeric(req.body.days, 0)));
     const months = Math.max(0, Math.round(numeric(req.body.months, 0)));
 
-    let totalFee = 0;
-    if (days > 0 && warehouse.feePerBagPerDay > 0) {
-      totalFee = warehouse.feePerBagPerDay * bags * days;
-    } else if (warehouse.feePerBagPerMonth > 0) {
-      totalFee = warehouse.feePerBagPerMonth * bags * Math.max(months, 1);
-    } else {
+    const reserved = await reservedBagsFor(warehouse._id);
+    const free = freeSpaceBags(warehouse, reserved);
+    if (bags > free) {
+      return res.status(400).json({
+        message: `Ghala lina nafasi ya gunia ${Number.isFinite(free) ? free : 'zisizo na kikomo'} pekee`,
+      });
+    }
+
+    const fee = storageFee(warehouse, { bags, days, months });
+    if (!fee) {
       return res.status(400).json({ message: 'Ghala hili halina bei iliyowekwa' });
     }
 
@@ -205,9 +210,9 @@ router.post('/bookings', auth, auditRoute({
       warehouse: warehouse._id,
       warehouseName: warehouse.name,
       bags,
-      months: days > 0 ? 0 : Math.max(months, 1),
-      days,
-      totalFee,
+      months: fee.months,
+      days: fee.days,
+      totalFee: fee.totalFee,
       status: 'pending',
     });
 
@@ -324,6 +329,29 @@ router.delete('/bookings/:id', auth, auditRoute({ action: 'cancel_storage_bookin
     res.json({ message: 'Uhifadhi umeghairiwa', booking });
   } catch (error) {
     console.error('Cancel storage booking error:', error);
+    res.status(500).json({ message: 'Hitilafu imetokea' });
+  }
+});
+
+// GET /api/v1/warehouses/:id — one warehouse plus its free space in bags.
+// Declared after the /bookings routes so "bookings" is not taken as an id.
+router.get('/:id', async (req, res) => {
+  try {
+    if (!mongoose.isValidObjectId(req.params.id)) {
+      return res.status(404).json({ message: 'Ghala halipo' });
+    }
+    const warehouse = await Warehouse.findById(req.params.id).lean();
+    if (!warehouse) return res.status(404).json({ message: 'Ghala halipo' });
+
+    const reserved = await reservedBagsFor(warehouse._id);
+    const free = freeSpaceBags(warehouse, reserved);
+    res.json({
+      ...warehouse,
+      reservedBags: reserved,
+      availableBags: Number.isFinite(free) ? free : null,
+    });
+  } catch (error) {
+    console.error('Get warehouse error:', error);
     res.status(500).json({ message: 'Hitilafu imetokea' });
   }
 });

@@ -6,8 +6,14 @@ const { requireRole } = require('../middleware/roleCheck');
 const { sendNotification } = require('../services/notification.service');
 const { TransportProvider, TransportBooking } = require('../models/Transport');
 const TransportRate = require('../models/TransportRate');
+const Rating = require('../models/Rating');
 const cache = require('../services/cache.service');
 const { auditRoute } = require('../services/audit.service');
+const {
+  transportFare,
+  exceedsCapacity,
+  makeTrackingCode,
+} = require('../services/transport.service');
 
 const PROVIDERS_PREFIX = 'transport:providers';
 
@@ -46,8 +52,6 @@ const resolveVehicleRate = async (vehicleType) => {
     perKg: numeric(rate.perKg, defaults.perKg),
   };
 };
-
-const roundFee = (value) => Math.round(value / 500) * 500;
 
 const providerFields = (body) => {
   const data = {};
@@ -278,10 +282,23 @@ router.post('/bookings', auth, auditRoute({
     const rate = await resolveVehicleRate(provider.vehicleType);
     const distanceKm = numeric(req.body.distanceKm, 0);
     const weightKg = numeric(req.body.weightKg, 0);
-    const ratePerKm = provider.ratePerKm > 0 ? provider.ratePerKm : rate.perKm;
-    const totalAmount = roundFee(
-      rate.base + ratePerKm * distanceKm + rate.perKg * weightKg
-    );
+    if (exceedsCapacity({ capacityKg: provider.capacityKg, weightKg })) {
+      return res.status(400).json({
+        message: `Mzigo ni mzito kuliko uwezo wa gari (${provider.capacityKg} kg)`,
+      });
+    }
+
+    const { perKm: ratePerKm, totalAmount } = transportFare({
+      rate,
+      providerRatePerKm: provider.ratePerKm,
+      distanceKm,
+      weightKg,
+    });
+
+    const scheduledDate = req.body.scheduledDate ? new Date(req.body.scheduledDate) : null;
+    if (scheduledDate && Number.isNaN(scheduledDate.getTime())) {
+      return res.status(400).json({ message: 'Tarehe ya safari si sahihi' });
+    }
 
     const booking = await TransportBooking.create({
       user: req.user._id,
@@ -289,9 +306,13 @@ router.post('/bookings', auth, auditRoute({
       transportProviderName: provider.name,
       pickupLocation,
       dropoffLocation,
+      goodsType: String(req.body.goodsType || '').trim().slice(0, 120),
       distanceKm,
+      weightKg,
       ratePerKm,
       totalAmount,
+      scheduledDate,
+      trackingCode: makeTrackingCode(),
       notes: String(req.body.notes || '').trim().slice(0, 300),
       status: 'pending',
     });
@@ -335,6 +356,96 @@ router.get('/bookings/all', requireRole('logistics', 'admin'), async (req, res) 
   }
 });
 
+// GET /api/v1/transport/bookings/:id — customer, vehicle owner or admin.
+router.get('/bookings/:id', auth, async (req, res) => {
+  try {
+    if (!mongoose.isValidObjectId(req.params.id)) {
+      return res.status(404).json({ message: 'Ombi halipo' });
+    }
+    const booking = await TransportBooking.findById(req.params.id).lean();
+    if (!booking) return res.status(404).json({ message: 'Ombi halipo' });
+
+    if (req.user.role !== 'admin' && String(booking.user) !== String(req.user._id)) {
+      const provider = booking.transportProvider
+        ? await TransportProvider.findById(booking.transportProvider).select('owner').lean()
+        : null;
+      if (!provider?.owner || String(provider.owner) !== String(req.user._id)) {
+        return res.status(403).json({ message: 'Huna ruhusa kuona ombi hili' });
+      }
+    }
+
+    res.json({ booking });
+  } catch (error) {
+    console.error('Get transport booking error:', error);
+    res.status(500).json({ message: 'Hitilafu imetokea' });
+  }
+});
+
+// POST /api/v1/transport/bookings/:id/rate — customer rates a completed trip.
+router.post('/bookings/:id/rate', auth, auditRoute({
+  action: 'rate_transport_booking',
+  category: 'booking',
+  targetType: 'TransportBooking',
+}), async (req, res) => {
+  try {
+    const booking = mongoose.isValidObjectId(req.params.id)
+      ? await TransportBooking.findById(req.params.id)
+      : null;
+    if (!booking) return res.status(404).json({ message: 'Ombi halipo' });
+    if (String(booking.user) !== String(req.user._id)) {
+      return res.status(403).json({ message: 'Huna ruhusa kutathmini ombi hili' });
+    }
+    if (booking.status !== 'completed') {
+      return res.status(400).json({ message: 'Unaweza kutathmini safari iliyokamilika tu' });
+    }
+    if (booking.carrierRating > 0) {
+      return res.status(409).json({ message: 'Umeshatathmini safari hii' });
+    }
+
+    const rating = Math.round(Number(req.body.rating));
+    if (!Number.isFinite(rating) || rating < 1 || rating > 5) {
+      return res.status(400).json({ message: 'Toa alama kati ya 1 na 5' });
+    }
+
+    booking.carrierRating = rating;
+    await booking.save();
+
+    const provider = await TransportProvider.findById(booking.transportProvider);
+    if (provider) {
+      const reviews = Number(provider.totalReviews) || 0;
+      const total = (Number(provider.averageRating) || 0) * reviews + rating;
+      provider.totalReviews = reviews + 1;
+      provider.averageRating = Math.round((total / provider.totalReviews) * 10) / 10;
+      await provider.save();
+      await cache.delByPrefix(PROVIDERS_PREFIX);
+    }
+
+    await Rating.create({
+      rater: req.user._id,
+      raterName: req.user.name || '',
+      ratedTransportProvider: booking.transportProvider,
+      rating,
+      comment: String(req.body.comment || '').slice(0, 500),
+      type: 'buyer_to_carrier',
+    });
+
+    if (provider?.owner) {
+      await sendNotification(provider.owner, {
+        title: 'Tathmini Mpya',
+        message: `${req.user.name || 'Mteja'} ametathmini safari yako kwa alama ${rating}/5.`,
+        type: 'system',
+        link: '/logistics',
+        metadata: { bookingId: String(booking._id), rating },
+      });
+    }
+
+    res.status(201).json({ message: 'Asante kwa tathmini yako', rating });
+  } catch (error) {
+    console.error('Rate transport booking error:', error);
+    res.status(500).json({ message: 'Hitilafu imetokea' });
+  }
+});
+
 // DELETE /api/v1/transport/bookings/:id — the customer cancels until the
 // trip starts; the vehicle owner is told so they can free the slot.
 router.delete('/bookings/:id', auth, auditRoute({ action: 'cancel_transport_booking', category: 'booking', targetType: 'TransportBooking' }), async (req, res) => {
@@ -358,6 +469,8 @@ router.delete('/bookings/:id', auth, auditRoute({ action: 'cancel_transport_book
 
     const reason = String(req.body.reason || '').trim().slice(0, 200);
     booking.status = 'cancelled';
+    booking.cancelledAt = new Date();
+    booking.cancelReason = reason;
     await booking.save();
 
     const provider = booking.transportProvider
