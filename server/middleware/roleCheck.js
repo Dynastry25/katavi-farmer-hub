@@ -18,6 +18,7 @@ const ROLE_PERMISSIONS = {
   'loans.moderate': ['admin', 'finance_officer'],
   'loans.repayment': ['admin', 'finance_officer'],
   'disputes.resolve': ['admin', 'support'],
+  'verifications.review': ['admin', 'support'],
   'reports.view': ['admin', 'finance_officer'],
   'weather.manage': ['admin'],
   'logistics.view': ['admin', 'logistics'],

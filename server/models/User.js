@@ -9,6 +9,8 @@ const userSchema = new mongoose.Schema({
   role: { type: String, enum: ['farmer', 'buyer', 'seller', 'expert', 'logistics', 'admin', 'support', 'content_moderator', 'finance_officer'], default: 'farmer' },
   isActive: { type: Boolean, default: true },
   isVerified: { type: Boolean, default: false },
+  // Business roles cleared through the KYC review workflow.
+  verifiedRoles: [{ type: String }],
   profilePicture: { type: String, default: '' },
   location: { type: String, default: '' },
   district: { type: String, default: '' },
