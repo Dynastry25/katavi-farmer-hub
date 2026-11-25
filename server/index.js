@@ -15,6 +15,7 @@ const { auth } = require('./middleware/auth');
 const { requireRole } = require('./middleware/roleCheck');
 const logger = require('./utils/logger');
 const metrics = require('./services/metrics.service');
+const jobQueue = require('./services/jobQueue.service');
 const {
   generalLimiter,
   authLimiter,
@@ -235,6 +236,8 @@ app.use('/api/v1/kyc', require('./routes/kyc'));
 app.use('/api/v1/insights', require('./routes/insights'));
 app.use('/api/v1/earnings', require('./routes/earnings'));
 app.use('/api/v1/billing', require('./routes/billing'));
+app.use('/api/v1/documents', require('./routes/documents'));
+app.use('/api/v1/jobs', require('./routes/jobs'));
 app.use('/api/v1/docs', require('./routes/docs'));
 app.use('/api/v1/quality', require('./routes/quality'));
 app.use('/api/v1/bulk', require('./routes/bulk'));
@@ -333,6 +336,9 @@ const expiryJob = process.env.DISABLE_CRON === 'true'
     }
   });
 
+// Background worker for queued PDF and report jobs.
+const jobWorker = process.env.DISABLE_CRON === 'true' ? null : jobQueue.startWorker();
+
 let shuttingDown = false;
 const shutdown = async (signal) => {
   if (shuttingDown) return;
@@ -344,6 +350,7 @@ const shutdown = async (signal) => {
 
   try {
     if (expiryJob) expiryJob.stop();
+    if (jobWorker) jobQueue.stopWorker();
     await new Promise((resolve) => io.close(resolve));
     await mongoose.connection.close(false);
     process.exit(0);
