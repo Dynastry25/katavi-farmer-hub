@@ -3,7 +3,6 @@ const cors = require('cors');
 const dotenv = require('dotenv');
 const compression = require('compression');
 const helmet = require('helmet');
-const morgan = require('morgan');
 const http = require('http');
 const mongoose = require('mongoose');
 const jwt = require('jsonwebtoken');
@@ -11,6 +10,11 @@ const { Server } = require('socket.io');
 const cron = require('node-cron');
 const connectDB = require('./config/db');
 const { mongoSanitize } = require('./middleware/sanitize');
+const { requestContext } = require('./middleware/requestContext');
+const { auth } = require('./middleware/auth');
+const { requireRole } = require('./middleware/roleCheck');
+const logger = require('./utils/logger');
+const metrics = require('./services/metrics.service');
 const {
   generalLimiter,
   authLimiter,
@@ -64,9 +68,8 @@ app.use(helmet({ contentSecurityPolicy: false }));
 app.set('trust proxy', 1);
 app.set('query parser', 'simple');
 
-if (!isProd) {
-  app.use(morgan('dev'));
-}
+// First, so every log line and error response shares the request id.
+app.use(requestContext);
 
 app.use(compression({ threshold: 1024 }));
 
@@ -228,6 +231,12 @@ app.use('/api/v1/transport', require('./routes/transport'));
 app.use('/api/v1/warehouses', require('./routes/warehouses'));
 app.use('/api/v1/warehouse-bookings', require('./routes/warehouseBookings'));
 
+// Operational metrics for dashboards and alerting. Admin only: counts and route
+// names are exposed, never request bodies.
+app.get('/api/v1/metrics', auth, requireRole('admin'), (req, res) => {
+  res.json(metrics.snapshot());
+});
+
 // 404 handler
 app.use('/api', (req, res) => {
   res.status(404).json({ message: 'Ruta hii haipatikani' });
@@ -261,11 +270,18 @@ app.use((err, req, res, next) => {
   }
 
   if (status >= 500) {
-    console.error(`[error] ${req.method} ${req.originalUrl}:`, err);
+    logger.error('Unhandled server error', {
+      requestId: req.id,
+      method: req.method,
+      url: req.originalUrl,
+      status,
+      error: err,
+    });
   }
 
   res.status(status).json({
     message: status >= 500 ? 'Hitilafu imetokea kwenye seva' : message,
+    requestId: req.id,
     ...(!isProd && status >= 500 && { stack: err.stack }),
   });
 });
@@ -278,7 +294,7 @@ server.requestTimeout = 60000;
 
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
-  console.log(`Server inafanya kazi kwenye port ${PORT}`);
+  logger.info('Server started', { port: Number(PORT), environment: process.env.NODE_ENV || 'development' });
 });
 
 // Auto-expiry job: mark pending orders past their expiresAt as 'expired' and
@@ -289,12 +305,12 @@ const expiryJob = process.env.DISABLE_CRON === 'true'
   ? null
   : cron.schedule('0 * * * *', async () => {
     try {
-      const released = await ordersRouter.expirePendingOrders();
-      if (released > 0) console.log(`[cron] Expired ${released} order(s) and released their stock reservations`);
+        const released = await ordersRouter.expirePendingOrders();
+      if (released > 0) logger.info('Expired pending orders and released stock', { released });
       const inputReleased = await inputOrdersRouter.expirePendingInputOrders();
-      if (inputReleased > 0) console.log(`[cron] Expired ${inputReleased} input order(s) and released their stock`);
+      if (inputReleased > 0) logger.info('Expired input orders and released stock', { released: inputReleased });
     } catch (err) {
-      console.error('[cron] Auto-expiry job error:', err);
+      logger.error('Auto-expiry job failed', { error: err });
     }
   });
 
@@ -302,7 +318,7 @@ let shuttingDown = false;
 const shutdown = async (signal) => {
   if (shuttingDown) return;
   shuttingDown = true;
-  console.log(`${signal} received. Shutting down gracefully...`);
+  logger.info('Shutdown signal received', { signal });
 
   const forceExit = setTimeout(() => process.exit(1), 10000);
   forceExit.unref();
@@ -313,7 +329,7 @@ const shutdown = async (signal) => {
     await mongoose.connection.close(false);
     process.exit(0);
   } catch (err) {
-    console.error('Graceful shutdown error:', err.message);
+    logger.error('Graceful shutdown failed', { error: err });
     process.exit(1);
   }
 };
@@ -321,10 +337,10 @@ const shutdown = async (signal) => {
 process.on('SIGTERM', () => shutdown('SIGTERM'));
 process.on('SIGINT', () => shutdown('SIGINT'));
 process.on('unhandledRejection', (reason) => {
-  console.error('[process] Unhandled rejection:', reason);
+  logger.error('Unhandled promise rejection', { error: reason instanceof Error ? reason : new Error(String(reason)) });
 });
 process.on('uncaughtException', (err) => {
-  console.error('[process] Uncaught exception:', err);
+  logger.error('Uncaught exception', { error: err });
   shutdown('uncaughtException');
 });
 

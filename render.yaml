@@ -34,5 +34,9 @@ services:
         sync: false
       - key: FRONTEND_URL
         sync: false
+      - key: LOG_LEVEL
+        value: info
+      - key: ALERT_WEBHOOK_URL
+        sync: false
       - key: PORT
         value: 10000
