@@ -10,9 +10,11 @@ const paymentReference = ({ transactionId, orderType, orderId }) =>
 const refundReference = ({ refundId, transactionId, orderType, orderId }) =>
   `refund:${refundId || transactionId || 'manual'}:${orderType}:${orderId}`;
 
-// Bookings reuse this ledger but name their parties customer/provider.
-const payerOf = (order) => order.buyer || order.customer || null;
-const payeeOf = (order) => order.farmer || order.seller || order.provider || null;
+// Bookings name their parties customer/provider; training enrollments name
+// them learner/instructor.
+const payerOf = (order) => order.buyer || order.customer || order.learner || null;
+const payeeOf = (order) => order.farmer || order.seller || order.provider
+  || order.instructor || null;
 
 // Ledger writes are idempotent: a duplicate reference means the event was
 // already posted, which is success rather than an error for the caller.

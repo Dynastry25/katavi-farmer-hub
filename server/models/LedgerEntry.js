@@ -8,7 +8,7 @@ const ledgerEntrySchema = new mongoose.Schema({
   currency: { type: String, default: 'TZS' },
   transactionId: { type: String, default: '' },
   provider: { type: String, default: '' },
-  orderType: { type: String, enum: ['order', 'input', 'booking', ''], default: '' },
+  orderType: { type: String, enum: ['order', 'input', 'booking', 'training', ''], default: '' },
   orderId: { type: mongoose.Schema.Types.ObjectId, default: null },
   payer: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
   payee: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },

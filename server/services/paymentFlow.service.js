@@ -2,6 +2,7 @@ const Order = require('../models/Order');
 const InputOrder = require('../models/InputOrder');
 const InputProduct = require('../models/InputProduct');
 const ServiceBooking = require('../models/ServiceBooking');
+const TrainingEnrollment = require('../models/TrainingEnrollment');
 const { refundPayment } = require('./payment.service');
 const { sendNotification } = require('./notification.service');
 const ledger = require('./ledger.service');
@@ -12,12 +13,14 @@ const DEAD_STATUSES = {
   order: ['rejected', 'expired', 'cancelled'],
   input: ['cancelled'],
   booking: ['cancelled', 'declined'],
+  training: ['cancelled'],
 };
 
 const PAYMENT_LINKS = {
   order: '/buyer/orders',
   input: '/buyer/orders?tab=inputs',
   booking: '/services',
+  training: '/training',
 };
 
 const amountFor = (order) => {
@@ -37,6 +40,22 @@ const notify = async (userId, payload) => {
 
 const notifyPaymentSettled = async (order, kind) => {
   const amount = money(amountFor(order, kind));
+  if (kind === 'training') {
+    await notify(order.learner, {
+      title: 'Malipo Yamekamilika',
+      message: `Umefanikiwa kulipia kozi "${order.courseTitle}" (${amount}).`,
+      link: PAYMENT_LINKS.training,
+      metadata: { enrollmentId: order._id, paymentStatus: 'paid' },
+    });
+    await notify(order.instructor, {
+      title: 'Ada ya Kozi Imelipwa',
+      message: `${order.learnerName} amelipa ${amount} kwa kozi "${order.courseTitle}".`,
+      link: PAYMENT_LINKS.training,
+      metadata: { enrollmentId: order._id, paymentStatus: 'paid' },
+    });
+    return;
+  }
+
   if (kind === 'booking') {
     await notify(order.provider, {
       title: 'Malipo Yamekamilika',
@@ -90,7 +109,12 @@ const findPaymentTargets = async (transactionId) => {
   }
 
   const bookings = await ServiceBooking.find({ paymentTransactionId: transaction });
-  return bookings.map((order) => ({ kind: 'booking', order }));
+  if (bookings.length) {
+    return bookings.map((order) => ({ kind: 'booking', order }));
+  }
+
+  const enrollments = await TrainingEnrollment.find({ paymentTransactionId: transaction });
+  return enrollments.map((order) => ({ kind: 'training', order }));
 };
 
 const paymentSummary = ({ order, kind }) => ({
@@ -114,12 +138,14 @@ const markRefunded = async (order, kind, { amount, reason, refundId }) => {
 
   await ledger.recordRefund({ order, kind, amount, refundId, reason });
 
-  const payer = order.buyer || order.customer;
+  const payer = order.buyer || order.customer || order.learner;
   const targetMeta = kind === 'order'
     ? { orderId: order._id }
     : kind === 'input'
       ? { inputOrderId: order._id }
-      : { bookingId: order._id };
+      : kind === 'training'
+        ? { enrollmentId: order._id }
+        : { bookingId: order._id };
   await notify(payer, {
     title: 'Malipo Yamerejeshwa',
     message: `Malipo ya ${money(amount)} yamerejeshwa kwenye akaunti yako.` +
@@ -256,6 +282,11 @@ const applyToTarget = async ({ order, kind }, { status, reason }) => {
     order.paidAt = new Date();
     if (!(Number(order.paymentAmount) > 0)) {
       order.paymentAmount = amountFor(order, kind);
+    }
+    // A paid course fee admits the learner; the dead-status check below still
+    // protects a learner who cancelled while the payment was in flight.
+    if (kind === 'training' && order.status === 'pending_payment') {
+      order.status = 'enrolled';
     }
     await order.save();
     await ledger.recordPayment({

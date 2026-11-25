@@ -53,6 +53,10 @@ const canViewTarget = async (target, user) => {
     return String(order.customer) === String(user._id)
       || String(order.provider) === String(user._id);
   }
+  if (kind === 'training') {
+    return String(order.learner) === String(user._id)
+      || String(order.instructor) === String(user._id);
+  }
   if (kind === 'input') {
     return Boolean(await InputProduct.exists({
       _id: { $in: order.items.map((item) => item.product) },
