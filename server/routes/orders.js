@@ -28,6 +28,11 @@ const {
 const { ensureStockPersisted } = require('../services/crop.stock.service');
 const { restoreOrderStock } = require('../services/order.stock.service');
 const { initiatePayment, isPaymentPending } = require('../services/payment.service');
+const {
+  MAX_EVIDENCE,
+  normalizeEvidence,
+  remainingEvidenceSlots,
+} = require('../services/dispute.service');
 const { auditRoute } = require('../services/audit.service');
 const { refundPaidOrder } = require('../services/paymentFlow.service');
 
@@ -1048,9 +1053,15 @@ router.post('/:id/dispute', auth, auditRoute({
     const { reason, description } = req.body;
     if (!reason) return res.status(400).json({ message: 'Sababu ya mgogoro inahitajika' });
 
+    const evidence = normalizeEvidence(
+      req.body.photos || req.body.evidence,
+      { addedBy: req.user._id },
+    ).slice(0, remainingEvidenceSlots(order.disputeEvidence));
+
     order.disputeFromStatus = order.status;
     order.status = 'disputed';
     order.disputeReason = `[${reason}] ${description || ''}`.trim();
+    if (evidence.length) order.disputeEvidence = evidence;
     order.resolution = '';
     order.respondedAt = new Date();
     await order.save();
@@ -1083,6 +1094,64 @@ router.post('/:id/dispute', auth, auditRoute({
     res.json({ message: 'Mgogoro umefunguliwa', order });
   } catch (error) {
     console.error('Dispute error:', error);
+    res.status(500).json({ message: 'Hitilafu imetokea' });
+  }
+});
+
+// POST /api/v1/orders/:id/dispute/evidence — either party uploads more photos
+// or documents while the case is open; capped per order.
+router.post('/:id/dispute/evidence', auth, auditRoute({
+  action: 'add_dispute_evidence',
+  category: 'order',
+  targetType: 'Order',
+  details: (req) => ({
+    files: (Array.isArray(req.body?.photos || req.body?.evidence)
+      ? (req.body.photos || req.body.evidence).length
+      : 0),
+  }),
+}), async (req, res) => {
+  try {
+    const order = await Order.findById(req.params.id);
+    if (!order) return res.status(404).json({ message: 'Agizo halipatikani' });
+
+    const isParty = String(order.buyer) === String(req.user._id) || String(order.farmer) === String(req.user._id);
+    if (!isParty) return res.status(403).json({ message: 'Huna ruhusa kuongeza ushahidi kwenye agizo hili' });
+    if (order.status !== 'disputed') {
+      return res.status(400).json({ message: 'Agizo hili haliko kwenye mgogoro' });
+    }
+
+    const slots = remainingEvidenceSlots(order.disputeEvidence);
+    if (!slots) {
+      return res.status(400).json({ message: `Ushahidi umefikia kikomo cha ${MAX_EVIDENCE}` });
+    }
+
+    const evidence = normalizeEvidence(
+      req.body.photos || req.body.evidence,
+      { addedBy: req.user._id, note: req.body.note },
+    ).slice(0, slots);
+    if (!evidence.length) {
+      return res.status(400).json({ message: 'Ambatisha picha au nyaraka halali' });
+    }
+
+    order.disputeEvidence.push(...evidence);
+    await order.save();
+
+    const reporterIsBuyer = String(order.buyer) === String(req.user._id);
+    const otherPartyId = reporterIsBuyer ? order.farmer : order.buyer;
+    await notify(req, otherPartyId, {
+      title: 'Ushahidi Mpya kwenye Mgogoro',
+      message: `${reporterIsBuyer ? 'Mnunuzi' : 'Mkulima'} ameongeza ushahidi ${evidence.length} kwenye agizo la ${order.cropName}`,
+      link: reporterIsBuyer ? '/farmer/orders' : '/buyer/orders',
+      metadata: { orderId: order._id, status: 'disputed' },
+    }).catch(() => {});
+
+    res.status(201).json({
+      message: 'Ushahidi umeongezwa',
+      added: evidence.length,
+      evidence: order.disputeEvidence,
+    });
+  } catch (error) {
+    console.error('Add dispute evidence error:', error);
     res.status(500).json({ message: 'Hitilafu imetokea' });
   }
 });

@@ -3,6 +3,7 @@ const assert = require('node:assert');
 const {
   normalizeMeasures,
   assessQuality,
+  normalizeInspection,
   canTransitionCertification,
   effectiveCertificationStatus,
   isCertified,
@@ -37,6 +38,32 @@ test('assessQuality needs at least one valid measurement', () => {
     foreignMatterPct: null,
     cleanlinessPct: null,
   });
+});
+
+test('normalizeInspection keeps officer evidence and re-measured grade', () => {
+  const inspection = normalizeInspection({
+    photos: ['https://cdn.example.com/lot.jpg', 'not-a-url'],
+    labReference: 'LAB-2026-01',
+    notes: 'Sampuli ilichukuliwa ghalani',
+    moisturePct: 14,
+    grade: 'b',
+    sampledAt: '2026-11-20',
+  });
+
+  assert.deepStrictEqual(inspection.photos, ['https://cdn.example.com/lot.jpg']);
+  assert.strictEqual(inspection.labReference, 'LAB-2026-01');
+  assert.strictEqual(inspection.grade, 'B');
+  assert.strictEqual(inspection.assessment.grade, 'A');
+  assert.ok(inspection.sampledAt instanceof Date);
+});
+
+test('normalizeInspection needs at least one piece of evidence', () => {
+  assert.strictEqual(normalizeInspection({}), null);
+  assert.strictEqual(normalizeInspection({ photos: ['x'], grade: 'A' }), null);
+  assert.strictEqual(normalizeInspection(null), null);
+  const notesOnly = normalizeInspection({ notes: 'Ukaguzi wa eneo' });
+  assert.strictEqual(notesOnly.labReference, '');
+  assert.strictEqual(notesOnly.photos.length, 0);
 });
 
 test('certification transitions follow the review flow', () => {

@@ -13,9 +13,11 @@ const {
   STANDARDS,
   CERTIFICATION_STATUSES,
   assessQuality,
+  normalizeInspection,
   canTransitionCertification,
   effectiveCertificationStatus,
 } = require('../services/quality.service');
+const { buildListEnvelope } = require('../services/listResponse.service');
 
 const REVIEW_PERMISSION = 'verifications.review';
 
@@ -36,6 +38,16 @@ const certificationView = (crop, now = new Date()) => {
     requestedAt: certification.requestedAt || null,
     reviewedAt: certification.reviewedAt || null,
     rejectionReason: certification.rejectionReason || '',
+    inspection: certification.inspection
+      ? {
+        photos: certification.inspection.photos || [],
+        labReference: certification.inspection.labReference || '',
+        notes: certification.inspection.notes || '',
+        grade: certification.inspection.grade || '',
+        sampledAt: certification.inspection.sampledAt || null,
+        recordedAt: certification.inspection.recordedAt || null,
+      }
+      : null,
   };
 };
 
@@ -66,6 +78,45 @@ router.get('/certified', async (req, res) => {
     });
   } catch (error) {
     console.error('Certified crops error:', error);
+    res.status(500).json({ message: 'Hitilafu imetokea' });
+  }
+});
+
+// GET /api/v1/quality/pending — certification requests waiting for review,
+// oldest first so nothing is left behind in the queue.
+router.get('/pending', auth, requirePermission(REVIEW_PERMISSION), async (req, res) => {
+  try {
+    const crops = await Crop.find({ 'certification.status': 'pending' })
+      .select('name category unit farmerName image location quantity price status quality certification')
+      .sort({ 'certification.requestedAt': 1 })
+      .limit(100)
+      .lean();
+
+    const now = new Date();
+    const items = crops.map((crop) => {
+      const requestedAt = crop.certification?.requestedAt;
+      const waitingDays = requestedAt
+        ? Math.max(0, Math.floor((now.getTime() - new Date(requestedAt).getTime()) / 86400000))
+        : 0;
+      return {
+        _id: crop._id,
+        name: crop.name,
+        category: crop.category,
+        unit: crop.unit,
+        farmerName: crop.farmerName,
+        image: crop.image,
+        location: crop.location,
+        quantity: crop.quantity,
+        price: crop.price,
+        listingStatus: crop.status,
+        quality: crop.quality,
+        certification: certificationView(crop, now),
+        waitingDays,
+      };
+    });
+    res.json(buildListEnvelope(items, req.query));
+  } catch (error) {
+    console.error('Pending certifications error:', error);
     res.status(500).json({ message: 'Hitilafu imetokea' });
   }
 });
@@ -196,6 +247,33 @@ router.post('/crops/:id/certification/review', auth, requirePermission(REVIEW_PE
       return res.status(400).json({
         message: `Uthibitisho wa hali "${current}" hauwezi kubadilishwa kwenda "${target}"`,
       });
+    }
+
+    const inspection = normalizeInspection(req.body.inspection);
+    if (target === 'verified' && !inspection) {
+      return res.status(400).json({
+        message: 'Weka ushahidi wa ukaguzi: picha za zao au kumbukumbu ya maabara',
+      });
+    }
+    if (inspection) {
+      crop.certification.inspection = {
+        photos: inspection.photos,
+        labReference: inspection.labReference,
+        notes: inspection.notes,
+        grade: inspection.grade,
+        sampledAt: inspection.sampledAt,
+        inspector: req.user._id,
+        recordedAt: new Date(),
+      };
+      if (inspection.assessment) {
+        const measures = { ...inspection.assessment };
+        delete measures.issues;
+        crop.quality = {
+          ...measures,
+          grade: inspection.grade || measures.grade,
+          declaredAt: crop.quality?.declaredAt || new Date(),
+        };
+      }
     }
 
     if (target === 'verified') {

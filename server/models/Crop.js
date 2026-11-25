@@ -43,6 +43,18 @@ const cropSchema = new mongoose.Schema({
     reviewedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
     reviewedAt: { type: Date, default: null },
     rejectionReason: { type: String, default: '', maxlength: 300 },
+    // Evidence the reviewing officer recorded: lot photos, lab reference and
+    // the grade the inspection produced. Kept with the certificate so buyers
+    // can trace why a lot was certified.
+    inspection: {
+      photos: { type: [String], default: [] },
+      labReference: { type: String, default: '', maxlength: 120 },
+      notes: { type: String, default: '', maxlength: 500 },
+      grade: { type: String, enum: ['', 'A', 'B', 'C'], default: '' },
+      sampledAt: { type: Date, default: null },
+      inspector: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+      recordedAt: { type: Date, default: null },
+    },
   },
 }, { timestamps: true });
 

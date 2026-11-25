@@ -27,6 +27,15 @@ const orderSchema = new mongoose.Schema({
   // What the buyer/farmer reported when the dispute was opened; kept separate
   // from `resolution`, which holds the admin's decision.
   disputeReason: { type: String, default: '' },
+  // Photos and documents each party uploads while the case is open; the admin
+  // review screen reads this list before deciding.
+  disputeEvidence: [{
+    url: { type: String, required: true },
+    kind: { type: String, enum: ['photo', 'document'], default: 'photo' },
+    note: { type: String, default: '', maxlength: 200 },
+    addedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+    addedAt: { type: Date, default: Date.now },
+  }],
   // Status the order had when the dispute opened, so resolution can tell
   // whether stock was still reserved or already deducted.
   disputeFromStatus: { type: String, default: '' },

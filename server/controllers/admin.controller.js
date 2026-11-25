@@ -971,7 +971,7 @@ exports.resolveDispute = async (req, res) => {
       user: req.user._id, userName: req.user.name, userRole: req.user.role,
       action: 'resolve_dispute', category: 'order',
       targetType: 'Order', targetId: order._id,
-      details: { cropName: order.cropName, newStatus: status, resolution: order.resolution },
+      details: { cropName: order.cropName, newStatus: status, resolution: order.resolution, evidenceCount: (order.disputeEvidence || []).length },
       ipAddress: req.ip,
     });
 

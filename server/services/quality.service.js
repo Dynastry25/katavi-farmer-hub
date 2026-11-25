@@ -69,6 +69,31 @@ const assessQuality = (input = {}) => {
 
 const canTransitionCertification = (from, to) => Boolean(CERTIFICATION_TRANSITIONS[from]?.includes(to));
 
+// The officer's on-site evidence: lot photos, lab reference, free notes and,
+// when they re-measured the lot, the inspector's own assessment.
+const normalizeInspection = (input = {}) => {
+  if (!input || typeof input !== 'object' || Array.isArray(input)) return null;
+
+  const photos = (Array.isArray(input.photos) ? input.photos : [])
+    .map((url) => (typeof url === 'string' ? url.trim() : ''))
+    .filter((url) => url.length >= 8 && url.length <= 500 && /^(https?:\/\/|\/)/i.test(url))
+    .slice(0, 6);
+  const labReference = String(input.labReference || '').trim().slice(0, 120);
+  const notes = String(input.notes || '').trim().slice(0, 500);
+  const gradeInput = String(input.grade || '').trim().toUpperCase();
+  const assessment = assessQuality(input);
+  const grade = GRADES.includes(gradeInput) ? gradeInput : (assessment?.grade || '');
+
+  let sampledAt = null;
+  if (input.sampledAt) {
+    const parsed = new Date(input.sampledAt);
+    if (!Number.isNaN(parsed.getTime())) sampledAt = parsed;
+  }
+
+  if (!photos.length && !labReference && !notes && !assessment) return null;
+  return { photos, labReference, notes, grade, sampledAt, assessment };
+};
+
 // Expiry is evaluated on read so a lapsed certificate never shows as verified.
 const effectiveCertificationStatus = (certification = {}, now = new Date()) => {
   const status = CERTIFICATION_STATUSES.includes(certification.status) ? certification.status : 'none';
@@ -87,6 +112,7 @@ module.exports = {
   CERTIFICATION_STATUSES,
   normalizeMeasures,
   assessQuality,
+  normalizeInspection,
   canTransitionCertification,
   effectiveCertificationStatus,
   isCertified,
