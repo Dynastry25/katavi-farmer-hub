@@ -234,6 +234,7 @@ app.use('/api/v1/institutional', require('./routes/institutional'));
 app.use('/api/v1/kyc', require('./routes/kyc'));
 app.use('/api/v1/insights', require('./routes/insights'));
 app.use('/api/v1/earnings', require('./routes/earnings'));
+app.use('/api/v1/billing', require('./routes/billing'));
 app.use('/api/v1/docs', require('./routes/docs'));
 app.use('/api/v1/quality', require('./routes/quality'));
 app.use('/api/v1/bulk', require('./routes/bulk'));
