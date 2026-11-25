@@ -77,7 +77,11 @@ app.use(cors({
 
 // Phone images arrive as base64 thumbnails, so 2mb is enough; the previous 10mb
 // limit let a single request allocate a large buffer per connection.
-app.use(express.json({ limit: '2mb' }));
+// The raw buffer is kept for webhook HMAC verification.
+app.use(express.json({
+  limit: '2mb',
+  verify: (req, res, buf) => { req.rawBody = buf; },
+}));
 app.use(express.urlencoded({ extended: false, limit: '200kb', parameterLimit: 200 }));
 
 // Must run after the body parsers and before every route.

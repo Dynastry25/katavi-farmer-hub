@@ -7,7 +7,7 @@ const { TransportProvider } = require('../models/Transport');
 const { auth } = require('../middleware/auth');
 const { requireRole } = require('../middleware/roleCheck');
 const { sendNotification } = require('../services/notification.service');
-const { initiatePayment } = require('../services/payment.service');
+const { initiatePayment, isPaymentPending } = require('../services/payment.service');
 const { refundPaidOrder } = require('../services/paymentFlow.service');
 const {
   isInputStatus,
@@ -326,6 +326,7 @@ router.post('/', requireRole('buyer', 'farmer', 'admin'), async (req, res) => {
         order.paymentTransactionId = paymentResult.transactionId || '';
         order.paymentProvider = paymentProvider;
         order.paymentAmount = totalAmount;
+        order.paymentInitiatedAt = new Date();
         await order.save();
       }
     }
@@ -744,8 +745,11 @@ router.post('/:id/pay', auth, async (req, res) => {
     if (order.paymentStatus === 'paid') {
       return res.status(400).json({ message: 'Agizo hili limekwisha lipwa' });
     }
-    if (order.paymentStatus === 'processing') {
-      return res.status(400).json({ message: 'Malipo yanasubiri uthibitisho' });
+    if (isPaymentPending(order)) {
+      return res.status(409).json({
+        message: 'Malipo yanasubiri uthibitisho; subiri dakika 10 kabla ya kujaribu tena',
+        transactionId: order.paymentTransactionId || '',
+      });
     }
     if (['cancelled', 'expired', 'delivered'].includes(order.status)) {
       return res.status(400).json({ message: 'Agizo hili haliwezi kulipwa' });
@@ -768,6 +772,7 @@ router.post('/:id/pay', auth, async (req, res) => {
     order.paymentTransactionId = result.transactionId || '';
     order.paymentProvider = provider;
     order.paymentAmount = order.totalAmount;
+    order.paymentInitiatedAt = new Date();
     await order.save();
 
     res.json(result);

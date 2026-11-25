@@ -2,6 +2,18 @@ const PROVIDERS = ['M-Pesa', 'Tigo Pesa', 'Airtel Money', 'HaloPesa'];
 
 const crypto = require('crypto');
 
+// A collection request waits for the buyer's PIN; re-initiating inside this
+// window risks charging the same order twice.
+const PAYMENT_RETRY_WINDOW_MS = 10 * 60 * 1000;
+
+const isPaymentPending = (order, now = Date.now()) => {
+  if (!order || order.paymentStatus !== 'processing') return false;
+  const started = order.paymentInitiatedAt
+    ? new Date(order.paymentInitiatedAt).getTime()
+    : 0;
+  return Boolean(started) && now - started < PAYMENT_RETRY_WINDOW_MS;
+};
+
 const toE164 = (phone) => {
   if (!phone) return '';
   let p = String(phone).replace(/[^\d]/g, '');
@@ -119,4 +131,11 @@ const refundPayment = async ({ transactionId, amount, reason }) => {
   return { success: true, status: 'refunded', refundId, mock: true };
 };
 
-module.exports = { initiatePayment, refundPayment, PROVIDERS, toE164 };
+module.exports = {
+  initiatePayment,
+  refundPayment,
+  isPaymentPending,
+  PAYMENT_RETRY_WINDOW_MS,
+  PROVIDERS,
+  toE164,
+};

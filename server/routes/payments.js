@@ -1,19 +1,21 @@
-const crypto = require('crypto');
 const express = require('express');
 const mongoose = require('mongoose');
 const router = express.Router();
 const { auth } = require('../middleware/auth');
 const { requireRole, STAFF_ROLES } = require('../middleware/roleCheck');
 const InputProduct = require('../models/InputProduct');
+const LedgerEntry = require('../models/LedgerEntry');
 const Order = require('../models/Order');
 const { orderAmount, canPayOrder } = require('../services/order.service');
-const { initiatePayment } = require('../services/payment.service');
+const { initiatePayment, isPaymentPending } = require('../services/payment.service');
 const {
   findPaymentTargets,
   paymentSummary,
   applyPaymentResult,
   refundTransaction,
 } = require('../services/paymentFlow.service');
+const { verifyCallbackSignature } = require('../services/paymentSignature.service');
+const { getReconciliation } = require('../services/ledger.service');
 const { auditRoute } = require('../services/audit.service');
 
 const normalizeEvent = (value) => {
@@ -80,7 +82,13 @@ router.post('/initiate', auth, auditRoute({
         String(order.buyer) !== String(req.user._id)) {
       return res.status(403).json({ message: 'Huna ruhusa kulipia agizo hili' });
     }
-    if (!canPayOrder(order)) {
+    if (isPaymentPending(order)) {
+      return res.status(409).json({
+        message: 'Malipo yameanzishwa hivi punde; subiri uthibitisho kabla ya kujaribu tena',
+        transactionId: order.paymentTransactionId || '',
+      });
+    }
+    if (order.paymentStatus !== 'processing' && !canPayOrder(order)) {
       return res.status(400).json({
         message: order.paymentStatus === 'paid'
           ? 'Agizo limekwisha lipwa'
@@ -105,6 +113,7 @@ router.post('/initiate', auth, auditRoute({
     order.paymentProvider = provider;
     order.paymentTransactionId = result.transactionId || '';
     order.paymentAmount = amount;
+    order.paymentInitiatedAt = new Date();
     await order.save();
 
     res.status(201).json({ ...result, amount, orderId: String(order._id) });
@@ -114,8 +123,8 @@ router.post('/initiate', auth, auditRoute({
   }
 });
 
-// POST /api/v1/payments/callback — gateway webhook. The shared secret keeps
-// arbitrary callers from marking orders as paid.
+// POST /api/v1/payments/callback — gateway webhook. Signed with HMAC-SHA256
+// (x-payment-signature) so arbitrary callers cannot mark orders as paid.
 router.post('/callback', auditRoute({
   action: 'payment_callback',
   category: 'payment',
@@ -128,16 +137,19 @@ router.post('/callback', auditRoute({
   }),
 }), async (req, res) => {
   try {
-    const secret = process.env.PAYMENT_CALLBACK_SECRET;
-    if (!secret) {
+    const verification = verifyCallbackSignature({
+      hmacSecret: process.env.PAYMENT_WEBHOOK_SECRET,
+      legacySecret: process.env.PAYMENT_CALLBACK_SECRET,
+      legacyProvided: req.get('x-payment-secret') || '',
+      rawBody: req.rawBody,
+      body: req.body,
+      signature: req.get('x-payment-signature') || '',
+    });
+    if (!verification.configured) {
       return res.status(503).json({ message: 'Callback ya malipo haijasanidiwa' });
     }
-    const provided = req.get('x-payment-secret') || '';
-    const expected = Buffer.from(secret);
-    const actual = Buffer.from(provided);
-    if (actual.length !== expected.length ||
-        !crypto.timingSafeEqual(actual, expected)) {
-      return res.status(401).json({ message: 'Siri ya callback si sahihi' });
+    if (!verification.ok) {
+      return res.status(401).json({ message: 'Sahihi ya callback si sahihi' });
     }
 
     const transactionId = transactionFromBody(req.body);
@@ -255,6 +267,48 @@ router.post('/:transactionId/refund', requireRole('admin', 'finance_officer'), a
     });
   } catch (error) {
     console.error('Payment refund error:', error);
+    res.status(500).json({ message: 'Hitilafu imetokea' });
+  }
+});
+
+// GET /api/v1/payments/reconciliation — finance checks totals from the ledger
+// against paid orders for a period (default: last 30 days).
+router.get('/reconciliation', requireRole('admin', 'finance_officer'), async (req, res) => {
+  try {
+    const report = await getReconciliation({
+      from: req.query.from,
+      to: req.query.to,
+    });
+    res.json(report);
+  } catch (error) {
+    console.error('Payment reconciliation error:', error);
+    res.status(500).json({ message: 'Hitilafu imetokea' });
+  }
+});
+
+// GET /api/v1/payments/ledger — paginated ledger entries for finance review.
+router.get('/ledger', requireRole('admin', 'finance_officer'), async (req, res) => {
+  try {
+    const filter = {};
+    if (['payment', 'refund', 'adjustment'].includes(req.query.type)) {
+      filter.type = req.query.type;
+    }
+    for (const key of ['from', 'to']) {
+      const value = req.query[key];
+      if (!value) continue;
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) continue;
+      filter.createdAt = { ...(filter.createdAt || {}), [key === 'from' ? '$gte' : '$lte']: date };
+    }
+
+    const limit = Math.min(Math.max(Number(req.query.limit) || 50, 1), 200);
+    const entries = await LedgerEntry.find(filter)
+      .sort({ createdAt: -1 })
+      .limit(limit)
+      .lean();
+    res.json(entries);
+  } catch (error) {
+    console.error('Payment ledger error:', error);
     res.status(500).json({ message: 'Hitilafu imetokea' });
   }
 });

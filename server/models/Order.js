@@ -69,6 +69,8 @@ const orderSchema = new mongoose.Schema({
   paidAt: { type: Date, default: null },
   refundedAt: { type: Date, default: null },
   refundReference: { type: String, default: '' },
+  // When the current collection attempt started; guards against double charges.
+  paymentInitiatedAt: { type: Date, default: null },
 }, { timestamps: true });
 
 // Amount payable by the buyer: accepted quantity × price + delivery fee.

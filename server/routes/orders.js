@@ -27,7 +27,7 @@ const {
 } = require('../services/order.service');
 const { ensureStockPersisted } = require('../services/crop.stock.service');
 const { restoreOrderStock } = require('../services/order.stock.service');
-const { initiatePayment } = require('../services/payment.service');
+const { initiatePayment, isPaymentPending } = require('../services/payment.service');
 const { auditRoute } = require('../services/audit.service');
 const { refundPaidOrder } = require('../services/paymentFlow.service');
 
@@ -223,7 +223,17 @@ router.post('/pay', requireRole('buyer', 'farmer', 'seller', 'admin'), auditRout
       const foreign = orders.find((order) => String(order.buyer) !== String(req.user._id));
       if (foreign) return res.status(403).json({ message: 'Huna ruhusa kulipia agizo hili' });
     }
-    const blocked = orders.find((order) => !canPayOrder(order));
+    const pending = orders.find((order) => isPaymentPending(order));
+    if (pending) {
+      return res.status(409).json({
+        message: 'Malipo ya baadhi ya maagizo yameshaanzishwa hivi punde; subiri uthibitisho',
+        orderId: String(pending._id),
+        transactionId: pending.paymentTransactionId || '',
+      });
+    }
+    const blocked = orders.find(
+      (order) => order.paymentStatus !== 'processing' && !canPayOrder(order)
+    );
     if (blocked) {
       return res.status(400).json({
         message: blocked.paymentStatus === 'paid'
@@ -256,6 +266,7 @@ router.post('/pay', requireRole('buyer', 'farmer', 'seller', 'admin'), auditRout
             paymentProvider: provider,
             paymentTransactionId: result.transactionId || '',
             paymentAmount: orderAmount(order),
+            paymentInitiatedAt: new Date(),
           },
         },
       },

@@ -43,6 +43,8 @@ const inputOrderSchema = new mongoose.Schema({
   paidAt: { type: Date, default: null },
   refundedAt: { type: Date, default: null },
   refundReference: { type: String, default: '' },
+  // When the current collection attempt started; guards against double charges.
+  paymentInitiatedAt: { type: Date, default: null },
   receivedAt: { type: Date, default: null },
   respondedAt: { type: Date, default: null },
   cancelReason: { type: String, default: '' },

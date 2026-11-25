@@ -3,6 +3,7 @@ const InputOrder = require('../models/InputOrder');
 const InputProduct = require('../models/InputProduct');
 const { refundPayment } = require('./payment.service');
 const { sendNotification } = require('./notification.service');
+const ledger = require('./ledger.service');
 
 // Orders that can no longer be fulfilled: a late successful charge is refunded
 // instead of marking the order paid.
@@ -92,6 +93,8 @@ const markRefunded = async (order, kind, { amount, reason, refundId }) => {
   order.refundedAt = new Date();
   order.refundReference = refundId || '';
   await order.save();
+
+  await ledger.recordRefund({ order, kind, amount, refundId, reason });
 
   await notify(order.buyer, {
     title: 'Malipo Yamerejeshwa',
@@ -204,6 +207,13 @@ const applyToTarget = async ({ order, kind }, { status, reason }) => {
       order.refundedAt = new Date();
       order.refundReference = result.refundId || order.refundReference || '';
       await order.save();
+      await ledger.recordRefund({
+        order,
+        kind,
+        amount: amountFor(order, kind),
+        refundId: result.refundId,
+        reason: reason || 'Malipo yalirejeshwa awali',
+      });
     } else {
       console.error(
         `[Payment] Duplicate refund failed for ${order.paymentTransactionId}: ${result.error}`
@@ -226,6 +236,13 @@ const applyToTarget = async ({ order, kind }, { status, reason }) => {
       order.paymentAmount = amountFor(order, kind);
     }
     await order.save();
+    await ledger.recordPayment({
+      order,
+      kind,
+      transactionId: order.paymentTransactionId,
+      provider: order.paymentProvider,
+      amount: amountFor(order, kind),
+    });
   }
 
   if (DEAD_STATUSES[kind].includes(order.status)) {
