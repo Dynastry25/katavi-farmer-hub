@@ -15,6 +15,7 @@ const { sendOtpEmail, isDeliverableEmail } = require('../services/email.service'
 const { loginLimiter, otpLimiter } = require('../middleware/rateLimits');
 const { audit, auditRoute } = require('../services/audit.service');
 const { commissionAmount, buildReference } = require('../services/agent.service');
+const { authorizedRoles, switchableRoles, canSwitchRole } = require('../services/role.service');
 
 const STAFF_ROLES = ['admin', 'support', 'content_moderator', 'finance_officer'];
 const PUBLIC_ROLES = ['farmer', 'buyer', 'seller', 'expert', 'logistics'];
@@ -91,6 +92,8 @@ const publicUser = (user, token) => ({
   isVerified: user.isVerified,
   phoneVerified: user.phoneVerified,
   twoFactorEnabled: user.twoFactorEnabled,
+  verifiedRoles: user.verifiedRoles || [],
+  availableRoles: switchableRoles(user),
   registrationDate: user.createdAt,
   token,
 });
@@ -371,8 +374,52 @@ router.post('/2fa/setup', auth, async (req, res) => {
 router.get('/me', auth, async (req, res) => {
   try {
     const user = await User.findById(req.user._id).select('-password');
-    res.json(user);
+    res.json({
+      ...user.toObject(),
+      availableRoles: switchableRoles(user),
+      authorizedRoles: authorizedRoles(user),
+    });
   } catch (error) {
+    res.status(500).json({ message: 'Hitilafu imetokea' });
+  }
+});
+
+// GET /api/auth/roles — active role plus the roles this account may switch to.
+router.get('/roles', auth, async (req, res) => {
+  try {
+    res.json({
+      activeRole: req.user.role,
+      availableRoles: switchableRoles(req.user),
+      verifiedRoles: req.user.verifiedRoles || [],
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Hitilafu imetokea' });
+  }
+});
+
+// POST /api/auth/switch-role — one account, one active role at a time.
+router.post('/switch-role', auth, auditRoute({
+  action: 'switch_role',
+  category: 'auth',
+  targetType: 'User',
+  details: (req) => ({ role: String(req.body?.role || '') }),
+}), async (req, res) => {
+  try {
+    const role = String(req.body.role || '');
+    if (!canSwitchRole(req.user, role)) {
+      return res.status(403).json({
+        message: 'Jukumu hili halijaruhusiwa kwenye akaunti yako',
+        availableRoles: switchableRoles(req.user),
+      });
+    }
+    if (role === req.user.role) {
+      return res.json(publicUser(req.user, req.token));
+    }
+
+    const user = await User.findByIdAndUpdate(req.user._id, { role }, { new: true }).select('-password');
+    res.json(publicUser(user, req.token));
+  } catch (error) {
+    console.error('Switch role error:', error);
     res.status(500).json({ message: 'Hitilafu imetokea' });
   }
 });
